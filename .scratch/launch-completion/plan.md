@@ -176,12 +176,13 @@ npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 
 **الهدف:** أيقونات حقيقية + أول deploy إنتاجي على HTTPS فعلي.
 
-- [ ] **أيقونات PWA:** استبدال placeholders (حرف M) بتصميم حقيقي → تشغيل `scripts/gen-icons.mjs` أو استبداله لإنتاج `icon-192/512/512-maskable/apple-touch-icon`. (التصميم قرار Mustafa).
-- [ ] **النشر (Mustafa ينفّذ، الخطة ترشد):** اتبع `DEPLOY.md` — DNS على Cloudflare لـ`qaema.app` → إنشاء تطبيق Coolify وربط الـrepo → متغيرات البيئة (٣ build + ٦ runtime) → أول deploy + شهادة Let's Encrypt.
-- [ ] **بعد النشر — تشغيل migrations:** `0001` ثم `0002` على Supabase، ثم `UPDATE auth.users ... role:owner` يدوياً (Mustafa يشغّل SQL بنفسه).
-- [ ] **التحقّق على HTTPS فعلي:** فحوصات `DEPLOY.md` (curl + متصفّح) — رفع صورة يصل R2 ويُعرَض، الـSW يُسجَّل ويتحكّم على `/r/`، الـmanifest يُحمَّل، الأوضاع تنعكس.
+- [x] **`next build` كامل** — نجح: تجميع نظيف، TypeScript تمّ، كل الـ١٦ مساراً بُنيت، صفر أخطاء/تحذيرات. يؤكّد أن drag & drop (المرحلة ٥) ومكوّنات `@dnd-kit` تُبنى للإنتاج سليمةً.
+- [ ] **أيقونات PWA:** استبدال placeholders (حرف M) بتصميم حقيقي → تشغيل `scripts/gen-icons.mjs` أو استبداله لإنتاج `icon-192/512/512-maskable/apple-touch-icon`. **مهمة Mustafa (قرار تصميمي).**
+- [ ] **النشر (Mustafa):** اتبع `DEPLOY.md` — DNS على Cloudflare لـ`qaema.app` → إنشاء تطبيق Coolify وربط الـrepo (يحتاج repo على GitHub — بند معلّق من المرحلة ١) → متغيرات البيئة (٣ build + ٦ runtime) → أول deploy + شهادة Let's Encrypt.
+- [ ] **بعد النشر — تشغيل migrations:** `0001` ثم `0002` على Supabase، ثم `UPDATE auth.users ... role:owner` يدوياً. **مهمة Mustafa.**
+- [ ] **التحقّق على HTTPS فعلي:** فحوصات `DEPLOY.md` (curl + متصفّح). **مهمة Mustafa.**
 
-**تحقّق المرحلة ٦:** الموقع يفتح على `https://qaema.app` · إنشاء حساب من لوحة المالك يعمل end-to-end · منيو زبون حقيقي يُعرَض بصورة من R2 · الأوضاع الأربعة تعمل على الإنتاج.
+**تحقّق المرحلة ٦:** ✅ `next build` أخضر محلياً. ⏳ باقي البنود (الموقع على `https://qaema.app`، end-to-end على الإنتاج) معلّقة على نشر Mustafa.
 
 **حُرّاس:** لا تضع secrets في الـrepo. تحقّق من `Service-Worker-Allowed: /r/`. لا تحوّل الـlazy revert لـcron.
 
