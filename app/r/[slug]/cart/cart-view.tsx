@@ -31,6 +31,9 @@ export function CartView({
   const [lang, setLang] = useState<Lang>('ar');
   const [readModal, setReadModal] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect --
+     Both effects sync from client-only stores on mount (localStorage / cart):
+     these reads can't run during SSR, so an effect is the correct home. */
   useEffect(() => {
     const saved = (window.localStorage.getItem(LANG_KEY) ?? 'ar') as Lang;
     if (saved === 'ar' || saved === 'en' || saved === 'ku') setLang(saved);
@@ -40,6 +43,7 @@ export function CartView({
     setCart(getCart(slug));
     return subscribe(slug, () => setCart(getCart(slug)));
   }, [slug]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Closing Mode Q5: cart always quotes the *current* menu price, matching
   // what the captain will charge. Poll on the same 30s cycle as the menu.

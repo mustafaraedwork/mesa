@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "node scripts/run-smoke.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",

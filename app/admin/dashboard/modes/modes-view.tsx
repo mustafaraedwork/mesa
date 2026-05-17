@@ -65,6 +65,8 @@ export function ModesView({
   const [t3Open, setT3Open] = useState(false);
   const [t3RemainingMs, setT3RemainingMs] = useState(0);
 
+  /* eslint-disable react-hooks/purity -- the countdown gating reads the wall
+     clock on purpose; this view re-renders on the 10s state poll. */
   // Q12 server-now offset for the countdown.
   const offset =
     new Date(state.server_now).getTime() - Date.now();
@@ -94,6 +96,7 @@ export function ModesView({
     isClosing &&
     state.closing_mode_ends_at !== null &&
     new Date(state.closing_mode_ends_at).getTime() + offset < Date.now();
+  /* eslint-enable react-hooks/purity */
 
   function performSwitch(mode: 'normal' | 'rush' | 'profit') {
     setError(null);

@@ -54,7 +54,7 @@ export function AccountsTable({ accounts }: { accounts: AccountRow[] }) {
 
       {accounts.length === 0 ? (
         <p className="text-muted-foreground rounded-lg border bg-card p-6 text-center text-sm">
-          لا توجد حسابات بعد — اضغط "إنشاء حساب جديد" للبدء.
+          لا توجد حسابات بعد — اضغط &quot;إنشاء حساب جديد&quot; للبدء.
         </p>
       ) : (
         <div className="rounded-lg border bg-card">
@@ -137,6 +137,7 @@ export function AccountsTable({ accounts }: { accounts: AccountRow[] }) {
       />
       {dialog.kind === 'changePassword' && (
         <ChangePasswordDialog
+          key={dialog.account.id}
           account={dialog.account}
           onClose={() => setDialog({ kind: 'none' })}
         />

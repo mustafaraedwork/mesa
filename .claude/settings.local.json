@@ -69,7 +69,13 @@
       "Bash(git --version)",
       "Bash(gh --version)",
       "Bash(git init *)",
-      "Bash(git -c user.name=Mustafa -c user.email=skizmapple@gmail.com commit -q -m ' *)"
+      "Bash(git -c user.name=Mustafa -c user.email=skizmapple@gmail.com commit -q -m ' *)",
+      "Bash(sed -n '58,68p' app/admin/dashboard/menu/menu-view.tsx)",
+      "Bash(sed -n '88,96p' app/admin/dashboard/modes/closing-dialog.tsx)",
+      "Bash(sed -n '145,153p' app/admin/dashboard/modes/closing-dialog.tsx)",
+      "Bash(sed -n '53,61p' app/owner/dashboard/accounts/accounts-table.tsx)",
+      "Bash(echo \"=== TSC EXIT: $? ===\")",
+      "Bash(echo \"tsc exit: $?\")"
     ]
   }
 }

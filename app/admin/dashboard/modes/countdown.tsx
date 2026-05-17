@@ -10,6 +10,7 @@ export function Countdown({ endsAt, offsetMs }: { endsAt: string; offsetMs: numb
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- seed the clock client-side only (see null-init note above)
     setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);

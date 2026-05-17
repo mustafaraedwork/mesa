@@ -71,22 +71,22 @@ npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 **الهدف:** version control + إزالة الـboilerplate + lint نظيف + اختبار موحّد. لا منطق منتج جديد.
 
 ### ١.١ — git
-- [ ] `git init` في جذر المشروع (`.gitignore` موجود مسبقاً — تحقّق أنه يستثني `.next`, `node_modules`, `.env*`, `tsconfig.tsbuildinfo`).
-- [ ] commit أول يشمل كل المصدر والوثائق.
-- [ ] إنشاء repo خاص على GitHub (`gh repo create` أو يدوياً) وربطه + push. **هذا شرط لربط Coolify لاحقاً.**
+- [x] `git init` في جذر المشروع — `.gitignore` يستثني `.next`/`node_modules`/`.env*`/`*.tsbuildinfo`. أُضيف `.gitattributes` (`eol=lf`) لمنع ضجيج CRLF على Windows.
+- [x] commit أول (`8267b9b`) كنقطة استعادة قبل عمل المرحلة ١.
+- [ ] إنشاء repo خاص على GitHub وربطه + push. **معلّق — `gh` غير منصَّب على الجهاز؛ مهمة Mustafa** (أو تنصيب `gh`). شرط لربط Coolify (المرحلة ٦).
 
 ### ١.٢ — صفحة `/`
-- [ ] استبدال `app/page.tsx` (boilerplate create-next-app: شعار Next + روابط Vercel) بصفحة عربية بسيطة RTL: اسم المنصة + جملة تعريفية + (اختياري) رابط `/admin`. لا تستورد `next/image` للشعارات الافتراضية. اتبع نمط RTL والخط من `app/layout.tsx`.
+- [x] استُبدلت `app/page.tsx` بصفحة عربية RTL: عنوان "Mesa OS Lite" + جملة تعريفية + رابط `/admin`. لا `next/image`، تعتمد RTL/الخط من `app/layout.tsx`.
 
 ### ١.٣ — تنظيف ESLint (٢٠ خطأ)
-- [ ] **`react/no-unescaped-entities`** (٤ ملفات: `menu-view.tsx:63`, `closing-dialog.tsx:92,149`, `accounts-table.tsx:57`): استبدل علامات `"` الحرفية داخل JSX بـنصّ ضمن `{'...'}` أو `&quot;`.
-- [ ] **`react-hooks/set-state-in-effect`** (`design-view.tsx:48,97`, `countdown.tsx:13`, `change-password-dialog.tsx:32`, `create-account-dialog.tsx:46,59`, `cart-view.tsx:36,40`, `menu-view.tsx:30,35`): هذه قاعدة جديدة في `eslint-config-next@16.2.6`. معظمها نمط "إعادة تعيين الحالة عند تغيّر prop" وهو مشروع. الإصلاح المفضّل حسب RULES (البساطة): إمّا (أ) إعادة تركيب المكوّن عبر `key` prop من الأب بدل effect يعيد الضبط، أو (ب) `// eslint-disable-next-line react-hooks/set-state-in-effect` مع تعليق سطر واحد يشرح **لماذا** (RULES §5). لا تعيد هيكلة منطق صحيح لمجرد إسكات linter.
-- [ ] **`react-hooks/purity`** (`modes-view.tsx:70,96`): `Date.now()`/`new Date()` أثناء الـrender. احسب الـoffset داخل `useState` initializer أو `useMemo`، أو disable مع تعليق "الـcountdown يُعاد رسمه كل ثانية على أي حال".
-- [ ] التحقق: `npx eslint` → صفر errors (warnings مقبولة).
+- [x] **`react/no-unescaped-entities`** — ٤ ملفات، استُبدلت `"` بـ`&quot;`.
+- [x] **`react-hooks/set-state-in-effect`** — إصلاح نظيف حيث أمكن: حُذفت حالة `logoUrl` الزائدة في `design-view.tsx`، وحُذف effect إعادة الضبط الزائد في `change-password-dialog.tsx` (المكوّن يُعاد تركيبه عبر `key`). الباقي (قراءات mount لـlocalStorage/cart، seed الساعة، reset-on-open) `eslint-disable` مع تعليق "لماذا".
+- [x] **`react-hooks/purity`** (`modes-view.tsx`): block-disable مع تعليق — قراءة الساعة مقصودة والـview يُعاد رسمه مع poll الـ10ث.
+- [x] التحقق: `npx eslint` → **صفر errors** (٣١ warning في `scripts/` مقبولة).
 
 ### ١.٤ — اختبار موحّد
-- [ ] إضافة script في `package.json`: `"test"` يشغّل كل سكربتات `scripts/smoke-*.mjs` تتابعياً ويفشل لو فشل أيّها (سكربت `.mjs` صغير ينادي البقية، أو سطر shell). بعضها يحتاج dev server شغّالاً وبيئة `.env.local` — وثّق ذلك في رأس السكربت.
-- [ ] التحقق: `npm test` يشغّل المجموعة ويُظهر ملخّصاً.
+- [x] `scripts/run-smoke.mjs` + `"test"` في `package.json`. يكتشف كل `smoke-*.mjs`، يصنّفها STATIC/ENV/SERVER، يتخطّى ما تنقصه متطلباته (dev server / `.env.local`) بدل أن يفشل، ويخرج بـnon-zero فقط عند فشل حقيقي.
+- [x] التحقق: `npm test` — ٦ نجح / ٠ فشل / ٧ مُتخطّى (server-dependent، لا dev server شغّال).
 
 **تحقّق المرحلة ١:** `npx tsc --noEmit` نظيف · `npx eslint` صفر errors · `git log` فيه commit · صفحة `/` عربية · `npm test` موجود.
 

@@ -23,6 +23,9 @@ export function MenuView({
   const [lang, setLang] = useState<Lang>('ar');
   const [cartCount, setCartCount] = useState(0);
 
+  /* eslint-disable react-hooks/set-state-in-effect --
+     Both effects sync from client-only stores on mount (localStorage / cart):
+     these reads can't run during SSR, so an effect is the correct home. */
   // Restore language preference on mount (avoids hydration mismatch — initial
   // render is always 'ar', then we sync to localStorage in the effect).
   useEffect(() => {
@@ -35,6 +38,7 @@ export function MenuView({
     setCartCount(totalQuantity(getCart(slug)));
     return subscribe(slug, () => setCartCount(totalQuantity(getCart(slug))));
   }, [slug]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // 30s polling (PRD §3.2). Pause when tab is hidden.
   useEffect(() => {

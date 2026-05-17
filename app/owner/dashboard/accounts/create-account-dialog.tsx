@@ -40,6 +40,10 @@ export function CreateAccountDialog({
   const [pending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect --
+     Both effects deliberately set state: the first resets the dialog when it
+     (re)opens — it stays mounted across opens, so a remount isn't an option;
+     the second derives the slug from the display name until the user edits it. */
   // Reset on open.
   useEffect(() => {
     if (open) {
@@ -58,6 +62,7 @@ export function CreateAccountDialog({
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(display));
   }, [display, slugTouched]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function onRegen() {
     setPassword(generateRandomPassword());

@@ -36,7 +36,6 @@ export function DesignView({
   const [primary, setPrimary] = useState(initial.primary_color);
   const [background, setBackground] = useState(initial.background_color);
   const [currency, setCurrency] = useState(initial.currency);
-  const [logoUrl, setLogoUrl] = useState<string | null>(initial.logo_url);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -45,6 +44,7 @@ export function DesignView({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   useEffect(() => {
     if (!logoFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- object URL lifecycle is inherently effectful
       setLogoPreview(null);
       return;
     }
@@ -90,12 +90,7 @@ export function DesignView({
 
   // What the live preview should show for the logo: the freshly-picked
   // file (if any), else the saved one (unless the user clicked remove).
-  const previewLogoSrc = logoPreview ?? (removeLogo ? null : logoUrl);
-
-  // Keep saved-logo URL in sync with the row when router refreshes.
-  useEffect(() => {
-    setLogoUrl(initial.logo_url);
-  }, [initial.logo_url]);
+  const previewLogoSrc = logoPreview ?? (removeLogo ? null : initial.logo_url);
 
   return (
     <div className="space-y-6">
@@ -159,7 +154,7 @@ export function DesignView({
                     alt=""
                     className="h-16 w-16 rounded border bg-white object-contain"
                   />
-                  {logoUrl && !logoFile && !removeLogo && (
+                  {initial.logo_url && !logoFile && !removeLogo && (
                     <Button
                       type="button"
                       variant="outline"

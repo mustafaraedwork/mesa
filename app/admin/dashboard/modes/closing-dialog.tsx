@@ -89,7 +89,7 @@ export function ClosingDialog({
           <DialogHeader>
             <DialogTitle>تفعيل وضع الإغلاق</DialogTitle>
             <DialogDescription>
-              اختر المنتجات والخصم والمدة. سيظهر القسم "عروض اليوم" بأعلى المنيو
+              اختر المنتجات والخصم والمدة. سيظهر القسم &quot;عروض اليوم&quot; بأعلى المنيو
               تلقائياً، وستُحدَّث الأسعار في كل مكان فور التفعيل.
             </DialogDescription>
           </DialogHeader>
@@ -146,7 +146,7 @@ export function ClosingDialog({
 
             {categoryGroups.length === 0 || allProducts.length === 0 ? (
               <p className="text-muted-foreground text-sm">
-                لا توجد منتجات بعد. أضف منتجات من تبويب "المنيو".
+                لا توجد منتجات بعد. أضف منتجات من تبويب &quot;المنيو&quot;.
               </p>
             ) : (
               <ul className="max-h-72 space-y-3 overflow-y-auto rounded border p-2">

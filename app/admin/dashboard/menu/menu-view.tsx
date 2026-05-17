@@ -60,7 +60,7 @@ export function MenuView({ tree }: { tree: CategoryNode[] }) {
 
       {tree.length === 0 ? (
         <p className="text-muted-foreground bg-card rounded-lg border p-6 text-center text-sm">
-          ما في سكاشن بعد. ابدأ بإنشاء "سكشن رئيسي".
+          ما في سكاشن بعد. ابدأ بإنشاء &quot;سكشن رئيسي&quot;.
         </p>
       ) : (
         <ul className="space-y-4">

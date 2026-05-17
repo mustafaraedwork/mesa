@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -27,13 +27,6 @@ export function ChangePasswordDialog({
   const [pending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
   const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    setPassword(generateRandomPassword());
-    setError(null);
-    setCopied(false);
-    setDone(false);
-  }, [account.id]);
 
   async function copy() {
     const text = `Username: ${account.username}\nPassword: ${password}\nLink: /r/${account.slug}`;

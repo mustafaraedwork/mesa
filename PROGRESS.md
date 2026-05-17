@@ -6,9 +6,9 @@
 
 ## الحالة الحالية
 
-- **المرحلة الحالية:** 🟢 المرحلة ٨ — جزء الأتمتة مكتمل؛ يتبقّى التحقق اليدوي على أجهزة فعلية
-- **آخر إنجاز:** ٤ smoke scripts جديدة (RLS R1 + delete-account R2 purge + closing lazy revert idempotent/race/boundary) + lazy loading على صور ProductCard/CartRow/SuggestionCard. ٣٥ assertion جديد كله أخضر، typecheck نظيف
-- **التالي:** Mustafa يشغّل بصرياً: Lighthouse على `/r/[slug]`، install prompt على Chrome desktop + Android + iOS، DevTools Network=Offline reload
+- **المرحلة الحالية:** 🟢 خطة إكمال الإطلاق (`.scratch/launch-completion/plan.md`) — دفعة ٠ (المرحلة ١: نظافة فورية) مكتملة
+- **آخر إنجاز:** git مُهيّأ + أول commit، صفحة `/` العربية بدل الـboilerplate، ٢٠ خطأ ESLint = صفر، `npm test` موحّد (`scripts/run-smoke.mjs`)
+- **التالي:** دفعة ١ — المرحلة ٢: الاقتراحات المخصّصة (suggestions_type + custom_suggestion_ids)
 - **عقبات/قرارات معلّقة:**
   - اسم الدومين (PRD §٩)
   - استراتيجية التسعير (PRD §٩)
@@ -34,6 +34,15 @@
 ---
 
 ## السجل اليومي
+
+### 2026-05-17 (خطة إكمال الإطلاق — دفعة ٠)
+- ✅ **مراجعة كاملة للمشروع** + خطة مرحلية في `.scratch/launch-completion/plan.md` (٨ مراحل، ٤ دفعات) بعد اكتشاف توثيق لأنماط الكود وواجهة `@dnd-kit`
+- ✅ **git** — `git init` + أول commit (`8267b9b`) كنقطة استعادة + `.gitattributes` (`eol=lf`) لمنع ضجيج CRLF. 🚧 إنشاء repo على GitHub معلّق (`gh` غير منصَّب — مهمة Mustafa)
+- ✅ **صفحة `/`** — استُبدل boilerplate الـcreate-next-app بصفحة عربية RTL بسيطة (عنوان + جملة + رابط `/admin`)
+- ✅ **ESLint: ٢٠ خطأ → صفر** — `no-unescaped-entities` (٤ ملفات، `&quot;`)؛ `set-state-in-effect` بإصلاح نظيف حيث أمكن (حذف حالة `logoUrl` الزائدة، حذف effect إعادة الضبط في `change-password-dialog` لصالح `key`) والباقي `eslint-disable` بتعليق "لماذا"؛ `purity` في `modes-view` بـblock-disable. ٣١ warning في `scripts/` مقبولة
+- ✅ **`npm test`** — `scripts/run-smoke.mjs` يكتشف كل `smoke-*.mjs`، يصنّفها ويتخطّى ما تنقصه متطلباته بدل الفشل. التشغيل: ٦ نجح / ٠ فشل / ٧ مُتخطّى (تحتاج dev server)
+- ✅ typecheck نظيف
+- ⏭️ التالي: دفعة ١ — المرحلة ٢ (الاقتراحات المخصّصة)
 
 ### 2026-05-13 (مساءً — تجهيز النشر)
 - ✅ **PRD §٤.٤ صُحّحت** — `auth.jwt() ->> 'role'` → `auth.jwt() -> 'app_metadata' ->> 'role'`. الكود محلياً يطابق منذ migration 0002؛ تحديث PRD يمنع linkage drift مستقبلاً. (الـ0001 يحتفظ بالـbug كـrecord تاريخي — معيار append-only للـmigrations)
