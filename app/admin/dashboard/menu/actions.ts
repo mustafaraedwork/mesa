@@ -397,6 +397,68 @@ export async function removeComplement(id: string): Promise<Result> {
   return { ok: true };
 }
 
+// ─────────────── Reordering (drag & drop) ────────────────────────
+
+// `orderedIds` is the new sibling order; display_order becomes the index.
+// Works for both root categories and a parent's sub-categories — both are
+// just `categories` rows, ordered within their own sibling group.
+export async function reorderCategories(orderedIds: string[]): Promise<Result> {
+  const { restaurantId } = await requireTenant();
+  const sb = getServiceClient();
+
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return { ok: false, error: 'لا يوجد ما يُرتَّب' };
+  }
+  const unique = new Set(orderedIds);
+  const { data: owned } = await sb
+    .from('categories')
+    .select('id')
+    .in('id', orderedIds)
+    .eq('restaurant_id', restaurantId);
+  if (!owned || owned.length !== unique.size || unique.size !== orderedIds.length) {
+    return { ok: false, error: 'سكشن غير موجود' };
+  }
+
+  const results = await Promise.all(
+    orderedIds.map((id, i) =>
+      sb.from('categories').update({ display_order: i }).eq('id', id).eq('restaurant_id', restaurantId),
+    ),
+  );
+  if (results.some((r) => r.error)) return { ok: false, error: 'فشل حفظ الترتيب' };
+
+  revalidatePath(MENU_PATH);
+  return { ok: true };
+}
+
+export async function reorderProducts(categoryId: string, orderedIds: string[]): Promise<Result> {
+  const { restaurantId } = await requireTenant();
+  const sb = getServiceClient();
+
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return { ok: false, error: 'لا يوجد ما يُرتَّب' };
+  }
+  const unique = new Set(orderedIds);
+  const { data: owned } = await sb
+    .from('products')
+    .select('id')
+    .in('id', orderedIds)
+    .eq('category_id', categoryId)
+    .eq('restaurant_id', restaurantId);
+  if (!owned || owned.length !== unique.size || unique.size !== orderedIds.length) {
+    return { ok: false, error: 'منتج غير موجود' };
+  }
+
+  const results = await Promise.all(
+    orderedIds.map((id, i) =>
+      sb.from('products').update({ display_order: i }).eq('id', id).eq('restaurant_id', restaurantId),
+    ),
+  );
+  if (results.some((r) => r.error)) return { ok: false, error: 'فشل حفظ الترتيب' };
+
+  revalidatePath(MENU_PATH);
+  return { ok: true };
+}
+
 // ─────────────── helpers ─────────────────────────────────────────
 
 // Convert the public R2 URL stored in `image_url` back to the bucket key.

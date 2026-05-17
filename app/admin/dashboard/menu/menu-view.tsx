@@ -1,15 +1,21 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { CategoryDialog } from './category-dialog';
 import { ProductDialog } from './product-dialog';
 import { ConfirmDialog } from './confirm-dialog';
+import { SortableList } from './sortable-list';
 import {
   deleteCategory,
   deleteProduct,
+  reorderCategories,
+  reorderProducts,
   setProductAvailable,
 } from './actions';
+
+type Result = { ok: true } | { ok: false; error: string };
 
 export type Product = {
   id: string;
@@ -50,6 +56,19 @@ type Dialog =
 
 export function MenuView({ tree }: { tree: CategoryNode[] }) {
   const [dialog, setDialog] = useState<Dialog>({ kind: 'none' });
+  const router = useRouter();
+  const [, startReorder] = useTransition();
+  const [reorderError, setReorderError] = useState<string | null>(null);
+
+  // Persist a drag-reorder, then refresh so the server order is the truth.
+  function reorder(action: () => Promise<Result>) {
+    setReorderError(null);
+    startReorder(async () => {
+      const r = await action();
+      if (!r.ok) setReorderError(r.error);
+      router.refresh();
+    });
+  }
 
   // Flat list of every product — feeds the custom-suggestions multi-select.
   const allProducts = useMemo(() => {
@@ -72,16 +91,26 @@ export function MenuView({ tree }: { tree: CategoryNode[] }) {
         </Button>
       </div>
 
+      {reorderError && (
+        <p role="alert" className="text-destructive text-sm">{reorderError}</p>
+      )}
+
       {tree.length === 0 ? (
         <p className="text-muted-foreground bg-card rounded-lg border p-6 text-center text-sm">
           ما في سكاشن بعد. ابدأ بإنشاء &quot;سكشن رئيسي&quot;.
         </p>
       ) : (
-        <ul className="space-y-4">
-          {tree.map((cat) => (
-            <li key={cat.id} className="bg-card rounded-lg border">
+        <SortableList
+          key={tree.map((c) => c.id).join()}
+          items={tree}
+          onReorder={(ids) => reorder(() => reorderCategories(ids))}
+          className="space-y-4"
+        >
+          {(cat, handle) => (
+            <div className="bg-card rounded-lg border">
               <CategoryHeader
                 category={cat}
+                handle={handle}
                 onEdit={() => setDialog({ kind: 'editCat', category: cat })}
                 onAddSub={() => setDialog({ kind: 'newSub', parent: cat })}
                 onAddProduct={() => setDialog({ kind: 'newProduct', category: cat })}
@@ -89,49 +118,67 @@ export function MenuView({ tree }: { tree: CategoryNode[] }) {
               />
 
               {cat.products.length > 0 && (
-                <ul className="divide-y border-t">
-                  {cat.products.map((p) => (
+                <SortableList
+                  key={cat.products.map((p) => p.id).join()}
+                  items={cat.products}
+                  onReorder={(ids) => reorder(() => reorderProducts(cat.id, ids))}
+                  className="divide-y border-t"
+                >
+                  {(p, pHandle) => (
                     <ProductRow
-                      key={p.id}
                       product={p}
+                      handle={pHandle}
                       onEdit={() => setDialog({ kind: 'editProduct', product: p, category: cat })}
                       onDelete={() => setDialog({ kind: 'deleteProduct', product: p })}
                     />
-                  ))}
-                </ul>
+                  )}
+                </SortableList>
               )}
 
               {cat.children.length > 0 && (
-                <ul className="space-y-2 border-t bg-muted/30 p-3">
-                  {cat.children.map((sub) => (
-                    <li key={sub.id} className="bg-card rounded border">
-                      <CategoryHeader
-                        category={sub}
-                        compact
-                        onEdit={() => setDialog({ kind: 'editCat', category: sub })}
-                        onAddSub={null}
-                        onAddProduct={() => setDialog({ kind: 'newProduct', category: sub })}
-                        onDelete={() => setDialog({ kind: 'deleteCat', category: sub })}
-                      />
-                      {sub.products.length > 0 && (
-                        <ul className="divide-y border-t">
-                          {sub.products.map((p) => (
-                            <ProductRow
-                              key={p.id}
-                              product={p}
-                              onEdit={() => setDialog({ kind: 'editProduct', product: p, category: sub })}
-                              onDelete={() => setDialog({ kind: 'deleteProduct', product: p })}
-                            />
-                          ))}
-                        </ul>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <div className="bg-muted/30 border-t p-3">
+                  <SortableList
+                    key={cat.children.map((s) => s.id).join()}
+                    items={cat.children}
+                    onReorder={(ids) => reorder(() => reorderCategories(ids))}
+                    className="space-y-2"
+                  >
+                    {(sub, subHandle) => (
+                      <div className="bg-card rounded border">
+                        <CategoryHeader
+                          category={sub}
+                          compact
+                          handle={subHandle}
+                          onEdit={() => setDialog({ kind: 'editCat', category: sub })}
+                          onAddSub={null}
+                          onAddProduct={() => setDialog({ kind: 'newProduct', category: sub })}
+                          onDelete={() => setDialog({ kind: 'deleteCat', category: sub })}
+                        />
+                        {sub.products.length > 0 && (
+                          <SortableList
+                            key={sub.products.map((p) => p.id).join()}
+                            items={sub.products}
+                            onReorder={(ids) => reorder(() => reorderProducts(sub.id, ids))}
+                            className="divide-y border-t"
+                          >
+                            {(p, pHandle) => (
+                              <ProductRow
+                                product={p}
+                                handle={pHandle}
+                                onEdit={() => setDialog({ kind: 'editProduct', product: p, category: sub })}
+                                onDelete={() => setDialog({ kind: 'deleteProduct', product: p })}
+                              />
+                            )}
+                          </SortableList>
+                        )}
+                      </div>
+                    )}
+                  </SortableList>
+                </div>
               )}
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        </SortableList>
       )}
 
       {/* Dialogs */}
@@ -204,6 +251,7 @@ export function MenuView({ tree }: { tree: CategoryNode[] }) {
 function CategoryHeader({
   category,
   compact,
+  handle,
   onEdit,
   onAddSub,
   onAddProduct,
@@ -211,6 +259,7 @@ function CategoryHeader({
 }: {
   category: CategoryNode;
   compact?: boolean;
+  handle: ReactNode;
   onEdit: () => void;
   onAddSub: (() => void) | null;
   onAddProduct: () => void;
@@ -223,15 +272,18 @@ function CategoryHeader({
         (compact ? 'py-2' : 'py-3')
       }
     >
-      <div className="flex-1">
-        <h3 className={compact ? 'text-sm font-medium' : 'text-base font-semibold'}>
-          {category.name_ar}
-        </h3>
-        {(category.name_en || category.name_ku) && (
-          <p className="text-muted-foreground text-xs" dir="ltr">
-            {[category.name_en, category.name_ku].filter(Boolean).join(' · ')}
-          </p>
-        )}
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {handle}
+        <div className="min-w-0 flex-1">
+          <h3 className={compact ? 'text-sm font-medium' : 'text-base font-semibold'}>
+            {category.name_ar}
+          </h3>
+          {(category.name_en || category.name_ku) && (
+            <p className="text-muted-foreground text-xs" dir="ltr">
+              {[category.name_en, category.name_ku].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </div>
       </div>
       <div className="flex flex-wrap gap-1">
         <Button size="sm" variant="outline" onClick={onAddProduct}>+ منتج</Button>
@@ -245,17 +297,20 @@ function CategoryHeader({
 
 function ProductRow({
   product,
+  handle,
   onEdit,
   onDelete,
 }: {
   product: Product;
+  handle: ReactNode;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const [pending, startTransition] = useTransition();
   const available = product.is_available ?? true;
   return (
-    <li className="flex items-center gap-3 px-4 py-3">
+    <div className="flex items-center gap-3 px-4 py-3">
+      {handle}
       {product.image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -290,6 +345,6 @@ function ProductRow({
         <Button size="sm" variant="ghost" onClick={onEdit}>تعديل</Button>
         <Button size="sm" variant="ghost" onClick={onDelete}>حذف</Button>
       </div>
-    </li>
+    </div>
   );
 }

@@ -11,6 +11,8 @@
 //      surfaced in the menu payload (Phase 2)
 //   8. Link complementary categories → expect complement_ids on the payload
 //      category (Phase 3)
+//   9. Reorder via display_order → expect the new order in Normal mode
+//      (the data path behind drag & drop, Phase 5)
 //
 // Run:  node --env-file=.env.local scripts/smoke-modes.mjs
 
@@ -199,7 +201,19 @@ try {
   );
   assert(cat2Payload.complement_ids.length === 0, 'cat2 has no complements (link is directional)');
 
-  console.log('\nOK — Phase 4 modes + Phase 2 suggestions + Phase 3 complements green.');
+  console.log('\n— [7] Reorder — display_order drives Normal-mode order —');
+  // حمّص was display_order 0, سلطة 1 (both in cat1). Swap them — the data
+  // mutation behind reorderProducts — and expect Normal mode to follow.
+  await sb.from('products').update({ display_order: 1 }).eq('id', productRows[0].id);
+  await sb.from('products').update({ display_order: 0 }).eq('id', productRows[1].id);
+
+  menu = await fetchMenu();
+  assert(menu.restaurant.active_mode === 'normal', 'still Normal mode');
+  const cat1Now = menu.categories.find((c) => c.id === cat1.id);
+  assert(cat1Now.products[0].id === productRows[1].id, 'سلطة first after reorder (display_order 0)');
+  assert(cat1Now.products[1].id === productRows[0].id, 'حمّص second after reorder (display_order 1)');
+
+  console.log('\nOK — Phases 2-5 data paths green.');
 } finally {
   console.log('\n— cleanup —');
   await sb.from('restaurants').delete().eq('id', restaurantId);

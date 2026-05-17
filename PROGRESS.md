@@ -6,9 +6,9 @@
 
 ## الحالة الحالية
 
-- **المرحلة الحالية:** 🟢 خطة إكمال الإطلاق — دفعة ١، المرحلة ٤ (مفتاح `show_unavailable_items`) مكتملة
-- **آخر إنجاز:** مفتاح إظهار/إخفاء الأصناف غير المتوفرة — checkbox في صفحة التصميم يحفظ العمود الذي يقرأه فلتر `lib/menu.ts`
-- **التالي:** دفعة ١ — المرحلة ٥: السحب والإفلات (drag & drop عبر `@dnd-kit`)
+- **المرحلة الحالية:** 🟢 خطة إكمال الإطلاق — دفعة ١ كاملة (المراحل ٢–٥)؛ التالي دفعة ٢
+- **آخر إنجاز:** drag & drop لترتيب السكاشن والمنتجات عبر `@dnd-kit` — مكوّن `SortableList` عام + server actions للترتيب
+- **التالي:** دفعة ٢ — المرحلة ٦: أيقونات حقيقية + أول deploy إنتاجي + `next build`
 - **عقبات/قرارات معلّقة:**
   - اسم الدومين (PRD §٩)
   - استراتيجية التسعير (PRD §٩)
@@ -34,6 +34,14 @@
 ---
 
 ## السجل اليومي
+
+### 2026-05-17 (دفعة ١ — المرحلة ٥: السحب والإفلات)
+- ✅ تنصيب `@dnd-kit/core@6` + `sortable@10` + `utilities@3` (الكلاسيكي المستقر — لا `@dnd-kit/react`)
+- ✅ **server actions** — `reorderCategories` / `reorderProducts` في `menu/actions.ts`: فحص ملكية، رفض التكرار، `display_order = الفهرس` عبر `Promise.all`
+- ✅ **مكوّن `sortable-list.tsx`** عام — `order` يحفظ ids فقط (تفاؤلي) ومحتوى العنصر يُقرأ من props دائماً (يتفادى تعفّن القوائم المتداخلة)؛ `key` مشتقّ من ids يعيد التركيب عند تغيّر الخادم
+- ✅ **`menu-view.tsx`** — `SortableList` متداخل (سكاشن جذرية + منتجات كل سكشن + سكاشن فرعية)؛ مقبض سحب `GripVertical` في `CategoryHeader`/`ProductRow`؛ `reorder()` helper مع `router.refresh()`
+- ✅ `smoke-modes.mjs` خطوة [7] (٣ assertions) — `display_order` يقود ترتيب Normal؛ كل الـ٣٠ assertion خضراء؛ typecheck + eslint نظيفان
+- ⏭️ التالي: دفعة ٢ — المرحلة ٦ (أيقونات + deploy + build كامل)
 
 ### 2026-05-17 (دفعة ١ — المرحلة ٤: مفتاح show_unavailable_items)
 - ✅ بطاقة "إعدادات المنيو" في صفحة `/admin/dashboard/design` — `<input type="checkbox">` native، لا تبويب رابع

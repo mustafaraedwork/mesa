@@ -157,17 +157,16 @@ npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 **الهدف:** إعادة ترتيب السكاشن والمنتجات بالسحب، وحفظ `display_order`.
 
 ### ٥.١ — التنصيب
-- [ ] `npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities` (انظر Phase 0 — الإصدارات والـAPI). تحقّق أنها أُضيفت لـ`package.json` و`commit`.
+- [x] `@dnd-kit/core@^6.3.1` + `@dnd-kit/sortable@^10` + `@dnd-kit/utilities@^3.2.2` (الكلاسيكي المستقر — لا `@dnd-kit/react`).
 
 ### ٥.٢ — server action للترتيب
-- [ ] في `menu/actions.ts`: `reorderCategories(orderedIds: string[])` و `reorderProducts(categoryId: string, orderedIds: string[])` — نمط object-literal، `requireTenant()`، فحص أن كل ID يخصّ `restaurantId` (والمنتجات تخصّ `categoryId`)، تحديث `display_order` = الفهرس. حدّث الصفوف بأقل عدد queries ممكن.
+- [x] `menu/actions.ts`: `reorderCategories(orderedIds)` و `reorderProducts(categoryId, orderedIds)` — `requireTenant()`، فحص ملكية كل ID (والمنتجات تخصّ `categoryId`)، رفض التكرار، `display_order = الفهرس` عبر `Promise.all` (تحديثات متوازية).
 
 ### ٥.٣ — الواجهة
-- [ ] حوّل قوائم `menu-view.tsx` لقوائم قابلة للسحب باستخدام النمط الكلاسيكي (مقتطف Phase 0): `DndContext` + `SortableContext` (`verticalListSortingStrategy`) للسكاشن الجذرية، و`SortableContext` منفصل لمنتجات كل سكشن، وللسكاشن الفرعية. `useSortable` لكل عنصر، مقبض سحب مرئي. `id` = UUID الحقيقي.
-- [ ] `onDragEnd`: حارس `over` + `arrayMove` + تحديث الحالة المحلية تفاؤلياً ثم استدعاء الـserver action؛ عند الفشل `router.refresh()` للتراجع.
-- [ ] `menu-view.tsx` بالفعل `'use client'` — أكّد ذلك.
+- [x] مكوّن عام `sortable-list.tsx`: `DndContext` + `SortableContext` (`verticalListSortingStrategy`) لكل قائمة (سكاشن جذرية، منتجات كل سكشن، سكاشن فرعية). `order` يحفظ ids فقط (تفاؤلي) ومحتوى العنصر يُقرأ من `items` دائماً — يتفادى تعفّن القوائم المتداخلة؛ الـ`key` المشتقّ من ids يعيد التركيب عند تغيّر الخادم.
+- [x] `menu-view.tsx` يستخدم `SortableList` متداخلاً؛ `CategoryHeader`/`ProductRow` يستقبلان مقبض السحب (`GripVertical`)؛ `onDragEnd` فيه حارس `over` + `arrayMove`؛ `reorder()` helper يستدعي الـaction ثم `router.refresh()`.
 
-**تحقّق المرحلة ٥:** `tsc` + `eslint` نظيفان · سحب سكشن/منتج يحفظ `display_order` ويبقى بعد إعادة التحميل · الترتيب ينعكس على منيو الزبون · لا تحذيرات hydration في console.
+**تحقّق المرحلة ٥:** ✅ `tsc` + `eslint` نظيفان · `smoke-modes.mjs` خطوة [7] (٣ assertions) تؤكّد `display_order` يقود ترتيب Normal — كل الـ٣٠ assertion خضراء. الـbuild الكامل + التحقّق البصري (السحب الفعلي، hydration) في المرحلة ٦/٧.
 
 **حُرّاس:** لا `@dnd-kit/react`. حارس `over === null`. IDs ثابتة من DB. فحص الملكية في الـaction. لا state management خارجي — `useState` محلي يكفي.
 
