@@ -351,6 +351,52 @@ export async function deleteProduct(id: string): Promise<Result> {
   return { ok: true };
 }
 
+// ─────────────── Complementary categories ────────────────────────
+
+export async function addComplement(input: {
+  category_id: string;
+  complement_id: string;
+}): Promise<Result> {
+  const { restaurantId } = await requireTenant();
+  const sb = getServiceClient();
+
+  const { category_id, complement_id } = input;
+  if (!category_id || !complement_id) return { ok: false, error: 'اختر السكشنين' };
+  if (category_id === complement_id) return { ok: false, error: 'السكشن لا يكمّل نفسه' };
+
+  // Both categories must belong to this tenant.
+  const { data: owned } = await sb
+    .from('categories')
+    .select('id')
+    .in('id', [category_id, complement_id])
+    .eq('restaurant_id', restaurantId);
+  if (!owned || owned.length !== 2) return { ok: false, error: 'سكشن غير موجود' };
+
+  const { error } = await sb
+    .from('complementary_categories')
+    .insert({ restaurant_id: restaurantId, category_id, complement_id });
+  if (error) {
+    if (error.code === '23505') return { ok: false, error: 'هذا الربط موجود مسبقاً' };
+    return { ok: false, error: 'فشل إضافة الصنف المكمّل' };
+  }
+
+  revalidatePath(MENU_PATH);
+  return { ok: true };
+}
+
+export async function removeComplement(id: string): Promise<Result> {
+  const { restaurantId } = await requireTenant();
+  const sb = getServiceClient();
+  const { error } = await sb
+    .from('complementary_categories')
+    .delete()
+    .eq('id', id)
+    .eq('restaurant_id', restaurantId);
+  if (error) return { ok: false, error: 'فشل حذف الربط' };
+  revalidatePath(MENU_PATH);
+  return { ok: true };
+}
+
 // ─────────────── helpers ─────────────────────────────────────────
 
 // Convert the public R2 URL stored in `image_url` back to the bucket key.

@@ -6,9 +6,9 @@
 
 ## الحالة الحالية
 
-- **المرحلة الحالية:** 🟢 خطة إكمال الإطلاق — دفعة ١، المرحلة ٢ (الاقتراحات المخصّصة) مكتملة
-- **آخر إنجاز:** الاقتراحات المخصّصة end-to-end — `suggestions_type` + `custom_suggestion_ids` من DB → API → واجهة نموذج المنتج → الخطوة ١ في صفحة السلة
-- **التالي:** دفعة ١ — المرحلة ٣: الأصناف المكمّلة (`complementary_categories`)
+- **المرحلة الحالية:** 🟢 خطة إكمال الإطلاق — دفعة ١، المرحلة ٣ (الأصناف المكمّلة) مكتملة
+- **آخر إنجاز:** الأصناف المكمّلة end-to-end — `complementary_categories` من DB → API (`complement_ids`) → واجهة `ComplementarySection` → الخطوة ٢ في صفحة السلة
+- **التالي:** دفعة ١ — المرحلة ٤: مفتاح `show_unavailable_items`
 - **عقبات/قرارات معلّقة:**
   - اسم الدومين (PRD §٩)
   - استراتيجية التسعير (PRD §٩)
@@ -34,6 +34,15 @@
 ---
 
 ## السجل اليومي
+
+### 2026-05-17 (دفعة ١ — المرحلة ٣: الأصناف المكمّلة)
+- ✅ **server actions** — `addComplement`/`removeComplement` في `menu/actions.ts`: فحص ملكية الطرفين، منع ربط السكشن بنفسه، خطأ `UNIQUE` (23505) برسالة عربية
+- ✅ **طبقة البيانات** — `lib/menu.ts`: query ثالثة لـ`complementary_categories`، حقل `complement_ids: string[]` على `MenuCategory`
+- ✅ **الواجهة** — مكوّن جديد `complementary-section.tsx` أسفل `MenuView` (لا تبويب رابع): chips للمكمّلات + `<select>` للإضافة؛ `page.tsx` يجلب القائمة المسطّحة والروابط
+- ✅ **الخطوة ٢** — `cart-view.tsx`: منتجات السكاشن المكمّلة بين الخطوتين ١ و٣؛ الترتيب الآن custom→complementary→random كاملاً
+- ✅ `smoke-modes.mjs` خطوة [6] جديدة (٣ assertions) — كل الـ٢٧ assertion خضراء؛ typecheck + eslint نظيفان
+- 🔵 حذف السكشن ينظّف `complementary_categories` تلقائياً عبر `ON DELETE CASCADE` (مؤكَّد من `0001_init.sql`)
+- ⏭️ التالي: المرحلة ٤ — مفتاح `show_unavailable_items`
 
 ### 2026-05-17 (دفعة ١ — المرحلة ٢: الاقتراحات المخصّصة)
 - ✅ **طبقة البيانات** — `lib/menu.ts` يجلب ويُصدِّر `suggestions_type` + `custom_suggestion_ids` في `MenuProduct`

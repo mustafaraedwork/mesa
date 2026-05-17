@@ -122,22 +122,18 @@ npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 **الهدف:** صاحب المطعم يربط سكشن بسكشن مكمّل؛ صفحة السلة تستخدمها كأولوية ثانية. الجدول `complementary_categories(restaurant_id, category_id, complement_id)` موجود، `UNIQUE(category_id, complement_id)`، لكن **لا واجهة ولا query**.
 
 ### ٣.١ — الـserver actions
-- [ ] ملف جديد أو ضمن `menu/actions.ts`: `addComplement(input: { category_id, complement_id })` و `removeComplement(id)` — نمط object-literal، `requireTenant()`، فحص أن السكشنين يخصّان `restaurantId`، منع `category_id === complement_id`، التعامل مع خطأ `UNIQUE` كرسالة عربية ودّية.
+- [x] `menu/actions.ts`: `addComplement({ category_id, complement_id })` و `removeComplement(id)` — `requireTenant()`، فحص ملكية السكشنين، منع `category_id === complement_id`، خطأ `UNIQUE` (`23505`) → "هذا الربط موجود مسبقاً".
 
 ### ٣.٢ — الواجهة
-- [ ] قرار الموضع: ضمن صفحة `/admin/dashboard/menu` (قسم/dialog أسفل الشجرة) — **لا تُضِف تبويباً رابعاً** (الـbottom nav مثبّت على ٣، تغييره تغيير UX غير مطلوب).
-- [ ] واجهة بسيطة: لكل سكشن، اختيار سكاشن مكمّلة عبر `<select>` + قائمة المربوط حالياً مع زر حذف. اتبع نمط `category-dialog.tsx` (controlled) و `confirm-dialog.tsx` للحذف عند الحاجة.
+- [x] مكوّن جديد `complementary-section.tsx` يُعرَض أسفل `MenuView` في صفحة `/admin/dashboard/menu` — لا تبويب رابع. لكل سكشن: chips للمكمّلات الحالية (× للحذف) + `<select>` لإضافة مكمّل (يستثني نفسه والمربوط مسبقاً).
 
 ### ٣.٣ — طبقة البيانات
-- [ ] `lib/menu.ts`: أضف query ثالثة لـ`complementary_categories` (مقيّدة بـ`restaurant_id`) ضمن `Promise.all`. أضف لنوع `MenuCategory` الحقل `complement_ids: string[]` وعبّئه.
+- [x] `lib/menu.ts`: query ثالثة لـ`complementary_categories` ضمن `Promise.all`، حقل `complement_ids: string[]` على `MenuCategory` يُعبّأ من map (والـvirtual category يأخذ `[]`).
 
 ### ٣.٤ — تفعيل الخطوة ٢ في صفحة السلة
-- [ ] في `cart-view.tsx` `useMemo`: بعد الخطوة ١ وقبل الخطوة ٣، أضف الخطوة ٢ — اجمع `complement_ids` لسكاشن السلة، اجلب منتجاتها المتوفرة غير الموجودة في السلة. الترتيب النهائي يبقى من المنيو (per-mode). الخطوة ٣ تبقى fallback فقط عند فراغ ١+٢.
-- [ ] حدّث تعليق سطر 100 — الخطوات الثلاث كلها مفعّلة الآن.
+- [x] `cart-view.tsx` `useMemo`: الخطوة ٢ (منتجات السكاشن المكمّلة لسكاشن السلة) بين الخطوتين ١ و٣، عبر نفس `tryAdd`. التعليق محدَّث — الخطوات الثلاث مفعّلة.
 
-**تحقّق المرحلة ٣:** `tsc` نظيف · ربط سكشن يحفظ صفّاً في `complementary_categories` · `UNIQUE` لا يكسر الواجهة · `/api/menu` يرجع `complement_ids` · صفحة السلة تطبّق الترتيب custom→complementary→random · smoke assertion جديد.
-
-**حُرّاس:** السكشن لا يكمّل نفسه. فحص ملكية الطرفين. حذف سكشن يجب أن ينظّف صفوف `complementary_categories` — تحقّق أن الـ`ON DELETE CASCADE` يغطّيها (الجدول يعرّفها — أكّد فقط).
+**تحقّق المرحلة ٣:** ✅ `tsc` + `eslint` نظيفان · `smoke-modes.mjs` خطوة [6] جديدة (٣ assertions) — ربط سكشن يظهر في `complement_ids` على الـpayload، والربط directional. كل الـ٢٧ assertion خضراء على dev server. الحذف: `complementary_categories` يحوي `ON DELETE CASCADE` على `category_id` و`complement_id` — حذف السكشن ينظّفها تلقائياً (مؤكَّد من `0001_init.sql`).
 
 ---
 

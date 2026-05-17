@@ -1,13 +1,21 @@
 import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
 import { MenuView, type CategoryNode, type Product } from './menu-view';
+import { ComplementarySection } from './complementary-section';
 
 export const dynamic = 'force-dynamic';
 
-async function loadMenu(restaurantId: string): Promise<CategoryNode[]> {
+type FlatCategory = { id: string; name_ar: string; parent_id: string | null };
+type ComplementLink = { id: string; category_id: string; complement_id: string };
+
+async function loadMenuData(restaurantId: string): Promise<{
+  tree: CategoryNode[];
+  categories: FlatCategory[];
+  complements: ComplementLink[];
+}> {
   const sb = getServiceClient();
 
-  const [{ data: cats }, { data: prods }] = await Promise.all([
+  const [{ data: cats }, { data: prods }, { data: complements }] = await Promise.all([
     sb
       .from('categories')
       .select('id, parent_id, name_ar, name_en, name_ku, display_order')
@@ -18,6 +26,10 @@ async function loadMenu(restaurantId: string): Promise<CategoryNode[]> {
       .select('id, category_id, name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes, image_url, is_available, display_order, suggestions_type, custom_suggestion_ids')
       .eq('restaurant_id', restaurantId)
       .order('display_order', { ascending: true }),
+    sb
+      .from('complementary_categories')
+      .select('id, category_id, complement_id')
+      .eq('restaurant_id', restaurantId),
   ]);
 
   const productsByCategory = new Map<string, Product[]>();
@@ -52,11 +64,23 @@ async function loadMenu(restaurantId: string): Promise<CategoryNode[]> {
   for (const r of roots) {
     r.children = childrenByParent.get(r.id) ?? [];
   }
-  return roots;
+
+  const categories: FlatCategory[] = (cats ?? []).map((c) => ({
+    id: c.id,
+    name_ar: c.name_ar,
+    parent_id: c.parent_id,
+  }));
+
+  return { tree: roots, categories, complements: complements ?? [] };
 }
 
 export default async function MenuPage() {
   const tenant = await requireTenant();
-  const tree = await loadMenu(tenant.restaurantId);
-  return <MenuView tree={tree} />;
+  const { tree, categories, complements } = await loadMenuData(tenant.restaurantId);
+  return (
+    <div className="space-y-8">
+      <MenuView tree={tree} />
+      <ComplementarySection categories={categories} links={complements} />
+    </div>
+  );
 }

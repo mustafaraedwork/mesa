@@ -77,6 +77,7 @@ export type MenuCategory = {
   name_ku: string | null;
   display_order: number;
   is_virtual?: boolean;
+  complement_ids: string[];
   products: MenuProduct[];
 };
 
@@ -138,7 +139,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     closing_mode_discount = null;
   }
 
-  const [{ data: cats }, { data: prods }] = await Promise.all([
+  const [{ data: cats }, { data: prods }, { data: complinks }] = await Promise.all([
     sb
       .from('categories')
       .select('id, parent_id, name_ar, name_en, name_ku, display_order')
@@ -149,6 +150,10 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       .select(
         'id, category_id, name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes, image_url, is_available, is_in_closing_mode, display_order, suggestions_type, custom_suggestion_ids',
       )
+      .eq('restaurant_id', rest.id),
+    sb
+      .from('complementary_categories')
+      .select('category_id, complement_id')
       .eq('restaurant_id', rest.id),
   ]);
 
@@ -216,6 +221,13 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     if (isClosing && inClosing) closingProducts.push(product);
   }
 
+  const complementsByCategory = new Map<string, string[]>();
+  for (const link of (complinks ?? []) as { category_id: string; complement_id: string }[]) {
+    const arr = complementsByCategory.get(link.category_id) ?? [];
+    arr.push(link.complement_id);
+    complementsByCategory.set(link.category_id, arr);
+  }
+
   const categories: MenuCategory[] = (cats ?? []).map((c: CategoryRow) => ({
     id: c.id,
     parent_id: c.parent_id,
@@ -223,6 +235,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     name_en: c.name_en,
     name_ku: c.name_ku,
     display_order: c.display_order,
+    complement_ids: complementsByCategory.get(c.id) ?? [],
     products: productsByCategory.get(c.id) ?? [],
   }));
 
@@ -233,6 +246,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       ...CLOSING_VIRTUAL_CATEGORY_NAMES,
       display_order: -1,
       is_virtual: true,
+      complement_ids: [],
       products: closingProducts,
     });
   }

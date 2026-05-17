@@ -101,8 +101,8 @@ export function CartView({
   const r = data.restaurant;
 
   // Suggestions algorithm — PRD §3.2. Precedence: (1) manual suggestions for
-  // custom-typed cart items, then (3) random fill from categories not in the
-  // cart. Step 2 (complementary categories) lands in Phase 3.
+  // custom-typed cart items, (2) items from complementary categories,
+  // (3) random fill from categories not represented in the cart.
   const suggestions = useMemo(() => {
     const cartIds = new Set(resolved.map((x) => x.product.id));
     const cartCategoryIds = new Set(resolved.map((x) => x.product.category_id));
@@ -120,6 +120,19 @@ export function CartView({
     for (const { product } of resolved) {
       if (product.suggestions_type !== 'custom') continue;
       for (const id of product.custom_suggestion_ids ?? []) tryAdd(productIndex.get(id));
+    }
+
+    // Step 2 — items from categories complementary to the cart's categories.
+    const complementIds = new Set<string>();
+    for (const cat of data.categories) {
+      if (cartCategoryIds.has(cat.id)) {
+        for (const cid of cat.complement_ids) complementIds.add(cid);
+      }
+    }
+    for (const cat of data.categories) {
+      if (cat.id === CLOSING_VIRTUAL_CATEGORY_ID) continue;
+      if (!complementIds.has(cat.id)) continue;
+      for (const p of cat.products) tryAdd(p);
     }
 
     // Step 3 — random fill from categories not represented in the cart.

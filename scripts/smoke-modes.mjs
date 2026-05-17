@@ -9,6 +9,8 @@
 //   6. Activate Closing again, simulate expiry → expect lazy revert on next read
 //   7. Set custom suggestions → expect suggestions_type + custom_suggestion_ids
 //      surfaced in the menu payload (Phase 2)
+//   8. Link complementary categories → expect complement_ids on the payload
+//      category (Phase 3)
 //
 // Run:  node --env-file=.env.local scripts/smoke-modes.mjs
 
@@ -180,7 +182,24 @@ try {
   assert(saladS.suggestions_type === 'default', 'سلطة suggestions_type = default (untouched)');
   assert(saladS.custom_suggestion_ids === null, 'سلطة custom_suggestion_ids = null');
 
-  console.log('\nOK — Phase 4 modes + Phase 2 custom suggestions green.');
+  console.log('\n— [6] Complementary categories — complement_ids exposed —');
+  await sb.from('complementary_categories').insert({
+    restaurant_id: restaurantId,
+    category_id: cat1.id,
+    complement_id: cat2.id,
+  });
+
+  menu = await fetchMenu();
+  const cat1Payload = menu.categories.find((c) => c.id === cat1.id);
+  const cat2Payload = menu.categories.find((c) => c.id === cat2.id);
+  assert(cat1Payload !== undefined, 'cat1 present in payload');
+  assert(
+    Array.isArray(cat1Payload.complement_ids) && cat1Payload.complement_ids.includes(cat2.id),
+    'cat1 complement_ids includes cat2',
+  );
+  assert(cat2Payload.complement_ids.length === 0, 'cat2 has no complements (link is directional)');
+
+  console.log('\nOK — Phase 4 modes + Phase 2 suggestions + Phase 3 complements green.');
 } finally {
   console.log('\n— cleanup —');
   await sb.from('restaurants').delete().eq('id', restaurantId);
