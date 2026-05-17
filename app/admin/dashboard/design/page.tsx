@@ -12,6 +12,7 @@ type Restaurant = {
   primary_color: string;
   background_color: string;
   currency: string;
+  show_unavailable_items: boolean;
 };
 
 export default async function DesignPage() {
@@ -20,7 +21,7 @@ export default async function DesignPage() {
 
   const { data: rest } = await sb
     .from('restaurants')
-    .select('id, slug, display_name, logo_url, primary_color, background_color, currency')
+    .select('id, slug, display_name, logo_url, primary_color, background_color, currency, show_unavailable_items')
     .eq('id', tenant.restaurantId)
     .single<Restaurant>();
 
@@ -35,6 +36,7 @@ export default async function DesignPage() {
         primary_color: rest!.primary_color,
         background_color: rest!.background_color,
         currency: rest!.currency,
+        show_unavailable_items: rest!.show_unavailable_items ?? true,
       }}
       slug={rest!.slug}
       menuUrl={menuUrl}

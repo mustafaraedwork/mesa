@@ -15,6 +15,7 @@ export type DesignInitial = {
   primary_color: string;
   background_color: string;
   currency: string;
+  show_unavailable_items: boolean;
 };
 
 export function DesignView({
@@ -36,6 +37,7 @@ export function DesignView({
   const [primary, setPrimary] = useState(initial.primary_color);
   const [background, setBackground] = useState(initial.background_color);
   const [currency, setCurrency] = useState(initial.currency);
+  const [showUnavailable, setShowUnavailable] = useState(initial.show_unavailable_items);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -58,6 +60,7 @@ export function DesignView({
     primary !== initial.primary_color ||
     background !== initial.background_color ||
     currency !== initial.currency ||
+    showUnavailable !== initial.show_unavailable_items ||
     logoFile !== null ||
     removeLogo;
 
@@ -70,6 +73,7 @@ export function DesignView({
     fd.set('primary_color', primary);
     fd.set('background_color', background);
     fd.set('currency', currency);
+    fd.set('show_unavailable_items', showUnavailable ? 'true' : 'false');
     if (logoFile) fd.set('logo', logoFile);
     if (removeLogo) fd.set('remove_logo', 'true');
     startTransition(async () => {
@@ -206,6 +210,22 @@ export function DesignView({
                 }}
               />
               <p className="text-muted-foreground text-xs">ستُضغط الصورة إلى 800×800 WebP.</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">إعدادات المنيو</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showUnavailable}
+                  onChange={(e) => setShowUnavailable(e.target.checked)}
+                />
+                <span>إظهار الأصناف غير المتوفرة في منيو الزبون (تظهر رمادية ومعلّمة)</span>
+              </label>
             </CardContent>
           </Card>
 

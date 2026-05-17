@@ -141,12 +141,12 @@ npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 
 **الهدف:** صاحب المطعم يتحكّم بإظهار/إخفاء الأصناف غير المتوفرة في منيو الزبون. العمود + الفلتر (`lib/menu.ts`) موجودان — الواجهة فقط مفقودة.
 
-- [ ] الموضع: ضمن صفحة `/admin/dashboard/design` (Option A — لا تبويب جديد).
-- [ ] `design/page.tsx`: أضف `show_unavailable_items` إلى الـselect الذي يجلب بيانات المطعم ومرّره ضمن `initial`.
-- [ ] `design-view.tsx`: `useState` جديد `showUnavailable`، أضفه لشرط `dirty`، أظهره كـ`<input type="checkbox">` (native — لا مكتبة) ضمن نمط الحقول الموجود، وأضفه لـ`FormData` في `onSubmit` كـ`'true'`/`'false'`.
-- [ ] `design/actions.ts` `saveDesign`: اقرأ `show_unavailable_items` من FormData وأدرجه في كائن `update`.
+- [x] الموضع: بطاقة "إعدادات المنيو" داخل صفحة `/admin/dashboard/design` — لا تبويب جديد.
+- [x] `design/page.tsx`: `show_unavailable_items` مُضاف للـselect ولـ`Restaurant` type ويُمرَّر ضمن `initial` (مع `?? true` احتياطاً).
+- [x] `design-view.tsx`: `useState` `showUnavailable`، مُضاف لشرط `dirty` ولـ`FormData`، ويُعرَض كـ`<input type="checkbox">` native في بطاقة جديدة.
+- [x] `design/actions.ts` `saveDesign`: يقرأ `show_unavailable_items` من FormData ويُدرجه في كائن `update`.
 
-**تحقّق المرحلة ٤:** `tsc` + `eslint` نظيفان · تبديل المفتاح والحفظ يغيّر العمود في DB · منيو الزبون يعكس التغيير خلال دورة polling.
+**تحقّق المرحلة ٤:** ✅ `tsc` + `eslint` نظيفان · الفلتر في `lib/menu.ts` موجود مسبقاً — التبديل الآن يصل إليه عبر العمود. التحقّق البصري (تبديل + حفظ + انعكاس على منيو الزبون) مؤجَّل للمرحلة ٧ اليدوية.
 
 **حُرّاس:** native checkbox فقط. لا تبويب رابع.
 

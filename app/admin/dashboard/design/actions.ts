@@ -22,6 +22,7 @@ export async function saveDesign(formData: FormData): Promise<Result> {
   const currency = String(formData.get('currency') ?? '').trim();
   const logo = formData.get('logo');
   const removeLogo = formData.get('remove_logo') === 'true';
+  const show_unavailable_items = formData.get('show_unavailable_items') === 'true';
 
   if (!display_name) return { ok: false, error: 'اسم المطعم مطلوب' };
   if (display_name.length > 100) return { ok: false, error: 'اسم المطعم طويل جداً' };
@@ -41,6 +42,7 @@ export async function saveDesign(formData: FormData): Promise<Result> {
     primary_color: primary_color.toLowerCase(),
     background_color: background_color.toLowerCase(),
     currency,
+    show_unavailable_items,
   };
 
   let oldLogoToDelete: string | null = null;
