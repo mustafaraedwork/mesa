@@ -1,0 +1,42 @@
+node_modules
+.next
+.git
+.gitignore
+.vscode
+.idea
+
+# env files — secrets must come via build args / runtime envs, not the image
+.env
+.env.*
+!.env.example
+!.env.production.example
+!.env.local.example
+
+# docs + scratch work
+.scratch
+docs
+CLAUDE.md
+PHASES.md
+PROGRESS.md
+RULES.md
+prd.md
+README.md
+DEPLOY.md
+*.md
+
+# test artifacts + smoke scripts (run from host, not needed in image)
+scripts
+test-results
+playwright-report
+coverage
+
+# build artifacts + caches
+*.tsbuildinfo
+.eslintcache
+.turbo
+.cache
+
+# system noise
+.DS_Store
+Thumbs.db
+*.log
