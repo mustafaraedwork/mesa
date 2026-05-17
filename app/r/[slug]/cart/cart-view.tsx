@@ -100,27 +100,38 @@ export function CartView({
   const dir = isRtl(lang) ? 'rtl' : 'ltr';
   const r = data.restaurant;
 
-  // Suggestions algorithm — PRD §3.2 step 3 (random from non-cart categories).
-  // Steps 1 (custom) and 2 (complementary categories) require fields/UI not
-  // yet built; the random fallback is the documented behavior in their
-  // absence.
+  // Suggestions algorithm — PRD §3.2. Precedence: (1) manual suggestions for
+  // custom-typed cart items, then (3) random fill from categories not in the
+  // cart. Step 2 (complementary categories) lands in Phase 3.
   const suggestions = useMemo(() => {
     const cartIds = new Set(resolved.map((x) => x.product.id));
     const cartCategoryIds = new Set(resolved.map((x) => x.product.category_id));
 
-    const candidates: MenuProduct[] = [];
+    const picked: MenuProduct[] = [];
+    const pickedIds = new Set<string>();
+    const tryAdd = (p: MenuProduct | undefined) => {
+      if (picked.length >= SUGGESTION_COUNT) return;
+      if (!p || pickedIds.has(p.id) || cartIds.has(p.id) || !p.is_available) return;
+      picked.push(p);
+      pickedIds.add(p.id);
+    };
+
+    // Step 1 — manual suggestions for custom-typed items in the cart.
+    for (const { product } of resolved) {
+      if (product.suggestions_type !== 'custom') continue;
+      for (const id of product.custom_suggestion_ids ?? []) tryAdd(productIndex.get(id));
+    }
+
+    // Step 3 — random fill from categories not represented in the cart.
+    // The menu is already sorted per active mode (Q4) — preserve that order.
     for (const cat of data.categories) {
       if (cat.id === CLOSING_VIRTUAL_CATEGORY_ID) continue;
       if (cartCategoryIds.has(cat.id)) continue;
-      for (const p of cat.products) {
-        if (cartIds.has(p.id)) continue;
-        if (!p.is_available) continue;
-        candidates.push(p);
-      }
+      for (const p of cat.products) tryAdd(p);
     }
-    // The menu is already sorted per active mode (Q4) — preserve that order.
-    return candidates.slice(0, SUGGESTION_COUNT);
-  }, [data.categories, resolved]);
+
+    return picked.slice(0, SUGGESTION_COUNT);
+  }, [data.categories, resolved, productIndex]);
 
   return (
     <main

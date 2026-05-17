@@ -14,9 +14,11 @@ import { Input } from '@/components/ui/input';
 import { createProduct, updateProduct } from './actions';
 import type { Product } from './menu-view';
 
+type ProductRef = { id: string; name_ar: string };
+
 type Props =
-  | { mode: 'create'; categoryId: string; categoryName: string; onClose: () => void; product?: never }
-  | { mode: 'edit'; product: Product; categoryId: string; categoryName: string; onClose: () => void };
+  | { mode: 'create'; categoryId: string; categoryName: string; allProducts: ProductRef[]; onClose: () => void; product?: never }
+  | { mode: 'edit'; product: Product; categoryId: string; categoryName: string; allProducts: ProductRef[]; onClose: () => void };
 
 export function ProductDialog(props: Props) {
   const editing = props.mode === 'edit';
@@ -24,7 +26,13 @@ export function ProductDialog(props: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [removeImage, setRemoveImage] = useState(false);
+  const [suggestionsType, setSuggestionsType] = useState<'default' | 'custom'>(
+    initial?.suggestions_type ?? 'default',
+  );
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Every other product — candidates for manual suggestions (not itself).
+  const otherProducts = props.allProducts.filter((p) => p.id !== initial?.id);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -140,6 +148,41 @@ export function ProductDialog(props: Props) {
               </p>
             </div>
           </Field>
+
+          <Field label="الاقتراحات في صفحة السلة">
+            <select
+              name="suggestions_type"
+              value={suggestionsType}
+              onChange={(e) => setSuggestionsType(e.target.value as 'default' | 'custom')}
+              className="w-full rounded-md border px-3 py-2 text-sm"
+            >
+              <option value="default">تلقائي (حسب السكاشن)</option>
+              <option value="custom">اقتراحات مخصّصة</option>
+            </select>
+          </Field>
+          {suggestionsType === 'custom' && (
+            <Field label="المنتجات المقترَحة عند طلب هذا المنتج">
+              {otherProducts.length === 0 ? (
+                <p className="text-muted-foreground text-xs">أضف منتجات أخرى أولاً.</p>
+              ) : (
+                <ul className="max-h-48 space-y-1 overflow-y-auto rounded border p-2">
+                  {otherProducts.map((p) => (
+                    <li key={p.id}>
+                      <label className="hover:bg-muted flex cursor-pointer items-center gap-2 rounded px-1 py-0.5">
+                        <input
+                          type="checkbox"
+                          name="custom_suggestion_ids"
+                          value={p.id}
+                          defaultChecked={initial?.custom_suggestion_ids?.includes(p.id) ?? false}
+                        />
+                        <span>{p.name_ar}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Field>
+          )}
 
           {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
 

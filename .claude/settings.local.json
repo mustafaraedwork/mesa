@@ -75,7 +75,10 @@
       "Bash(sed -n '145,153p' app/admin/dashboard/modes/closing-dialog.tsx)",
       "Bash(sed -n '53,61p' app/owner/dashboard/accounts/accounts-table.tsx)",
       "Bash(echo \"=== TSC EXIT: $? ===\")",
-      "Bash(echo \"tsc exit: $?\")"
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(curl -s -m 3 -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/api/menu/nonexistent)",
+      "Bash(curl -s -m 3 -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001/api/menu/nonexistent)",
+      "Bash(NEXT_PUBLIC_APP_URL=http://localhost:3001 node --env-file=.env.local scripts/smoke-modes.mjs)"
     ]
   }
 }

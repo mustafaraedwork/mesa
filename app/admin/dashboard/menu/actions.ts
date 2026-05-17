@@ -10,6 +10,39 @@ const MENU_PATH = '/admin/dashboard/menu';
 type Result = { ok: true } | { ok: false; error: string };
 type CreateProductResult = { ok: true; productId: string } | { ok: false; error: string };
 
+type SuggestionsResult =
+  | { ok: true; suggestions_type: 'default' | 'custom'; custom_suggestion_ids: string[] | null }
+  | { ok: false; error: string };
+
+// Validate the custom-suggestions form fields against the tenant's own
+// products. `selfId` (edit only) is dropped so a product can't suggest itself.
+async function resolveSuggestions(
+  formData: FormData,
+  sb: ReturnType<typeof getServiceClient>,
+  restaurantId: string,
+  selfId?: string,
+): Promise<SuggestionsResult> {
+  const suggestions_type = formData.get('suggestions_type') === 'custom' ? 'custom' : 'default';
+  if (suggestions_type === 'default') {
+    return { ok: true, suggestions_type, custom_suggestion_ids: null };
+  }
+  const ids = [
+    ...new Set(formData.getAll('custom_suggestion_ids').map(String).filter((x) => x && x !== selfId)),
+  ];
+  if (ids.length === 0) {
+    return { ok: true, suggestions_type, custom_suggestion_ids: [] };
+  }
+  const { data: owned } = await sb
+    .from('products')
+    .select('id')
+    .in('id', ids)
+    .eq('restaurant_id', restaurantId);
+  if ((owned ?? []).length !== ids.length) {
+    return { ok: false, error: 'منتج مقترَح غير صالح' };
+  }
+  return { ok: true, suggestions_type, custom_suggestion_ids: ids };
+}
+
 // ─────────────── Categories ──────────────────────────────────────
 
 export async function createCategory(input: {
@@ -165,6 +198,9 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
     .maybeSingle();
   if (!cat) return { ok: false, error: 'السكشن غير موجود' };
 
+  const sug = await resolveSuggestions(formData, sb, restaurantId);
+  if (!sug.ok) return sug;
+
   let image_url: string | null = null;
   if (image instanceof File && image.size > 0) {
     const buf = Buffer.from(await image.arrayBuffer());
@@ -198,6 +234,8 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
       prep_time_minutes,
       image_url,
       display_order: next_order,
+      suggestions_type: sug.suggestions_type,
+      custom_suggestion_ids: sug.custom_suggestion_ids,
     })
     .select('id')
     .single();
@@ -237,8 +275,13 @@ export async function updateProduct(formData: FormData): Promise<Result> {
     .maybeSingle();
   if (!existing) return { ok: false, error: 'المنتج غير موجود' };
 
+  const sug = await resolveSuggestions(formData, sb, restaurantId, id);
+  if (!sug.ok) return sug;
+
   const update: Record<string, unknown> = {
     name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes,
+    suggestions_type: sug.suggestions_type,
+    custom_suggestion_ids: sug.custom_suggestion_ids,
   };
 
   if (image instanceof File && image.size > 0) {

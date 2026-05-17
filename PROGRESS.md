@@ -6,9 +6,9 @@
 
 ## الحالة الحالية
 
-- **المرحلة الحالية:** 🟢 خطة إكمال الإطلاق (`.scratch/launch-completion/plan.md`) — دفعة ٠ (المرحلة ١: نظافة فورية) مكتملة
-- **آخر إنجاز:** git مُهيّأ + أول commit، صفحة `/` العربية بدل الـboilerplate، ٢٠ خطأ ESLint = صفر، `npm test` موحّد (`scripts/run-smoke.mjs`)
-- **التالي:** دفعة ١ — المرحلة ٢: الاقتراحات المخصّصة (suggestions_type + custom_suggestion_ids)
+- **المرحلة الحالية:** 🟢 خطة إكمال الإطلاق — دفعة ١، المرحلة ٢ (الاقتراحات المخصّصة) مكتملة
+- **آخر إنجاز:** الاقتراحات المخصّصة end-to-end — `suggestions_type` + `custom_suggestion_ids` من DB → API → واجهة نموذج المنتج → الخطوة ١ في صفحة السلة
+- **التالي:** دفعة ١ — المرحلة ٣: الأصناف المكمّلة (`complementary_categories`)
 - **عقبات/قرارات معلّقة:**
   - اسم الدومين (PRD §٩)
   - استراتيجية التسعير (PRD §٩)
@@ -34,6 +34,14 @@
 ---
 
 ## السجل اليومي
+
+### 2026-05-17 (دفعة ١ — المرحلة ٢: الاقتراحات المخصّصة)
+- ✅ **طبقة البيانات** — `lib/menu.ts` يجلب ويُصدِّر `suggestions_type` + `custom_suggestion_ids` في `MenuProduct`
+- ✅ **واجهة نموذج المنتج** — `product-dialog.tsx`: `<select>` للنوع + checkboxes native للمنتجات المقترَحة (استثناء المنتج نفسه)؛ `MenuView` يسطّح الشجرة لـ`allProducts` ويمرّرها
+- ✅ **server actions** — helper `resolveSuggestions` في `menu/actions.ts`: يتحقّق من ملكية كل ID، يُسقط self-id، `default` → `null`. مستدعىً من `createProduct`/`updateProduct`
+- ✅ **الخطوة ١** — `cart-view.tsx`: المقترحات المخصّصة للأصناف في السلة قبل الـrandom fallback؛ helper `tryAdd` يمنع التكرار/غير المتوفر
+- ✅ `smoke-modes.mjs` خطوة [5] جديدة (٤ assertions) — كل الـ٢٤ assertion خضراء على dev server؛ typecheck + eslint نظيفان
+- ⏭️ التالي: المرحلة ٣ — الأصناف المكمّلة
 
 ### 2026-05-17 (خطة إكمال الإطلاق — دفعة ٠)
 - ✅ **مراجعة كاملة للمشروع** + خطة مرحلية في `.scratch/launch-completion/plan.md` (٨ مراحل، ٤ دفعات) بعد اكتشاف توثيق لأنماط الكود وواجهة `@dnd-kit`

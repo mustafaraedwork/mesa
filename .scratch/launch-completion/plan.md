@@ -99,23 +99,19 @@ npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 **الهدف:** صاحب المطعم يحدّد لمنتج معيّن `suggestions_type` ومنتجات مقترَحة يدوياً؛ تظهر في صفحة السلة كأولوية أولى. الأعمدة موجودة في DB (`products.suggestions_type`, `products.custom_suggestion_ids UUID[]`).
 
 ### ٢.١ — طبقة البيانات
-- [ ] `lib/menu.ts` سطور 143–149: أضف `suggestions_type, custom_suggestion_ids` إلى `products.select(...)`.
-- [ ] `lib/menu.ts` سطور 51–66: أضف لنوع `MenuProduct`: `suggestions_type: 'default' | 'custom'` و `custom_suggestion_ids: string[] | null`. عبّئهما في حلقة بناء `product` (سطور ~167–183) مع نوع `ProductRow`.
+- [x] `lib/menu.ts`: أُضيف `suggestions_type, custom_suggestion_ids` إلى `products.select(...)`، ولنوعَي `ProductRow` و `MenuProduct`، ويُعبّآن في حلقة بناء `product`.
 
 ### ٢.٢ — واجهة نموذج المنتج
-- [ ] في `product-dialog.tsx` أضف قسم "الاقتراحات": `<select name="suggestions_type">` بقيمتين (`default` افتراضي / `custom`). عند `custom` فقط، أظهر multi-select للمنتجات.
-- [ ] الـmulti-select: قائمة checkboxes native لكل منتجات المطعم (مرّرها كـprop من `page.tsx` — هي محمّلة أصلاً في الشجرة). استثنِ المنتج نفسه. اجمع المختار في hidden input أو حقول متعددة باسم `custom_suggestion_ids`. اتبع نمط FormData الموجود في الملف (`formRef`).
-- [ ] مرّر قائمة المنتجات من `menu/page.tsx` إلى `MenuView` ثم `ProductDialog`.
+- [x] `product-dialog.tsx`: قسم "الاقتراحات" — `<select name="suggestions_type">` (تلقائي/مخصّص)، وعند `custom` قائمة checkboxes native باسم `custom_suggestion_ids` (استثناء المنتج نفسه، `defaultChecked` من `initial`). نمط FormData الموجود.
+- [x] `MenuView` يسطّح الشجرة لـ`allProducts` (`{id, name_ar}[]`) ويمرّرها لـ`ProductDialog` — لا حاجة لتعديل `page.tsx` لذلك (الشجرة محمّلة أصلاً). `page.tsx` يجلب العمودين لتعبئة الـedit form، و`Product` type وُسِّع.
 
 ### ٢.٣ — الـserver actions
-- [ ] في `menu/actions.ts` وسّع `createProduct` و `updateProduct` لقراءة `suggestions_type` و `custom_suggestion_ids` من FormData.
-- [ ] Validation: `suggestions_type ∈ {'default','custom'}`؛ لو `default` خزّن `custom_suggestion_ids = null`؛ لو `custom` تحقّق أن كل ID موجود ويخصّ نفس `restaurant_id` (نفس نمط فحص الملكية في `setMode`). تجاهل/نظّف ID المنتج نفسه.
+- [x] `menu/actions.ts`: helper محلي `resolveSuggestions` (غير مُصدَّر) — يقرأ الحقلين من FormData، يتحقّق أن كل ID يخصّ `restaurantId` (يرجع خطأ وإلا)، يُسقط المنتج نفسه (`selfId` للـedit)، `default` → `custom_suggestion_ids = null`. مستدعىً من `createProduct` و `updateProduct`.
 
 ### ٢.٤ — تفعيل الخطوة ١ في صفحة السلة
-- [ ] في `cart-view.tsx` `useMemo` (سطور 99–119): قبل الخطوة ٣، نفّذ الخطوة ١ — لكل منتج في `resolved` نوعه `custom`، اجلب منتجات `custom_suggestion_ids` من فهرس المنيو، استثنِ ما في السلة وغير المتوفر، احترم `SUGGESTION_COUNT`. لو امتلأت القائمة من الخطوة ١ توقّف؛ وإلا أكمل بالخطوة ٣ (والخطوة ٢ تأتي في المرحلة ٣).
-- [ ] حدّث تعليق سطر 100 ليعكس أن الخطوة ١ صارت مفعّلة.
+- [x] `cart-view.tsx` `useMemo`: الخطوة ١ (مقترحات custom للأصناف في السلة) قبل الخطوة ٣، عبر helper `tryAdd` يمنع التكرار/الموجود/غير المتوفر ويحترم `SUGGESTION_COUNT`. التعليق محدَّث.
 
-**تحقّق المرحلة ٢:** `tsc` نظيف · إنشاء منتج بنوع `custom` واختيار مقترحات يحفظ في DB · `/api/menu/[slug]` يرجع الحقلين الجديدين · صفحة السلة تُظهر المقترحات اليدوية أولاً · أضف assertion لـ`scripts/smoke-modes.mjs` أو سكربت smoke جديد.
+**تحقّق المرحلة ٢:** ✅ `tsc` + `eslint` نظيفان · `smoke-modes.mjs` خطوة [5] جديدة (٤ assertions) تؤكّد `/api/menu` يرجع الحقلين — كل الـ٢٤ assertion خضراء على dev server.
 
 **حُرّاس:** لا تُضِف مكتبة multi-select — checkboxes native (RULES §1). تحقّق الملكية إجباري — `custom_suggestion_ids` يجب ألا يحوي IDs خارج المطعم. لا تكسر الخطوة ٣ القائمة.
 

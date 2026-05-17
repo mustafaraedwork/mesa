@@ -7,6 +7,8 @@
 //   4. Hit menu API → expect __closing__ at top + derived prices + Q11 defensive
 //   5. Switch to Rush → expect virtual gone + clearing of is_in_closing_mode
 //   6. Activate Closing again, simulate expiry → expect lazy revert on next read
+//   7. Set custom suggestions → expect suggestions_type + custom_suggestion_ids
+//      surfaced in the menu payload (Phase 2)
 //
 // Run:  node --env-file=.env.local scripts/smoke-modes.mjs
 
@@ -159,7 +161,26 @@ try {
     .eq('is_in_closing_mode', true);
   assert(postRevert.length === 0, 'all products is_in_closing_mode = false after lazy revert');
 
-  console.log('\nOK — Phase 4 modes + closing tracer green.');
+  console.log('\n— [5] Custom suggestions — suggestions_type + custom_suggestion_ids exposed —');
+  await sb
+    .from('products')
+    .update({ suggestions_type: 'custom', custom_suggestion_ids: [productRows[1].id] })
+    .eq('id', productRows[0].id);
+
+  menu = await fetchMenu();
+  const allProds = menu.categories.flatMap((c) => c.products);
+  const hummusS = allProds.find((p) => p.id === productRows[0].id);
+  const saladS = allProds.find((p) => p.id === productRows[1].id);
+  assert(hummusS.suggestions_type === 'custom', 'حمّص suggestions_type = custom');
+  assert(
+    Array.isArray(hummusS.custom_suggestion_ids) &&
+      hummusS.custom_suggestion_ids.includes(productRows[1].id),
+    'حمّص custom_suggestion_ids includes سلطة',
+  );
+  assert(saladS.suggestions_type === 'default', 'سلطة suggestions_type = default (untouched)');
+  assert(saladS.custom_suggestion_ids === null, 'سلطة custom_suggestion_ids = null');
+
+  console.log('\nOK — Phase 4 modes + Phase 2 custom suggestions green.');
 } finally {
   console.log('\n— cleanup —');
   await sb.from('restaurants').delete().eq('id', restaurantId);

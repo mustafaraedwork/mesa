@@ -37,6 +37,8 @@ type ProductRow = {
   is_available: boolean | null;
   is_in_closing_mode: boolean | null;
   display_order: number;
+  suggestions_type: string | null;
+  custom_suggestion_ids: string[] | null;
 };
 
 type CategoryRow = {
@@ -63,6 +65,8 @@ export type MenuProduct = {
   is_available: boolean;
   is_in_closing_mode: boolean;
   display_order: number;
+  suggestions_type: 'default' | 'custom';
+  custom_suggestion_ids: string[] | null;
 };
 
 export type MenuCategory = {
@@ -143,7 +147,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     sb
       .from('products')
       .select(
-        'id, category_id, name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes, image_url, is_available, is_in_closing_mode, display_order',
+        'id, category_id, name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes, image_url, is_available, is_in_closing_mode, display_order, suggestions_type, custom_suggestion_ids',
       )
       .eq('restaurant_id', rest.id),
   ]);
@@ -201,6 +205,8 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       is_available: available,
       is_in_closing_mode: inClosing,
       display_order: r.display_order,
+      suggestions_type: r.suggestions_type === 'custom' ? 'custom' : 'default',
+      custom_suggestion_ids: r.custom_suggestion_ids,
     };
 
     const arr = productsByCategory.get(r.category_id) ?? [];

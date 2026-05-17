@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { CategoryDialog } from './category-dialog';
 import { ProductDialog } from './product-dialog';
@@ -23,6 +23,8 @@ export type Product = {
   image_url: string | null;
   is_available: boolean | null;
   display_order: number;
+  suggestions_type: 'default' | 'custom';
+  custom_suggestion_ids: string[] | null;
 };
 
 export type CategoryNode = {
@@ -48,6 +50,18 @@ type Dialog =
 
 export function MenuView({ tree }: { tree: CategoryNode[] }) {
   const [dialog, setDialog] = useState<Dialog>({ kind: 'none' });
+
+  // Flat list of every product — feeds the custom-suggestions multi-select.
+  const allProducts = useMemo(() => {
+    const out: { id: string; name_ar: string }[] = [];
+    for (const cat of tree) {
+      for (const p of cat.products) out.push({ id: p.id, name_ar: p.name_ar });
+      for (const sub of cat.children) {
+        for (const p of sub.products) out.push({ id: p.id, name_ar: p.name_ar });
+      }
+    }
+    return out;
+  }, [tree]);
 
   return (
     <div className="space-y-6">
@@ -144,6 +158,7 @@ export function MenuView({ tree }: { tree: CategoryNode[] }) {
           mode="create"
           categoryId={dialog.category.id}
           categoryName={dialog.category.name_ar}
+          allProducts={allProducts}
           onClose={() => setDialog({ kind: 'none' })}
         />
       )}
@@ -153,6 +168,7 @@ export function MenuView({ tree }: { tree: CategoryNode[] }) {
           product={dialog.product}
           categoryId={dialog.category.id}
           categoryName={dialog.category.name_ar}
+          allProducts={allProducts}
           onClose={() => setDialog({ kind: 'none' })}
         />
       )}
