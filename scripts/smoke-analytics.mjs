@@ -4,6 +4,7 @@
 // Run:  node --env-file=.env.local scripts/smoke-analytics.mjs
 // Requires: dev server on http://localhost:3000 + the 0003_events migration.
 
+import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const APP = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -119,7 +120,23 @@ try {
   const html = await res.text();
   assert(html.includes('شاي نعناع'), 'product page HTML contains the product name');
 
-  console.log('\nOK — analytics ingest + product page green.');
+  console.log('\n— [4] analytics dashboard page renders for the tenant —');
+  const token = randomBytes(32).toString('hex');
+  await sb.from('tenant_sessions').insert({
+    restaurant_id: restaurantId,
+    token,
+    device_info: 'smoke',
+  });
+  const pageRes = await fetch(`${APP}/admin/dashboard/analytics`, {
+    headers: { Cookie: `mesa-tenant-token=${token}` },
+    redirect: 'manual',
+  });
+  assert(pageRes.status === 200, `analytics page → 200, no auth redirect (got ${pageRes.status})`);
+  const pageHtml = await pageRes.text();
+  assert(pageHtml.includes('التحليلات'), 'analytics page shows the "التحليلات" heading');
+  assert(pageHtml.includes('شاي نعناع'), 'analytics page lists the seeded product');
+
+  console.log('\nOK — analytics ingest + product page + dashboard green.');
 } finally {
   console.log('\n— cleanup —');
   await sb.from('restaurants').delete().eq('id', restaurantId);
