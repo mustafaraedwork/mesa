@@ -216,7 +216,7 @@ function CategoryBlock({
         className={
           (compact ? 'text-base' : 'text-lg') +
           ' font-semibold ' +
-          (isVirtual ? 'text-rose-700' : '')
+          (isVirtual ? 'text-amber' : '')
         }
         style={!isVirtual && !compact ? { color: primary } : undefined}
       >
@@ -306,7 +306,7 @@ function ProductCard({
         <div className="truncate font-medium">{name}</div>
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
           <span>⏱ {product.prep_time_minutes} {t('prep_unit', lang)}</span>
-          {unavailable && <span className="font-medium text-rose-700">{t('unavailable', lang)}</span>}
+          {unavailable && <span className="text-destructive font-medium">{t('unavailable', lang)}</span>}
         </div>
       </div>
 

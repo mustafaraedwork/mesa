@@ -18,7 +18,7 @@ export default function Home() {
       </p>
       <Link
         href="/admin"
-        className="bg-primary text-primary-foreground rounded-lg px-6 py-3 font-medium"
+        className="bg-primary text-primary-foreground shadow-cta rounded-lg px-6 py-3 font-medium"
       >
         دخول أصحاب المطاعم
       </Link>

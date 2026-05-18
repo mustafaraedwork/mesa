@@ -438,7 +438,7 @@ function ReadToWaiterModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm font-medium text-white shadow"
+            className="shadow-card rounded-md px-4 py-2 text-sm font-medium text-white"
             style={{ background: primary }}
           >
             {t('back_to_menu', lang)}
