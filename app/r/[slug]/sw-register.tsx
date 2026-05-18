@@ -5,24 +5,39 @@ import { useEffect } from 'react';
 // Registers the diner-only service worker. Mounted exclusively from the
 // /r/[slug] layout — admin and owner surfaces never see this component, so
 // they never become controlled by the SW (PRD §4.7).
+//
+// In development the SW is deliberately NOT registered: its CacheFirst rule
+// on /_next/static/* serves stale JS/CSS after every edit. The dev branch
+// also tears down any SW + caches left over from a previous run (or from
+// before this change) and reloads once, so a dev browser self-heals.
 export function SwRegister() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
-    // Browsers refuse to register service workers on insecure origins
-    // except localhost — skip silently in dev over plain http.
-    const isSecure =
-      window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-    if (!isSecure) return;
+
+    if (process.env.NODE_ENV !== 'production') {
+      navigator.serviceWorker.getRegistrations().then(async (regs) => {
+        let changed = regs.length > 0;
+        await Promise.all(regs.map((r) => r.unregister()));
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          if (keys.length > 0) changed = true;
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+        // One reload to drop the stale-asset page the old SW just served.
+        if (changed && !sessionStorage.getItem('mesa-sw-cleaned')) {
+          sessionStorage.setItem('mesa-sw-cleaned', '1');
+          window.location.reload();
+        }
+      });
+      return;
+    }
 
     let cancelled = false;
     navigator.serviceWorker
       .register('/sw.js', { scope: '/r/' })
       .then(async () => {
-        // Wait for the SW to be active (fully activated, including the
-        // activate handler's waitUntil chain). Then ask it to cache the
-        // current page — redundant on first install (activate primes it
-        // already) but covers later updates where activate runs without
-        // any /r/* clients open.
+        // Wait for the SW to be active, then ask it to cache the current
+        // page — covers updates where `activate` ran with no /r/* clients.
         await navigator.serviceWorker.ready;
         if (cancelled) return;
         const ctrl = navigator.serviceWorker.controller;
@@ -32,7 +47,6 @@ export function SwRegister() {
       })
       .catch((err) => {
         // Registration is best-effort; PWA features just won't activate.
-        // Log so failures show up in DevTools without breaking the page.
         console.warn('[mesa] service worker registration failed', err);
       });
 
