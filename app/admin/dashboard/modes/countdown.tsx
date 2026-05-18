@@ -18,7 +18,7 @@ export function Countdown({ endsAt, offsetMs }: { endsAt: string; offsetMs: numb
 
   if (now === null) {
     return (
-      <p dir="ltr" className="text-left text-2xl font-bold text-rose-900 tabular-nums">
+      <p dir="ltr" className="text-left text-2xl font-bold text-destructive tabular-nums">
         --:--:--
       </p>
     );
@@ -28,7 +28,7 @@ export function Countdown({ endsAt, offsetMs }: { endsAt: string; offsetMs: numb
 
   if (remaining <= 0) {
     return (
-      <p className="text-rose-900 text-sm">
+      <p className="text-destructive text-sm">
         انتهى — في انتظار التحديث
       </p>
     );
@@ -43,7 +43,7 @@ export function Countdown({ endsAt, offsetMs }: { endsAt: string; offsetMs: numb
   return (
     <p
       dir="ltr"
-      className="text-left text-2xl font-bold text-rose-900 tabular-nums"
+      className="text-left text-2xl font-bold text-destructive tabular-nums"
     >
       {pad(h)}:{pad(m)}:{pad(s)}
     </p>

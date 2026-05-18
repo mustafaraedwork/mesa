@@ -11,7 +11,7 @@ export default async function TenantDashboardLayout({
 
   return (
     <div className="bg-muted/30 flex min-h-screen flex-col pb-20">
-      <header className="bg-card sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 shadow-sm">
+      <header className="bg-card shadow-subtle sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3">
         <div>
           <h1 className="text-base font-semibold">{tenant.displayName}</h1>
           {!tenant.isActive && (

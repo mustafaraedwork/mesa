@@ -11,7 +11,7 @@ export default async function TenantLoginPage() {
 
   return (
     <main className="bg-muted/40 flex min-h-screen items-center justify-center p-6">
-      <div className="bg-card w-full max-w-sm space-y-6 rounded-lg border p-6 shadow-sm">
+      <div className="bg-card border-border-lite shadow-card w-full max-w-sm space-y-6 rounded-xl border p-6">
         <header className="space-y-1 text-center">
           <h1 className="text-xl font-semibold">دخول المطعم</h1>
           <p className="text-muted-foreground text-sm">

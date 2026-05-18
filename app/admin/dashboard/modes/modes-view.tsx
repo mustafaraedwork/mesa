@@ -39,10 +39,10 @@ type LiveState = {
 };
 
 const MODE_META: Record<Mode, { label: string; description: string; color: string }> = {
-  normal: { label: 'العادي', description: 'الترتيب اليدوي.', color: 'bg-slate-50 text-slate-700' },
-  rush: { label: 'الزحام', description: 'الأسرع تحضيراً أولاً داخل كل سكشن.', color: 'bg-amber-50 text-amber-700' },
-  profit: { label: 'الربح', description: 'الأعلى ربحاً أولاً داخل كل سكشن.', color: 'bg-emerald-50 text-emerald-700' },
-  closing: { label: 'الإغلاق', description: 'خصم محدود الوقت — يظهر بقسم "عروض اليوم".', color: 'bg-rose-50 text-rose-700' },
+  normal: { label: 'العادي', description: 'الترتيب اليدوي.', color: 'bg-muted text-muted-foreground' },
+  rush: { label: 'الزحام', description: 'الأسرع تحضيراً أولاً داخل كل سكشن.', color: 'bg-amber/15 text-amber' },
+  profit: { label: 'الربح', description: 'الأعلى ربحاً أولاً داخل كل سكشن.', color: 'bg-olive/15 text-olive' },
+  closing: { label: 'الإغلاق', description: 'خصم محدود الوقت — يظهر بقسم "عروض اليوم".', color: 'bg-primary/10 text-primary' },
 };
 
 export function ModesView({
@@ -142,13 +142,13 @@ export function ModesView({
       </div>
 
       {isClosing && state.closing_mode_ends_at && state.closing_mode_discount && (
-        <Card className="border-rose-300 bg-rose-50">
+        <Card className="border-primary/30 bg-primary/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-rose-800 text-base">عرض الإغلاق فعّال</CardTitle>
+            <CardTitle className="text-primary text-base">عرض الإغلاق فعّال</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-rose-900 text-sm">
+              <p className="text-ink-2 text-sm">
                 خصم {state.closing_mode_discount}٪ على المنتجات المختارة
               </p>
               <Countdown
@@ -208,7 +208,7 @@ export function ModesView({
 
       {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
       {warnings && warnings.length > 0 && (
-        <p className="text-amber-700 text-sm">
+        <p className="text-amber text-sm">
           تم اختيار منتجات غير متوفرة. ستظهر في عروض اليوم بـoverlay عند توفّرها.
         </p>
       )}

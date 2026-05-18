@@ -230,7 +230,7 @@ export function DesignView({
           </Card>
 
           {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
-          {saved && !dirty && <p className="text-emerald-700 text-sm">تم الحفظ.</p>}
+          {saved && !dirty && <p className="text-olive text-sm">تم الحفظ.</p>}
 
           <div className="flex justify-end">
             <Button type="submit" disabled={pending || !dirty}>
