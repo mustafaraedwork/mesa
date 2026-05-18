@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
 import { LANGS, isRtl, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
+import { track } from '@/lib/track';
 import type { MenuCategory, MenuPayload, MenuProduct } from '@/lib/menu';
 
 const LANG_KEY = 'mesa-lang';
@@ -39,6 +40,14 @@ export function MenuView({
     return subscribe(slug, () => setCartCount(totalQuantity(getCart(slug))));
   }, [slug]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Analytics — one menu_open per browser-tab session (refreshes don't recount).
+  useEffect(() => {
+    const key = `mesa-opened-${slug}`;
+    if (window.sessionStorage.getItem(key)) return;
+    window.sessionStorage.setItem(key, '1');
+    track('menu_open', { slug });
+  }, [slug]);
 
   // 30s polling (PRD §3.2). Pause when tab is hidden.
   useEffect(() => {
@@ -101,6 +110,7 @@ export function MenuView({
             {tree.map((cat) => (
               <CategoryBlock
                 key={cat.id}
+                slug={slug}
                 category={cat}
                 lang={lang}
                 primary={r.primary_color}
@@ -188,6 +198,7 @@ function Header({
 }
 
 function CategoryBlock({
+  slug,
   category,
   lang,
   primary,
@@ -196,6 +207,7 @@ function CategoryBlock({
   onAdd,
   compact = false,
 }: {
+  slug: string;
   category: MenuCategory & { children?: MenuCategory[] };
   lang: Lang;
   primary: string;
@@ -228,6 +240,7 @@ function CategoryBlock({
           {visible.map((p) => (
             <ProductCard
               key={p.id}
+              slug={slug}
               product={p}
               lang={lang}
               primary={primary}
@@ -243,6 +256,7 @@ function CategoryBlock({
           {category.children.map((sub) => (
             <CategoryBlock
               key={sub.id}
+              slug={slug}
               category={sub}
               lang={lang}
               primary={primary}
@@ -259,12 +273,14 @@ function CategoryBlock({
 }
 
 function ProductCard({
+  slug,
   product,
   lang,
   primary,
   currency,
   onAdd,
 }: {
+  slug: string;
   product: MenuProduct;
   lang: Lang;
   primary: string;
@@ -282,33 +298,38 @@ function ProductCard({
         (unavailable ? 'opacity-60 grayscale' : '')
       }
     >
-      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
-        {product.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.image_url}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="bg-cream-deep h-full w-full" aria-hidden />
-        )}
-        {hasDiscount && (
-          <span className="bg-amber absolute -top-1 -start-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
-            -{product.discount_percent}%
-          </span>
-        )}
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="truncate font-medium">{name}</div>
-        <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          <span>⏱ {product.prep_time_minutes} {t('prep_unit', lang)}</span>
-          {unavailable && <span className="text-destructive font-medium">{t('unavailable', lang)}</span>}
+      <Link
+        href={`/r/${slug}/p/${product.id}`}
+        className="flex min-w-0 flex-1 items-center gap-3"
+      >
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
+          {product.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.image_url}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="bg-cream-deep h-full w-full" aria-hidden />
+          )}
+          {hasDiscount && (
+            <span className="bg-amber absolute -top-1 -start-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
+              -{product.discount_percent}%
+            </span>
+          )}
         </div>
-      </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium">{name}</div>
+          <div className="text-muted-foreground flex items-center gap-2 text-xs">
+            <span>⏱ {product.prep_time_minutes} {t('prep_unit', lang)}</span>
+            {unavailable && <span className="text-destructive font-medium">{t('unavailable', lang)}</span>}
+          </div>
+        </div>
+      </Link>
 
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <div className="flex items-baseline gap-1.5 leading-none">
@@ -324,7 +345,10 @@ function ProductCard({
         <button
           type="button"
           disabled={unavailable}
-          onClick={() => onAdd(product.id)}
+          onClick={() => {
+            onAdd(product.id);
+            track('product_add', { slug, productId: product.id });
+          }}
           className="rounded-full px-3 py-1 text-xs font-medium text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
           style={{ background: primary }}
         >
@@ -335,7 +359,7 @@ function ProductCard({
   );
 }
 
-function FloatingCart({
+export function FloatingCart({
   slug,
   count,
   primary,

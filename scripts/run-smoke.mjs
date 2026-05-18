@@ -28,6 +28,7 @@ const NEEDS_SERVER = new Set([
   'smoke-desync.mjs',
   'smoke-modes.mjs',
   'smoke-closing-revert.mjs',
+  'smoke-analytics.mjs',
 ]);
 // Scripts that need no env and no server — pure source-shape assertions.
 const STATIC = new Set(['smoke-polling-contract.mjs']);
