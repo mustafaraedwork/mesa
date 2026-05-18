@@ -98,8 +98,8 @@ export function WelcomeScreen({
 
       {/* Language popup */}
       {langOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
-          <div className="bg-card shadow-modal w-full max-w-xs space-y-3 rounded-xl p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8">
+          <div className="bg-card border-foreground shadow-modal w-full max-w-xs space-y-3 rounded-xl border-2 p-6">
             <h2 className="text-center text-base font-semibold">{t('choose_lang', lang)}</h2>
             <div className="space-y-2">
               {LANGS.map((l) => (
