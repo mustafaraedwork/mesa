@@ -37,7 +37,8 @@
 
 ### 2026-05-17 (دفعة ٢ — المرحلة ٦: بناء الإنتاج)
 - ✅ **`next build` كامل ناجح** — تجميع نظيف في 2.5s، TypeScript تمّ، كل الـ١٦ مساراً بُنيت، صفر أخطاء/تحذيرات. يؤكّد أن drag & drop ومكوّنات `@dnd-kit` (المرحلة ٥) تُبنى للإنتاج سليمةً
-- 🚧 المتبقّي من المرحلة ٦ كلّه مهام Mustafa: أيقونات PWA حقيقية، نشر Coolify/DNS، تشغيل migrations + owner role، التحقّق على HTTPS
+- ✅ **أيقونات حقيقية** — `gen-icons.mjs` أُعيد ليولّد كل الأيقونات من `public/logo.png` (شعار رمز QR): `icon-192/512`, `icon-512-maskable` (full-bleed)، `apple-touch-icon`، `app/icon.png`، و`app/favicon.ico` (ICO يلفّ PNG 48px). الشعار أُضيف لصفحة الهبوط
+- 🚧 المتبقّي من المرحلة ٦ مهام Mustafa: نشر Coolify/DNS، تشغيل migrations + owner role، التحقّق على HTTPS
 - ⏭️ التالي: المرحلة ٧ — التحقّق اليدوي على الأجهزة (Mustafa)
 
 ### 2026-05-17 (دفعة ١ — المرحلة ٥: السحب والإفلات)
