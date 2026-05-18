@@ -50,6 +50,11 @@
   --color-olive: var(--olive);
   --color-amber: var(--amber);
   --color-info: var(--info);
+  --shadow-subtle: 0 1px 3px rgba(60, 40, 20, 0.06);
+  --shadow-card: 0 2px 10px rgba(60, 40, 20, 0.08);
+  --shadow-lifted: 0 8px 24px rgba(60, 40, 20, 0.12);
+  --shadow-modal: 0 12px 40px rgba(60, 40, 20, 0.18);
+  --shadow-cta: 0 4px 14px rgba(139, 26, 26, 0.25);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
