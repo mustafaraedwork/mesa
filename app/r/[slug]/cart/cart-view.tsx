@@ -153,7 +153,7 @@ export function CartView({
       style={{ background: r.background_color }}
     >
       <header
-        className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 shadow"
+        className="shadow-card sticky top-0 z-20 flex items-center gap-3 px-4 py-3"
         style={{ background: r.primary_color, color: '#fff' }}
       >
         <Link href={`/r/${slug}`} className="text-sm hover:underline">
@@ -164,10 +164,10 @@ export function CartView({
 
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-4">
         {resolved.length === 0 ? (
-          <p className="rounded-lg bg-white/70 p-6 text-center text-sm">{t('cart_empty', lang)}</p>
+          <p className="text-muted-foreground bg-card shadow-card rounded-xl p-6 text-center text-sm">{t('cart_empty', lang)}</p>
         ) : (
           <>
-            <ul className="divide-y rounded-lg bg-white shadow-sm">
+            <ul className="divide-y rounded-xl bg-card shadow-card">
               {resolved.map((row) => (
                 <CartRow
                   key={row.product.id}
@@ -182,7 +182,7 @@ export function CartView({
               ))}
             </ul>
 
-            <div className="rounded-lg bg-white p-4 shadow-sm">
+            <div className="rounded-xl bg-card p-4 shadow-card">
               <div className="flex items-center justify-between text-base font-semibold">
                 <span>{t('cart_total', lang)}</span>
                 <span style={{ color: r.primary_color }}>{formatPrice(total, r.currency)}</span>
@@ -216,7 +216,7 @@ export function CartView({
         <button
           type="button"
           onClick={() => setReadModal(true)}
-          className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg"
+          className="shadow-lifted fixed bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-full px-6 py-3 text-sm font-semibold text-white"
           style={{ background: r.primary_color }}
         >
           📣 {t('read_to_waiter', lang)}
@@ -273,11 +273,7 @@ function CartRow({
           className="h-14 w-14 shrink-0 rounded object-cover"
         />
       ) : (
-        <div
-          className="h-14 w-14 shrink-0 rounded"
-          style={{ background: primary, opacity: 0.15 }}
-          aria-hidden
-        />
+        <div className="bg-cream-deep h-14 w-14 shrink-0 rounded" aria-hidden />
       )}
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{name}</div>
@@ -317,7 +313,7 @@ function CartRow({
           <button
             type="button"
             onClick={onRemove}
-            className="text-muted-foreground text-xs hover:text-rose-700"
+            className="text-muted-foreground hover:text-destructive text-xs"
           >
             {t('remove', lang)}
           </button>
@@ -345,7 +341,7 @@ function SuggestionCard({
     <button
       type="button"
       onClick={onAdd}
-      className="bg-card flex flex-col items-stretch overflow-hidden rounded-lg border text-start shadow-sm hover:shadow"
+      className="bg-card border-border-lite shadow-card hover:shadow-lifted flex flex-col items-stretch overflow-hidden rounded-xl border text-start transition-shadow"
     >
       <div className="relative aspect-square">
         {product.image_url ? (
@@ -358,11 +354,7 @@ function SuggestionCard({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div
-            className="h-full w-full"
-            style={{ background: primary, opacity: 0.15 }}
-            aria-hidden
-          />
+          <div className="bg-cream-deep h-full w-full" aria-hidden />
         )}
       </div>
       <div className="space-y-1 p-2">
@@ -439,7 +431,7 @@ function ReadToWaiterModal({
           <button
             type="button"
             onClick={onClear}
-            className="text-sm text-rose-700 hover:underline"
+            className="text-destructive text-sm hover:underline"
           >
             🗑 {t('remove', lang)}
           </button>

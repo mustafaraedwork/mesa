@@ -93,7 +93,7 @@ export function MenuView({
 
       <div className="mx-auto max-w-3xl px-4 py-4">
         {tree.length === 0 ? (
-          <p className="text-muted-foreground rounded-lg bg-white/70 p-6 text-center text-sm">
+          <p className="text-muted-foreground bg-card shadow-card rounded-xl p-6 text-center text-sm">
             {t('no_menu', lang)}
           </p>
         ) : (
@@ -151,7 +151,7 @@ function Header({
 }) {
   return (
     <header
-      className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 shadow"
+      className="shadow-card sticky top-0 z-20 flex items-center gap-3 px-4 py-3"
       style={{ background: primary, color: '#fff' }}
     >
       {logoUrl ? (
@@ -278,7 +278,7 @@ function ProductCard({
   return (
     <div
       className={
-        'flex items-center gap-3 rounded-lg bg-white p-3 shadow-sm ' +
+        'flex items-center gap-3 rounded-xl bg-card p-3 shadow-card ' +
         (unavailable ? 'opacity-60 grayscale' : '')
       }
     >
@@ -293,14 +293,10 @@ function ProductCard({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div
-            className="h-full w-full"
-            style={{ background: primary, opacity: 0.15 }}
-            aria-hidden
-          />
+          <div className="bg-cream-deep h-full w-full" aria-hidden />
         )}
         {hasDiscount && (
-          <span className="absolute -top-1 -start-1 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
+          <span className="bg-amber absolute -top-1 -start-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
             -{product.discount_percent}%
           </span>
         )}
@@ -354,7 +350,7 @@ function FloatingCart({
   return (
     <Link
       href={`/r/${slug}/cart`}
-      className="fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white shadow-lg"
+      className="shadow-lifted fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white"
       style={{ background: primary }}
     >
       <span>🛒</span>
