@@ -6,6 +6,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { chromium } from 'playwright';
 
 const APP = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 const sb = createClient(
@@ -135,6 +136,30 @@ try {
   const pageHtml = await pageRes.text();
   assert(pageHtml.includes('التحليلات'), 'analytics page shows the "التحليلات" heading');
   assert(pageHtml.includes('شاي نعناع'), 'analytics page lists the seeded product');
+
+  console.log('\n— [5] one product-page visit records exactly one product_open —');
+  // Regression guard: React dev StrictMode double-invokes effects; a useRef
+  // guard in product-view.tsx must keep the visit from counting twice.
+  const openCount = async () =>
+    (
+      await sb
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('restaurant_id', restaurantId)
+        .eq('kind', 'product_open')
+        .eq('product_id', prod.id)
+    ).count;
+  const before = await openCount();
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${APP}/r/${SLUG}/p/${prod.id}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(2500);
+  } finally {
+    await browser.close();
+  }
+  const added = (await openCount()) - before;
+  assert(added === 1, `one product-page visit added exactly 1 product_open (added ${added})`);
 
   console.log('\nOK — analytics ingest + product page + dashboard green.');
 } finally {
