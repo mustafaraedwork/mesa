@@ -6,6 +6,7 @@ import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
 import { LANGS, isRtl, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import { track } from '@/lib/track';
+import { WelcomeScreen } from './welcome-screen';
 import type { MenuCategory, MenuPayload, MenuProduct } from '@/lib/menu';
 
 const LANG_KEY = 'mesa-lang';
@@ -23,6 +24,7 @@ export function MenuView({
   const [data, setData] = useState<MenuPayload>(initialData);
   const [lang, setLang] = useState<Lang>('ar');
   const [cartCount, setCartCount] = useState(0);
+  const [started, setStarted] = useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect --
      Both effects sync from client-only stores on mount (localStorage / cart):
@@ -40,14 +42,6 @@ export function MenuView({
     return subscribe(slug, () => setCartCount(totalQuantity(getCart(slug))));
   }, [slug]);
   /* eslint-enable react-hooks/set-state-in-effect */
-
-  // Analytics — one menu_open per browser-tab session (refreshes don't recount).
-  useEffect(() => {
-    const key = `mesa-opened-${slug}`;
-    if (window.sessionStorage.getItem(key)) return;
-    window.sessionStorage.setItem(key, '1');
-    track('menu_open', { slug });
-  }, [slug]);
 
   // 30s polling (PRD §3.2). Pause when tab is hidden.
   useEffect(() => {
@@ -79,9 +73,41 @@ export function MenuView({
     [slug],
   );
 
+  function pickLang(next: Lang) {
+    setLang(next);
+    window.localStorage.setItem(LANG_KEY, next);
+  }
+
+  // The diner taps "open menu" on the welcome screen — count one menu_open
+  // per tab session, then reveal the menu.
+  function handleStart() {
+    setStarted(true);
+    const key = `mesa-opened-${slug}`;
+    if (!window.sessionStorage.getItem(key)) {
+      window.sessionStorage.setItem(key, '1');
+      track('menu_open', { slug });
+    }
+  }
+
   const tree = useMemo(() => buildTree(data.categories), [data.categories]);
   const r = data.restaurant;
   const dir = isRtl(lang) ? 'rtl' : 'ltr';
+
+  if (!started) {
+    return (
+      <WelcomeScreen
+        restaurant={{
+          display_name: r.display_name,
+          logo_url: r.logo_url,
+          primary_color: r.primary_color,
+          background_color: r.background_color,
+        }}
+        lang={lang}
+        onPickLang={pickLang}
+        onStart={handleStart}
+      />
+    );
+  }
 
   return (
     <main
@@ -94,10 +120,7 @@ export function MenuView({
         logoUrl={r.logo_url}
         primary={r.primary_color}
         lang={lang}
-        onLangChange={(next) => {
-          setLang(next);
-          window.localStorage.setItem(LANG_KEY, next);
-        }}
+        onLangChange={pickLang}
       />
 
       <div className="mx-auto max-w-3xl px-4 py-4">

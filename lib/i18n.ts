@@ -44,6 +44,11 @@ const STRINGS = {
     discount_off: 'خصم',
     add: 'إضافة',
     in_cart: 'في السلة',
+    greeting_morning: 'صباح الخير',
+    greeting_evening: 'مساء الخير',
+    welcome_tagline: 'منيو الليلة جاهز، اختر بروح الشيف وتفضّل.',
+    open_menu: 'افتح المنيو',
+    choose_lang: 'اختر لغتك',
   },
   en: {
     cart_button: 'My order',
@@ -66,6 +71,11 @@ const STRINGS = {
     discount_off: 'OFF',
     add: 'Add',
     in_cart: 'In cart',
+    greeting_morning: 'Good morning',
+    greeting_evening: 'Good evening',
+    welcome_tagline: "Tonight's menu is ready — pick what the chef loves.",
+    open_menu: 'Open the menu',
+    choose_lang: 'Choose your language',
   },
   ku: {
     cart_button: 'فەرمایشم',
@@ -88,6 +98,11 @@ const STRINGS = {
     discount_off: 'تەنزیلات',
     add: 'زیادکردن',
     in_cart: 'لە سەبەتەدا',
+    greeting_morning: 'بەیانیت باش',
+    greeting_evening: 'ئێوارەت باش',
+    welcome_tagline: 'مینۆی ئەمشەو ئامادەیە، فەرموو هەڵبژێرە.',
+    open_menu: 'مینۆ بکەرەوە',
+    choose_lang: 'زمانەکەت هەڵبژێرە',
   },
 } as const;
 
