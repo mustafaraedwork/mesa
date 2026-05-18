@@ -1,10 +1,27 @@
 import type { Metadata } from 'next';
-import { Cairo } from 'next/font/google';
+import { Tajawal, Inter, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 
-const cairo = Cairo({
+// Tajawal — primary Arabic family (Design-System.html §02).
+const tajawal = Tajawal({
   variable: '--font-sans',
   subsets: ['arabic', 'latin'],
+  weight: ['300', '400', '500', '700', '800'],
+  display: 'swap',
+});
+
+// Inter — small Latin labels / eyebrows.
+const inter = Inter({
+  variable: '--font-latin',
+  subsets: ['latin'],
+  display: 'swap',
+});
+
+// IBM Plex Mono — order/invoice numerals.
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: '--font-mono',
+  subsets: ['latin'],
+  weight: ['400', '500'],
   display: 'swap',
 });
 
@@ -20,7 +37,7 @@ export default function RootLayout({
     <html
       lang="ar"
       dir="rtl"
-      className={`${cairo.variable} h-full antialiased`}
+      className={`${tajawal.variable} ${inter.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
       <body className="font-sans flex min-h-full flex-col">{children}</body>
     </html>

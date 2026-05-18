@@ -1,0 +1,1310 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Mesa OS · Design System</title>
+<meta name="viewport" content="width=1440" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --burgundy: #8B1A1A;
+    --burgundy-deep: #6B1414;
+    --gold: #C9A961;
+    --gold-deep: #9A7B2E;
+    --cream: #FAF7F2;
+    --cream-deep: #F3EEE4;
+    --surface: #FFFFFF;
+    --ink: #1A1A1A;
+    --ink-2: #2B2622;
+    --muted: #6B5E52;
+    --muted-lite: #9B8E82;
+    --border: #E8DFD1;
+    --border-lite: #F0E8DA;
+    --olive: #6B7F3F;
+    --amber: #D97706;
+    --danger: #991B1B;
+
+    --arabic: "Tajawal", "IBM Plex Sans Arabic", system-ui, sans-serif;
+    --sans: "Inter", -apple-system, system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; font-style: normal !important; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--cream);
+    font-family: var(--arabic);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1280px; margin: 0 auto; padding: 56px 48px 120px; }
+
+  /* nav */
+  .nav-wrap {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(250, 247, 242, 0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-lite);
+  }
+  .nav {
+    max-width: 1280px; margin: 0 auto;
+    padding: 14px 48px; display: flex; align-items: center; gap: 24px;
+  }
+  .nav-mark {
+    display: flex; align-items: center; gap: 10px; margin-left: auto;
+  }
+  .nav-mark .m {
+    width: 30px; height: 30px; border-radius: 7px; background: var(--burgundy);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold); font-weight: 700; font-size: 16px; font-family: var(--sans);
+  }
+  .nav-mark .t {
+    font-family: var(--sans); font-size: 11px; letter-spacing: 2px; font-weight: 600;
+  }
+  .nav a {
+    font-family: var(--arabic); font-size: 13px; color: var(--ink-2);
+    text-decoration: none; padding: 6px 0;
+  }
+  .nav a:hover { color: var(--burgundy); }
+
+  /* hero */
+  .hero { padding: 24px 0 56px; border-bottom: 1px solid var(--border-lite); margin-bottom: 56px; }
+  .eyebrow {
+    font-family: var(--sans); font-size: 11px; letter-spacing: 2.5px;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 14px;
+  }
+  .h1 {
+    font-family: var(--arabic); font-size: 64px; font-weight: 700;
+    line-height: 1.05; letter-spacing: -0.5px;
+    margin: 0; color: var(--ink);
+  }
+  .h1-en {
+    font-family: var(--sans); font-size: 22px; font-weight: 400;
+    color: var(--muted); margin-top: 10px; letter-spacing: 0.5px;
+  }
+  .lede {
+    font-family: var(--arabic); font-size: 16px; color: var(--muted);
+    max-width: 640px; line-height: 1.8; margin-top: 28px;
+  }
+  .hero-grid {
+    margin-top: 36px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  }
+  .hero-grid > div {
+    padding: 14px 16px; background: var(--surface);
+    border: 1px solid var(--border-lite); border-radius: 12px;
+  }
+  .hero-grid .l {
+    font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .hero-grid .v {
+    font-family: var(--arabic); font-size: 22px; font-weight: 700;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+
+  /* section */
+  section { margin-bottom: 80px; scroll-margin-top: 80px; }
+  .sec-head { margin-bottom: 32px; display: flex; align-items: baseline; gap: 18px; }
+  .sec-num {
+    font-family: var(--sans); font-size: 12px; letter-spacing: 2px;
+    color: var(--gold); font-weight: 700;
+  }
+  .sec-title {
+    font-family: var(--arabic); font-size: 36px; font-weight: 700;
+    color: var(--ink); margin: 0; line-height: 1;
+  }
+  .sec-en {
+    font-family: var(--sans); font-size: 13px; color: var(--muted);
+    letter-spacing: 1.5px; margin-right: auto;
+  }
+  .sec-sub {
+    font-family: var(--arabic); font-size: 14px; color: var(--muted);
+    margin: 8px 0 36px; max-width: 720px; line-height: 1.7;
+  }
+
+  /* card grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border-lite);
+    border-radius: 14px; overflow: hidden;
+  }
+
+  /* swatch */
+  .swatch {
+    background: var(--surface); border: 1px solid var(--border-lite);
+    border-radius: 12px; overflow: hidden;
+  }
+  .swatch .chip { height: 110px; position: relative; }
+  .swatch .chip .role {
+    position: absolute; top: 12px; right: 14px;
+    font-family: var(--sans); font-size: 9px; letter-spacing: 1.5px;
+    padding: 3px 8px; border-radius: 999px;
+    background: rgba(255,255,255,0.75); color: var(--ink);
+    backdrop-filter: blur(4px);
+  }
+  .swatch.dark .chip .role {
+    background: rgba(0,0,0,0.4); color: var(--cream);
+  }
+  .swatch .meta { padding: 12px 14px; }
+  .swatch .name {
+    font-family: var(--arabic); font-size: 14px; font-weight: 600;
+    color: var(--ink); margin-bottom: 2px;
+  }
+  .swatch .desc {
+    font-family: var(--arabic); font-size: 11px; color: var(--muted);
+    margin-bottom: 8px; line-height: 1.5;
+  }
+  .swatch .codes { display: flex; gap: 6px; align-items: center; }
+  .swatch code {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    padding: 3px 7px; background: var(--cream-deep); border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  /* type sample */
+  .type-row {
+    display: grid; grid-template-columns: 220px 1fr; gap: 24px;
+    padding: 24px 0; border-bottom: 1px solid var(--border-lite);
+    align-items: baseline;
+  }
+  .type-row:last-child { border-bottom: none; }
+  .type-meta { padding-top: 8px; }
+  .type-meta .role {
+    font-family: var(--sans); font-size: 10px; letter-spacing: 2px;
+    color: var(--gold); font-weight: 700;
+  }
+  .type-meta .nm {
+    font-family: var(--arabic); font-size: 16px; font-weight: 700;
+    color: var(--ink); margin-top: 4px;
+  }
+  .type-meta .specs {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    margin-top: 8px; line-height: 1.7;
+  }
+
+  /* radii */
+  .radius {
+    background: var(--surface); border: 1px solid var(--border-lite);
+    border-radius: 12px; padding: 18px 16px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .radius .box {
+    width: 76px; height: 76px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+  }
+  .radius .nm {
+    font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .radius .v {
+    font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 500;
+  }
+
+  /* spacing */
+  .space {
+    background: var(--surface); border: 1px solid var(--border-lite);
+    border-radius: 10px; padding: 14px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .space .bar { background: var(--burgundy); height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .space .meta { display: flex; flex-direction: column; gap: 2px; }
+  .space .nm { font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--muted); }
+  .space .v { font-family: var(--mono); font-size: 13px; color: var(--ink); font-weight: 500; }
+
+  /* shadow */
+  .shadow {
+    background: var(--surface); border-radius: 12px;
+    padding: 32px 18px; text-align: center;
+  }
+  .shadow .box {
+    width: 64px; height: 64px; background: var(--surface);
+    border-radius: 10px; margin: 0 auto 18px;
+  }
+  .shadow .nm { font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--muted); }
+  .shadow .v { font-family: var(--mono); font-size: 11px; color: var(--ink); margin-top: 4px; font-weight: 500; }
+
+  /* iconography */
+  .icon-cell {
+    background: var(--surface); border: 1px solid var(--border-lite);
+    border-radius: 10px; padding: 16px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .icon-cell svg { display: block; }
+  .icon-cell .nm { font-family: var(--arabic); font-size: 11px; color: var(--muted); }
+
+  /* glyph showcase */
+  .glyph-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
+  .glyph-cell {
+    background: var(--surface); border: 1px solid var(--border-lite);
+    border-radius: 10px; padding: 14px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .glyph-cell .nm {
+    font-family: var(--arabic); font-size: 11px; color: var(--ink-2); font-weight: 500;
+  }
+  .glyph-cell .en {
+    font-family: var(--sans); font-size: 9px; color: var(--muted); letter-spacing: 0.5px;
+  }
+
+  /* badge palette */
+  .badge-row {
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 999px;
+    font-family: var(--arabic); font-size: 12px; font-weight: 600;
+  }
+
+  /* button samples */
+  .btn-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .btn {
+    font-family: var(--arabic); font-weight: 600; cursor: pointer;
+    border-radius: 10px; border: none; transition: transform 0.15s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: var(--burgundy); color: #fff;
+    padding: 14px 24px; font-size: 14px;
+    box-shadow: 0 4px 14px rgba(139,26,26,0.25);
+  }
+  .btn-secondary {
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--border); padding: 14px 24px; font-size: 14px;
+  }
+  .btn-dark {
+    background: var(--ink); color: var(--cream);
+    padding: 14px 24px; font-size: 14px;
+  }
+  .btn-ghost {
+    background: transparent; color: var(--burgundy);
+    padding: 14px 18px; font-size: 14px;
+  }
+  .btn-icon {
+    width: 44px; height: 44px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* dish card sample */
+  .dish-card {
+    background: var(--surface); border: 1px solid var(--border-lite);
+    border-radius: 16px; padding: 14px;
+  }
+  .dish-card .glyph {
+    width: 90px; height: 90px; border-radius: 50%;
+    margin: 4px auto 14px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 -6px 14px rgba(0,0,0,0.08), 0 1px 2px rgba(60,40,20,0.08);
+  }
+  .dish-card .glyph span {
+    font-family: var(--arabic); font-size: 46px; font-weight: 600;
+    color: var(--ink-2); line-height: 1;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .dish-card .nm {
+    font-family: var(--arabic); font-size: 15px; font-weight: 600; color: var(--ink);
+  }
+  .dish-card .desc {
+    font-family: var(--arabic); font-size: 11px; color: var(--muted);
+    margin-top: 4px; line-height: 1.5;
+  }
+  .dish-card .footer {
+    display: flex; justify-content: space-between; align-items: center; margin-top: 12px;
+  }
+  .dish-card .price {
+    font-family: var(--arabic); font-size: 14px; font-weight: 700; color: var(--burgundy);
+    font-variant-numeric: tabular-nums;
+  }
+  .dish-card .add {
+    width: 28px; height: 28px; border-radius: 999px;
+    background: var(--ink); display: flex; align-items: center; justify-content: center;
+  }
+
+  /* code block */
+  pre.code {
+    margin: 0; padding: 16px; background: var(--ink); color: var(--cream);
+    border-radius: 12px; font-family: var(--mono); font-size: 11px;
+    line-height: 1.7; overflow-x: auto;
+  }
+  pre.code .k { color: #C9A961; }
+  pre.code .s { color: #A8D48A; }
+  pre.code .c { color: #6B5E52; }
+
+  /* misc */
+  .label-tag {
+    display: inline-block;
+    font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px;
+    color: var(--gold); background: var(--ink); padding: 4px 10px;
+    border-radius: 4px; margin-bottom: 12px;
+  }
+  .pad { padding: 22px 24px; }
+  .pad-lg { padding: 28px; }
+
+  .ornament {
+    display: flex; align-items: center; gap: 10px; opacity: 0.5;
+    margin: 28px 0;
+  }
+  .ornament .line { flex: 1; height: 1px; background: var(--gold); }
+  .ornament .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    border: 1px solid var(--gold);
+  }
+</style>
+</head>
+<body>
+
+<div class="nav-wrap">
+  <div class="nav">
+    <a href="#colors">الألوان</a>
+    <a href="#type">الخطوط</a>
+    <a href="#numerics">الأرقام</a>
+    <a href="#spacing">المسافات</a>
+    <a href="#radii">الزوايا</a>
+    <a href="#shadows">الظلال</a>
+    <a href="#components">المكونات</a>
+    <a href="#glyphs">الأطباق</a>
+    <a href="#voice">الصوت</a>
+    <div class="nav-mark">
+      <div>
+        <div class="t">MESA OS</div>
+        <div style="font-family: var(--arabic); font-size: 10px; color: var(--muted); letter-spacing: 1px;">DESIGN SYSTEM v0.5</div>
+      </div>
+      <div class="m">M</div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="eyebrow">MESA OS · DESIGN SYSTEM</div>
+    <h1 class="h1">نظام تصميم ميسا</h1>
+    <div class="h1-en">A warm, editorial restaurant OS · Arabic-first</div>
+    <p class="lede">
+      مرجعٌ كامل للألوان، الخطوط، المسافات، والمكوّنات المستخدمة في تطبيق الزبون، جهاز الكابتن، ولوحة الإدارة.
+      كل قرار تصميمي هنا يُعطي الأولوية للقراءة بالعربية، وللحرارة العاطفية، والكثافة المعلوماتية حين تلزم.
+    </p>
+    <div class="hero-grid">
+      <div>
+        <div class="l">PRIMARY FAMILY</div>
+        <div class="v">Tajawal</div>
+      </div>
+      <div>
+        <div class="l">CORE PALETTE</div>
+        <div class="v">٤ ألوان رئيسية</div>
+      </div>
+      <div>
+        <div class="l">RADIUS SCALE</div>
+        <div class="v">٦ درجات</div>
+      </div>
+      <div>
+        <div class="l">DIRECTION</div>
+        <div class="v">RTL أولاً</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- COLORS -->
+  <section id="colors">
+    <div class="sec-head">
+      <span class="sec-num">٠١</span>
+      <h2 class="sec-title">الألوان</h2>
+      <span class="sec-en">COLORS · WARM EDITORIAL</span>
+    </div>
+    <p class="sec-sub">
+      لوحة دافئة مستوحاة من المطابخ التقليدية ودور الضيافة: أحمر النبيذ للهيبة، الذهب للرفاهية، والكريمي للراحة.
+      الأسود محجوزٌ للحالات الجادة فقط.
+    </p>
+
+    <div class="grid-4">
+      <div class="swatch">
+        <div class="chip" style="background: linear-gradient(135deg, #8B1A1A, #6B1414);">
+          <span class="role">PRIMARY</span>
+        </div>
+        <div class="meta">
+          <div class="name">أحمر النبيذ</div>
+          <div class="desc">للأزرار الأساسية، الأسعار، التأكيد العاطفي</div>
+          <div class="codes"><code>#8B1A1A</code><code>burgundy</code></div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: linear-gradient(135deg, #C9A961, #9A7B2E);">
+          <span class="role">ACCENT</span>
+        </div>
+        <div class="meta">
+          <div class="name">الذهب</div>
+          <div class="desc">لحظات الفخامة، الأحرف على الخلفية الداكنة، الأرقام المميزة</div>
+          <div class="codes"><code>#C9A961</code><code>gold</code></div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: #FAF7F2; border-bottom: 1px solid var(--border-lite);">
+          <span class="role">BACKGROUND</span>
+        </div>
+        <div class="meta">
+          <div class="name">كريمي</div>
+          <div class="desc">الخلفية الافتراضية لجميع الشاشات. دافئ، يريح العين</div>
+          <div class="codes"><code>#FAF7F2</code><code>cream</code></div>
+        </div>
+      </div>
+      <div class="swatch dark">
+        <div class="chip" style="background: linear-gradient(135deg, #2B2622, #1A1A1A);">
+          <span class="role">INK</span>
+        </div>
+        <div class="meta">
+          <div class="name">حبر داكن</div>
+          <div class="desc">للنصوص الأساسية والأزرار الجادة (إغلاق طاولة، تأكيد دفع)</div>
+          <div class="codes"><code>#1A1A1A</code><code>ink</code></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ornament"><div class="line"></div><div class="dot"></div><div class="line"></div></div>
+
+    <div style="font-family: var(--sans); font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-bottom: 16px;">SUPPORTING NEUTRALS</div>
+    <div class="grid-5">
+      <div class="swatch">
+        <div class="chip" style="background: #F3EEE4; height: 80px;"></div>
+        <div class="meta">
+          <div class="name" style="font-size: 12px;">cream-deep</div>
+          <div class="codes"><code>#F3EEE4</code></div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: #E8DFD1; height: 80px;"></div>
+        <div class="meta">
+          <div class="name" style="font-size: 12px;">border</div>
+          <div class="codes"><code>#E8DFD1</code></div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: #9B8E82; height: 80px;"></div>
+        <div class="meta">
+          <div class="name" style="font-size: 12px;">muted-lite</div>
+          <div class="codes"><code>#9B8E82</code></div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: #6B5E52; height: 80px;"></div>
+        <div class="meta">
+          <div class="name" style="font-size: 12px;">muted</div>
+          <div class="codes"><code>#6B5E52</code></div>
+        </div>
+      </div>
+      <div class="swatch dark">
+        <div class="chip" style="background: #2B2622; height: 80px;"></div>
+        <div class="meta">
+          <div class="name" style="font-size: 12px;">ink-2</div>
+          <div class="codes"><code>#2B2622</code></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ornament"><div class="line"></div><div class="dot"></div><div class="line"></div></div>
+
+    <div style="font-family: var(--sans); font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-bottom: 16px;">SEMANTIC · حالات</div>
+    <div class="grid-4">
+      <div class="swatch">
+        <div class="chip" style="background: #6B7F3F; height: 80px;">
+          <span class="role">SUCCESS</span>
+        </div>
+        <div class="meta">
+          <div class="name">زيتي · نجاح</div>
+          <div class="desc">طاولة فارغة، طلب قُدّم، تحسّن</div>
+          <div class="codes"><code>#6B7F3F</code></div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: #D97706; height: 80px;">
+          <span class="role">WARNING</span>
+        </div>
+        <div class="meta">
+          <div class="name">عنبري · تحذير</div>
+          <div class="desc">قارب على النفاد، تأخّر مطبخ</div>
+          <div class="codes"><code>#D97706</code></div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: #991B1B; height: 80px;">
+          <span class="role">DANGER</span>
+        </div>
+        <div class="meta">
+          <div class="name">قرمزي · خطر</div>
+          <div class="desc">استدعاء فوري، نفاد، إلغاء</div>
+          <div class="codes"><code>#991B1B</code></div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: #1F4068; height: 80px;">
+          <span class="role">INFO</span>
+        </div>
+        <div class="meta">
+          <div class="name">أزرق نيلي · معلومات</div>
+          <div class="desc">طلبات جديدة، QR مسح</div>
+          <div class="codes"><code>#1F4068</code></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPE -->
+  <section id="type">
+    <div class="sec-head">
+      <span class="sec-num">٠٢</span>
+      <h2 class="sec-title">الخطوط</h2>
+      <span class="sec-en">TYPOGRAPHY · ARABIC FIRST</span>
+    </div>
+    <p class="sec-sub">
+      Tajawal هو الخط الأساسي. يدعم كامل الحروف العربية وله شخصية هندسية حديثة دافئة. لا نستخدم أي خط مائل (italic) في كامل النظام.
+      Inter للأرقام اللاتينية والـlabels الإنجليزية الصغيرة. IBM Plex Mono لأرقام الفواتير وأرقام الطلبات.
+    </p>
+
+    <div class="card pad-lg">
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="role">DISPLAY</div>
+          <div class="nm">عنوان كبير</div>
+          <div class="specs">Tajawal · 64px · 700<br>line-height 1.05</div>
+        </div>
+        <div style="font-family: var(--arabic); font-size: 64px; font-weight: 700; line-height: 1.05; color: var(--ink);">
+          مساء الخير
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="role">HEADING / H1</div>
+          <div class="nm">عنوان رئيسي</div>
+          <div class="specs">Tajawal · 36px · 700<br>line-height 1.2</div>
+        </div>
+        <div style="font-family: var(--arabic); font-size: 36px; font-weight: 700; color: var(--ink);">
+          اختيارات الشيف الليلة
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="role">HEADING / H2</div>
+          <div class="nm">عنوان فرعي</div>
+          <div class="specs">Tajawal · 22px · 600<br>line-height 1.3</div>
+        </div>
+        <div style="font-family: var(--arabic); font-size: 22px; font-weight: 600; color: var(--ink);">
+          الأكثر طلباً
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="role">BODY · LARGE</div>
+          <div class="nm">نص كبير</div>
+          <div class="specs">Tajawal · 16px · 400<br>line-height 1.7</div>
+        </div>
+        <div style="font-family: var(--arabic); font-size: 16px; line-height: 1.7; color: var(--ink-2); max-width: 500px;">
+          شرائح دجاج متبّلة بالليمون والثوم، مشوية على الفحم مع طحينة بالحمضيات.
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="role">BODY</div>
+          <div class="nm">نص افتراضي</div>
+          <div class="specs">Tajawal · 14px · 400<br>line-height 1.6</div>
+        </div>
+        <div style="font-family: var(--arabic); font-size: 14px; line-height: 1.6; color: var(--muted); max-width: 500px;">
+          منيو الليلة جاهز. اختر بروح الشيف وتفضّل. الأصناف ذات الهامش العالي تتصدّر القائمة في وضع الربح.
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="role">CAPTION</div>
+          <div class="nm">شرح صغير</div>
+          <div class="specs">Tajawal · 12px · 500<br>line-height 1.5</div>
+        </div>
+        <div style="font-family: var(--arabic); font-size: 12px; font-weight: 500; color: var(--muted);">
+          ٣ طاولات الآن تشرب شاي النعناع مع الشيش طاووق
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="role">EYEBROW · LATIN</div>
+          <div class="nm">إيبراو</div>
+          <div class="specs">Inter · 10px · 600<br>letter-spacing 2px · UPPERCASE</div>
+        </div>
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 2px; color: var(--muted); font-weight: 600;">
+          TUESDAY · OCT 22 · 19:42
+        </div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta">
+          <div class="role">MONO</div>
+          <div class="nm">أرقام الطلبات</div>
+          <div class="specs">IBM Plex Mono · 11px · 500<br>letter-spacing 1.5px</div>
+        </div>
+        <div style="font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px; color: var(--muted);">
+          A-2841 · TABLE 07 · 19:42
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NUMERICS -->
+  <section id="numerics">
+    <div class="sec-head">
+      <span class="sec-num">٠٣</span>
+      <h2 class="sec-title">الأرقام والعملة</h2>
+      <span class="sec-en">NUMERALS · CURRENCY</span>
+    </div>
+    <p class="sec-sub">
+      الأرقام العربية الهندية (٠١٢٣٤٥٦٧٨٩) هي الافتراض للزبون والكابتن. الأرقام الغربية (0–9) للتقارير المالية في الإدارة.
+      كل المبالغ تستخدم <code style="font-family: var(--mono); padding: 2px 6px; background: var(--cream-deep); border-radius: 4px;">font-variant-numeric: tabular-nums</code> لمحاذاة الأعمدة.
+    </p>
+
+    <div class="grid-3">
+      <div class="card pad-lg">
+        <div class="label-tag">للزبون · ARABIC</div>
+        <div style="font-family: var(--arabic); font-size: 56px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;">
+          ١٥,٠٠٠
+        </div>
+        <div style="font-family: var(--arabic); font-size: 18px; color: var(--burgundy); font-weight: 600; margin-top: 4px;">
+          د.ع
+        </div>
+        <div style="font-family: var(--arabic); font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.7;">
+          الأرقام الهندية أكثر دفئاً وقُرباً ثقافياً للمشهد العراقي.
+        </div>
+      </div>
+
+      <div class="card pad-lg">
+        <div class="label-tag" style="background: var(--burgundy);">الأسعار · PRICES</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-family: var(--arabic); font-size: 14px; color: var(--ink-2);">شيش طاووق</span>
+            <span style="font-family: var(--arabic); font-size: 14px; font-weight: 700; color: var(--burgundy); font-variant-numeric: tabular-nums;">١٥,٠٠٠ د.ع</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-family: var(--arabic); font-size: 14px; color: var(--ink-2);">كباب لحم</span>
+            <span style="font-family: var(--arabic); font-size: 14px; font-weight: 700; color: var(--burgundy); font-variant-numeric: tabular-nums;">٢٢,٠٠٠ د.ع</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-family: var(--arabic); font-size: 14px; color: var(--ink-2);">شاي نعناع</span>
+            <span style="font-family: var(--arabic); font-size: 14px; font-weight: 700; color: var(--burgundy); font-variant-numeric: tabular-nums;">١,٥٠٠ د.ع</span>
+          </div>
+          <div style="height: 1px; background: var(--border-lite); margin: 4px 0;"></div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-family: var(--arabic); font-size: 14px; color: var(--ink); font-weight: 700;">المجموع</span>
+            <span style="font-family: var(--arabic); font-size: 20px; font-weight: 700; color: var(--burgundy); font-variant-numeric: tabular-nums;">٣٨,٥٠٠ د.ع</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card pad-lg" style="background: var(--ink); color: var(--cream); border: none;">
+        <div class="label-tag" style="background: var(--gold); color: var(--ink);">للإدارة · LATIN</div>
+        <div style="font-family: var(--arabic); font-size: 56px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; line-height: 1;">
+          1,840,000
+        </div>
+        <div style="font-family: var(--sans); font-size: 14px; color: rgba(245,230,211,0.7); margin-top: 6px; letter-spacing: 1px;">
+          IQD · TONIGHT'S REVENUE
+        </div>
+        <div style="font-family: var(--arabic); font-size: 12px; color: rgba(245,230,211,0.5); margin-top: 14px; line-height: 1.7;">
+          الأرقام اللاتينية أوضح للقراءة في التقارير والجداول الكثيفة.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPACING -->
+  <section id="spacing">
+    <div class="sec-head">
+      <span class="sec-num">٠٤</span>
+      <h2 class="sec-title">المسافات</h2>
+      <span class="sec-en">SPACING · 4PX SCALE</span>
+    </div>
+    <p class="sec-sub">المسافات على شبكة ٤ بكسل. كثيفة في لوحات الإدارة، فسيحة في تطبيق الزبون.</p>
+
+    <div class="grid-4">
+      <div class="space"><div class="bar" style="width: 4px;"></div><div class="meta"><div class="nm">XS</div><div class="v">4px · 0.25rem</div></div></div>
+      <div class="space"><div class="bar" style="width: 8px;"></div><div class="meta"><div class="nm">SM</div><div class="v">8px · 0.5rem</div></div></div>
+      <div class="space"><div class="bar" style="width: 12px;"></div><div class="meta"><div class="nm">BASE</div><div class="v">12px · 0.75rem</div></div></div>
+      <div class="space"><div class="bar" style="width: 16px;"></div><div class="meta"><div class="nm">MD</div><div class="v">16px · 1rem</div></div></div>
+      <div class="space"><div class="bar" style="width: 20px;"></div><div class="meta"><div class="nm">LG</div><div class="v">20px · 1.25rem</div></div></div>
+      <div class="space"><div class="bar" style="width: 24px;"></div><div class="meta"><div class="nm">XL</div><div class="v">24px · 1.5rem</div></div></div>
+      <div class="space"><div class="bar" style="width: 32px;"></div><div class="meta"><div class="nm">2XL</div><div class="v">32px · 2rem</div></div></div>
+      <div class="space"><div class="bar" style="width: 48px;"></div><div class="meta"><div class="nm">3XL</div><div class="v">48px · 3rem</div></div></div>
+    </div>
+  </section>
+
+  <!-- RADII -->
+  <section id="radii">
+    <div class="sec-head">
+      <span class="sec-num">٠٥</span>
+      <h2 class="sec-title">الزوايا</h2>
+      <span class="sec-en">CORNER RADII</span>
+    </div>
+    <p class="sec-sub">الزوايا الناعمة (١٠–١٤px) للبطاقات والأزرار. الزوايا الكاملة (٩٩٩px) للـpills والـbadges.</p>
+
+    <div class="grid-5">
+      <div class="radius"><div class="box" style="border-radius: 4px;"></div><div><div class="nm">XS</div><div class="v">4px</div></div></div>
+      <div class="radius"><div class="box" style="border-radius: 8px;"></div><div><div class="nm">SM</div><div class="v">8px</div></div></div>
+      <div class="radius"><div class="box" style="border-radius: 12px;"></div><div><div class="nm">MD · DEFAULT</div><div class="v">12px</div></div></div>
+      <div class="radius"><div class="box" style="border-radius: 18px;"></div><div><div class="nm">LG · CARD</div><div class="v">18px</div></div></div>
+      <div class="radius"><div class="box" style="border-radius: 999px;"></div><div><div class="nm">FULL · PILL</div><div class="v">9999px</div></div></div>
+    </div>
+  </section>
+
+  <!-- SHADOWS -->
+  <section id="shadows">
+    <div class="sec-head">
+      <span class="sec-num">٠٦</span>
+      <h2 class="sec-title">الظلال</h2>
+      <span class="sec-en">ELEVATION · WARM SHADOWS</span>
+    </div>
+    <p class="sec-sub">ظلال بنّية دافئة بدلاً من رمادي محايد، لتتناسب مع الخلفية الكريمية.</p>
+
+    <div class="grid-4">
+      <div class="shadow" style="background: var(--cream-deep);">
+        <div class="box" style="box-shadow: 0 1px 3px rgba(60,40,20,0.06);"></div>
+        <div class="nm">SUBTLE</div>
+        <div class="v">0 1px 3px rgba(60,40,20,0.06)</div>
+      </div>
+      <div class="shadow" style="background: var(--cream-deep);">
+        <div class="box" style="box-shadow: 0 2px 10px rgba(60,40,20,0.08);"></div>
+        <div class="nm">CARD</div>
+        <div class="v">0 2px 10px rgba(60,40,20,0.08)</div>
+      </div>
+      <div class="shadow" style="background: var(--cream-deep);">
+        <div class="box" style="box-shadow: 0 8px 24px rgba(60,40,20,0.12);"></div>
+        <div class="nm">LIFTED · CTA</div>
+        <div class="v">0 8px 24px rgba(60,40,20,0.12)</div>
+      </div>
+      <div class="shadow" style="background: var(--cream-deep);">
+        <div class="box" style="box-shadow: 0 12px 40px rgba(60,40,20,0.18);"></div>
+        <div class="nm">MODAL</div>
+        <div class="v">0 12px 40px rgba(60,40,20,0.18)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPONENTS -->
+  <section id="components">
+    <div class="sec-head">
+      <span class="sec-num">٠٧</span>
+      <h2 class="sec-title">المكوّنات</h2>
+      <span class="sec-en">COMPONENTS</span>
+    </div>
+    <p class="sec-sub">المكوّنات الأساسية المُكرّرة عبر التطبيقات الثلاثة.</p>
+
+    <div style="font-family: var(--sans); font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-bottom: 14px;">BUTTONS · أزرار</div>
+    <div class="card pad-lg" style="margin-bottom: 16px;">
+      <div class="btn-row">
+        <button class="btn btn-primary">افتح المنيو ←</button>
+        <button class="btn btn-dark">إغلاق الطاولة</button>
+        <button class="btn btn-secondary">تخطي</button>
+        <button class="btn btn-ghost">إعادة التوليد</button>
+        <button class="btn btn-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div style="font-family: var(--sans); font-size: 11px; letter-spacing: 2px; color: var(--muted); margin: 24px 0 14px;">BADGES · شارات</div>
+    <div class="card pad-lg" style="margin-bottom: 16px;">
+      <div class="badge-row">
+        <span class="pill" style="background: #FDEDD3; color: #92400E;">🔥 الأكثر طلباً</span>
+        <span class="pill" style="background: #F3EBD3; color: #6B4E14;">⭐ اختيار الشيف</span>
+        <span class="pill" style="background: #DCE7D0; color: #3E5520;">🆕 جديد</span>
+        <span class="pill" style="background: #E4E8DD; color: #4A5332;">⚡ تحضير سريع</span>
+        <span class="pill" style="background: #EAD9E5; color: #5C2F55;">💎 مميز</span>
+        <span class="pill" style="background: #FADADA; color: #8C1A1A;">🌶️ حار</span>
+        <span class="pill" style="background: #DEE7D2; color: #3E5520;">🌿 طازج</span>
+      </div>
+    </div>
+
+    <div style="font-family: var(--sans); font-size: 11px; letter-spacing: 2px; color: var(--muted); margin: 24px 0 14px;">STATUS PILLS · حالات الطلب</div>
+    <div class="card pad-lg" style="margin-bottom: 16px;">
+      <div class="badge-row">
+        <span class="pill" style="background: var(--cream-deep); color: var(--muted);">
+          <span style="width: 5px; height: 5px; border-radius: 999px; background: var(--muted);"></span>
+          في الانتظار
+        </span>
+        <span class="pill" style="background: #FDEDD3; color: #92400E;">
+          <span style="width: 5px; height: 5px; border-radius: 999px; background: #D97706;"></span>
+          قيد التحضير
+        </span>
+        <span class="pill" style="background: #E8F0D4; color: #3E5520;">
+          <span style="width: 5px; height: 5px; border-radius: 999px; background: #3E5520;"></span>
+          قُدّم
+        </span>
+        <span class="pill" style="background: #FEE2E2; color: #991B1B;">
+          <span style="width: 5px; height: 5px; border-radius: 999px; background: #991B1B;"></span>
+          قيد التقديم · ١٨ د
+        </span>
+      </div>
+    </div>
+
+    <div style="font-family: var(--sans); font-size: 11px; letter-spacing: 2px; color: var(--muted); margin: 24px 0 14px;">DISH CARD · بطاقة صنف</div>
+    <div class="grid-4" style="margin-bottom: 16px;">
+      <div class="dish-card">
+        <div class="glyph" style="background: radial-gradient(circle at 30% 30%, #F4D9B8, #D8BFA1);">
+          <span>ش</span>
+        </div>
+        <div class="nm">شيش طاووق</div>
+        <div class="desc">شرائح دجاج متبّلة بالليمون والثوم</div>
+        <div class="footer">
+          <span class="price">١٥,٠٠٠ د.ع</span>
+          <div class="add">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="dish-card">
+        <div class="glyph" style="background: radial-gradient(circle at 30% 30%, #E8C097, #CCA47E);">
+          <span>ك</span>
+        </div>
+        <div class="nm">كباب لحم</div>
+        <div class="desc">لحم غنم طازج بالبهارات السبعة</div>
+        <div class="footer">
+          <span class="price">٢٢,٠٠٠ د.ع</span>
+          <div class="add">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="dish-card">
+        <div class="glyph" style="background: radial-gradient(circle at 30% 30%, #D7E0C2, #BBC4A7);">
+          <span>ش</span>
+        </div>
+        <div class="nm">شاي نعناع</div>
+        <div class="desc">شاي عراقي بنعناع طازج</div>
+        <div class="footer">
+          <span class="price">١,٥٠٠ د.ع</span>
+          <div class="add">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="dish-card">
+        <div class="glyph" style="background: radial-gradient(circle at 30% 30%, #EDC19C, #D1A481);">
+          <span>ك</span>
+        </div>
+        <div class="nm">كنافة</div>
+        <div class="desc">كنافة بالجبن والقطر</div>
+        <div class="footer">
+          <span class="price">٥,٠٠٠ د.ع</span>
+          <div class="add">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family: var(--sans); font-size: 11px; letter-spacing: 2px; color: var(--muted); margin: 24px 0 14px;">TABLE TILE · بلاطة طاولة</div>
+    <div class="grid-4" style="margin-bottom: 16px;">
+      <div style="background: var(--surface); border: 1px solid var(--border-lite); border-radius: 12px; padding: 14px; min-height: 100px;">
+        <div style="display: flex; justify-content: space-between;">
+          <div>
+            <div style="font-family: var(--arabic); font-size: 30px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1;">٠١</div>
+            <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1px; color: var(--muted); margin-top: 4px;">٤ كراسي</div>
+          </div>
+          <div style="width: 8px; height: 8px; border-radius: 999px; background: var(--olive);"></div>
+        </div>
+      </div>
+      <div style="background: #FFF5F0; border: 1px solid #F2D5C8; border-radius: 12px; padding: 14px;">
+        <div style="display: flex; justify-content: space-between;">
+          <div>
+            <div style="font-family: var(--arabic); font-size: 30px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1;">٠٤</div>
+            <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1px; color: var(--muted); margin-top: 4px;">٤ كراسي</div>
+          </div>
+          <div style="width: 8px; height: 8px; border-radius: 999px; background: var(--burgundy); box-shadow: 0 0 0 3px rgba(139,26,26,0.15);"></div>
+        </div>
+        <div style="margin-top: 8px; font-family: var(--arabic); font-size: 13px; font-weight: 700; color: var(--burgundy); font-variant-numeric: tabular-nums;">١٢٤,٠٠٠ د.ع</div>
+        <div style="font-family: var(--arabic); font-size: 10px; color: var(--muted); margin-top: 2px;">منذ ٤٨ د</div>
+      </div>
+      <div style="background: var(--ink); color: var(--cream); border-radius: 12px; padding: 14px;">
+        <div style="display: flex; justify-content: space-between;">
+          <div>
+            <div style="font-family: var(--arabic); font-size: 30px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; line-height: 1;">٠٧</div>
+            <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1px; color: rgba(245,230,211,0.6); margin-top: 4px;">٤ كراسي · SELECTED</div>
+          </div>
+          <div style="width: 8px; height: 8px; border-radius: 999px; background: var(--burgundy); box-shadow: 0 0 0 3px rgba(139,26,26,0.15);"></div>
+        </div>
+        <div style="margin-top: 8px; font-family: var(--arabic); font-size: 13px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums;">٣٧,٠٠٠ د.ع</div>
+        <div style="font-family: var(--arabic); font-size: 10px; color: rgba(245,230,211,0.6); margin-top: 2px;">منذ ١٨ د</div>
+      </div>
+      <div style="background: var(--surface); border: 1px solid var(--border-lite); border-radius: 12px; padding: 14px;">
+        <div style="display: flex; justify-content: space-between;">
+          <div>
+            <div style="font-family: var(--arabic); font-size: 30px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1;">٠٨</div>
+            <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1px; color: var(--muted); margin-top: 4px;">٤ كراسي</div>
+          </div>
+          <div style="width: 8px; height: 8px; border-radius: 999px; background: var(--olive);"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-family: var(--sans); font-size: 11px; letter-spacing: 2px; color: var(--muted); margin: 24px 0 14px;">KPI · مؤشر</div>
+    <div class="grid-4">
+      <div class="card pad">
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--muted);">إيراد الليلة</div>
+        <div style="font-family: var(--arabic); font-size: 24px; font-weight: 700; color: var(--ink); margin-top: 6px; font-variant-numeric: tabular-nums;">١,٨٤٠,٠٠٠ د.ع</div>
+        <div style="font-family: var(--arabic); font-size: 11px; color: var(--olive); margin-top: 3px;">+٢٢٪ عن أمس</div>
+      </div>
+      <div class="card pad">
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--muted);">متوسط الطلب</div>
+        <div style="font-family: var(--arabic); font-size: 24px; font-weight: 700; color: var(--ink); margin-top: 6px; font-variant-numeric: tabular-nums;">٥٢,٠٠٠ د.ع</div>
+        <div style="font-family: var(--arabic); font-size: 11px; color: var(--muted); margin-top: 3px;">١٨ زبون</div>
+      </div>
+      <div class="card pad">
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--muted);">دوران الطاولات</div>
+        <div style="font-family: var(--arabic); font-size: 24px; font-weight: 700; color: var(--ink); margin-top: 6px; font-variant-numeric: tabular-nums;">٤٢ د</div>
+        <div style="font-family: var(--arabic); font-size: 11px; color: var(--olive); margin-top: 3px;">أعلى من المعدل</div>
+      </div>
+      <div class="card pad" style="background: rgba(139,26,26,0.04); border-color: rgba(139,26,26,0.3);">
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--muted);">طلبات مفتوحة</div>
+        <div style="font-family: var(--arabic); font-size: 24px; font-weight: 700; color: var(--burgundy); margin-top: 6px; font-variant-numeric: tabular-nums;">٦</div>
+        <div style="font-family: var(--arabic); font-size: 11px; color: var(--amber); margin-top: 3px;">نشطة الآن</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ICONS -->
+  <section id="icons">
+    <div class="sec-head">
+      <span class="sec-num">٠٨</span>
+      <h2 class="sec-title">الأيقونات</h2>
+      <span class="sec-en">ICONOGRAPHY · LUCIDE 1.75 STROKE</span>
+    </div>
+    <p class="sec-sub">أيقونات خطّية بسماكة ١.٧٥ بكسل، مستوحاة من Lucide. أيقونات الحالة من Emoji للحرارة (المطبخ، الاستدعاء، النقد).</p>
+
+    <div class="grid-5" style="margin-bottom: 24px;">
+      <div class="icon-cell">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+        <div class="nm">السلة</div>
+      </div>
+      <div class="icon-cell">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.75"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 1 0-7.8 7.8l1 1.1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.6z"/></svg>
+        <div class="nm">المفضّلة</div>
+      </div>
+      <div class="icon-cell">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.75"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4" stroke-linecap="round"/></svg>
+        <div class="nm">البحث</div>
+      </div>
+      <div class="icon-cell">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.75" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        <div class="nm">رجوع</div>
+      </div>
+      <div class="icon-cell">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <div class="nm">الوقت</div>
+      </div>
+    </div>
+
+    <div class="grid-5">
+      <div class="icon-cell">
+        <div style="font-size: 28px;">🔔</div>
+        <div class="nm">استدعاء</div>
+      </div>
+      <div class="icon-cell">
+        <div style="font-size: 28px;">🍽️</div>
+        <div class="nm">جاهز للتقديم</div>
+      </div>
+      <div class="icon-cell">
+        <div style="font-size: 28px;">📱</div>
+        <div class="nm">QR مسح</div>
+      </div>
+      <div class="icon-cell">
+        <div style="font-size: 28px;">💰</div>
+        <div class="nm">وضع الربح</div>
+      </div>
+      <div class="icon-cell">
+        <div style="font-size: 28px;">🌙</div>
+        <div class="nm">وضع الإغلاق</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DISH GLYPHS -->
+  <section id="glyphs">
+    <div class="sec-head">
+      <span class="sec-num">٠٩</span>
+      <h2 class="sec-title">رموز الأطباق</h2>
+      <span class="sec-en">DISH GLYPHS · ARABIC INITIALS</span>
+    </div>
+    <p class="sec-sub">
+      كل طبق يُمثَّل بالحرف الأول من اسمه بالعربية، داخل دائرة بدرجة لون دافئة مستوحاة من الطعام نفسه.
+      هذا النظام يحل محل صور الأطباق غير المتوفرة، ويعطي هوية بصرية موحّدة بدلاً من صور بجودات متفاوتة.
+    </p>
+
+    <div class="glyph-grid">
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #F4D9B8, #D8BFA1); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ش</span>
+        </div>
+        <div class="nm">شيش طاووق</div>
+        <div class="en">SHISH</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #E8C097, #CCA47E); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ك</span>
+        </div>
+        <div class="nm">كباب لحم</div>
+        <div class="en">KEBAB</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #F2D5A8, #D6B98C); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ش</span>
+        </div>
+        <div class="nm">شاورما</div>
+        <div class="en">SHAWARMA</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #E3CFA0, #C7B384); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ف</span>
+        </div>
+        <div class="nm">فلافل</div>
+        <div class="en">FALAFEL</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #EAD8A4, #CEBC88); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ح</span>
+        </div>
+        <div class="nm">حمص</div>
+        <div class="en">HUMMUS</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #D9D6B5, #BDBA99); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ت</span>
+        </div>
+        <div class="nm">تبولة</div>
+        <div class="en">TABBOULEH</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #D7E0C2, #BBC4A7); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ش</span>
+        </div>
+        <div class="nm">شاي نعناع</div>
+        <div class="en">MINT TEA</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #D0B896, #B49C7A); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ق</span>
+        </div>
+        <div class="nm">قهوة عربية</div>
+        <div class="en">COFFEE</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #D5E3C9, #B9C7AD); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">م</span>
+        </div>
+        <div class="nm">موهيتو</div>
+        <div class="en">MOJITO</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #EBC5C5, #CFA9A9); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">م</span>
+        </div>
+        <div class="nm">فراولة</div>
+        <div class="en">STRAWBERRY</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #E8E4D4, #CCC8B8); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ع</span>
+        </div>
+        <div class="nm">عيران</div>
+        <div class="en">AYRAN</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #EDC19C, #D1A580); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ك</span>
+        </div>
+        <div class="nm">كنافة</div>
+        <div class="en">KNAFEH</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #E9C9A6, #CDAD8A); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ب</span>
+        </div>
+        <div class="nm">بقلاوة</div>
+        <div class="en">BAKLAVA</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #D8DDD4, #BCC1B8); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">س</span>
+        </div>
+        <div class="nm">سمك مشوي</div>
+        <div class="en">FISH</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #EECBA2, #D2AF86); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">م</span>
+        </div>
+        <div class="nm">مشاوي مشكلة</div>
+        <div class="en">MIXED GRILL</div>
+      </div>
+      <div class="glyph-cell">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #D8B79A, #BC9B7E); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -4px 10px rgba(0,0,0,0.08);">
+          <span style="font-family: var(--arabic); font-size: 28px; font-weight: 600; color: var(--ink-2);">ج</span>
+        </div>
+        <div class="nm">جلاب</div>
+        <div class="en">JALLAB</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VOICE -->
+  <section id="voice">
+    <div class="sec-head">
+      <span class="sec-num">١٠</span>
+      <h2 class="sec-title">الصوت والنبرة</h2>
+      <span class="sec-en">VOICE & TONE</span>
+    </div>
+    <p class="sec-sub">كيف نخاطب الزبون، الكابتن، والمالك. النبرة تتغيّر مع السياق، لكن الدفء ثابت.</p>
+
+    <div class="grid-3">
+      <div class="card pad-lg">
+        <div class="label-tag" style="background: var(--burgundy);">للزبون</div>
+        <div style="font-family: var(--arabic); font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 12px; line-height: 1.4;">
+          دافئ، شخصي، مُضيف
+        </div>
+        <div style="font-family: var(--arabic); font-size: 13px; color: var(--muted); line-height: 1.8;">
+          نتحدث كصاحب البيت لا كنادل. لا أوامر، بل دعوات.
+        </div>
+        <div class="ornament" style="margin: 20px 0;"><div class="line"></div><div class="dot"></div><div class="line"></div></div>
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--olive); margin-bottom: 6px;">✓ نقول</div>
+        <div style="font-family: var(--arabic); font-size: 13px; color: var(--ink-2); line-height: 1.7; margin-bottom: 14px;">
+          "مساء الخير، تفضّل اطلب براحتك"<br>
+          "اختر بروح الشيف"<br>
+          "أظهر هذا للكابتن"
+        </div>
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--burgundy); margin-bottom: 6px;">✗ لا نقول</div>
+        <div style="font-family: var(--arabic); font-size: 13px; color: var(--muted-lite); line-height: 1.7; text-decoration: line-through;">
+          "اضغط للطلب"<br>
+          "أدخل بياناتك"<br>
+          "العملية ناجحة"
+        </div>
+      </div>
+
+      <div class="card pad-lg">
+        <div class="label-tag" style="background: var(--ink); color: var(--gold);">للكابتن</div>
+        <div style="font-family: var(--arabic); font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 12px; line-height: 1.4;">
+          مباشر، حازم، عملي
+        </div>
+        <div style="font-family: var(--arabic); font-size: 13px; color: var(--muted); line-height: 1.8;">
+          الكابتن في الميدان. لا نطيل. أرقام، حالات، أفعال.
+        </div>
+        <div class="ornament" style="margin: 20px 0;"><div class="line"></div><div class="dot"></div><div class="line"></div></div>
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--olive); margin-bottom: 6px;">✓ نقول</div>
+        <div style="font-family: var(--arabic); font-size: 13px; color: var(--ink-2); line-height: 1.7; margin-bottom: 14px;">
+          "طاولة ٠٧ نشطة منذ ١٨ د"<br>
+          "قبول وإرسال للمطبخ"<br>
+          "إغلاق الطاولة وطبع"
+        </div>
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--burgundy); margin-bottom: 6px;">✗ لا نقول</div>
+        <div style="font-family: var(--arabic); font-size: 13px; color: var(--muted-lite); line-height: 1.7; text-decoration: line-through;">
+          "هل تريد أن تقبل الطلب؟"<br>
+          "ربما تريد إغلاق الطاولة"<br>
+          "يمكنك الآن المتابعة"
+        </div>
+      </div>
+
+      <div class="card pad-lg">
+        <div class="label-tag" style="background: var(--gold); color: var(--ink);">للمالك</div>
+        <div style="font-family: var(--arabic); font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 12px; line-height: 1.4;">
+          تحليلي، واثق، استشاري
+        </div>
+        <div style="font-family: var(--arabic); font-size: 13px; color: var(--muted); line-height: 1.8;">
+          مساعد ذكي يقترح، لا يأمر. كل رقم يحمل قراراً ممكناً.
+        </div>
+        <div class="ornament" style="margin: 20px 0;"><div class="line"></div><div class="dot"></div><div class="line"></div></div>
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--olive); margin-bottom: 6px;">✓ نقول</div>
+        <div style="font-family: var(--arabic); font-size: 13px; color: var(--ink-2); line-height: 1.7; margin-bottom: 14px;">
+          "البرغر الخاص نفد · أضف كمية"<br>
+          "اقترح تحلية لطاولة ٥"<br>
+          "المنيو يستجيب فوراً"
+        </div>
+        <div style="font-family: var(--sans); font-size: 10px; letter-spacing: 1.5px; color: var(--burgundy); margin-bottom: 6px;">✗ لا نقول</div>
+        <div style="font-family: var(--arabic); font-size: 13px; color: var(--muted-lite); line-height: 1.7; text-decoration: line-through;">
+          "خطأ في البيانات"<br>
+          "تنبيه عاجل!"<br>
+          "أداء أسبوعك ممتاز جداً!"
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- USAGE / CODE -->
+  <section id="usage">
+    <div class="sec-head">
+      <span class="sec-num">١١</span>
+      <h2 class="sec-title">الاستخدام</h2>
+      <span class="sec-en">USAGE · TOKENS IN CODE</span>
+    </div>
+    <p class="sec-sub">جميع التوكنز متاحة عبر <code style="font-family: var(--mono); padding: 2px 6px; background: var(--cream-deep); border-radius: 4px;">window.MESA</code> في كل ملفات jsx.</p>
+
+    <div class="grid-2">
+      <div>
+<pre class="code"><span class="c">// tokens.jsx — central design tokens</span>
+<span class="k">const</span> MESA = {
+  <span class="c">// colors</span>
+  burgundy:     <span class="s">'#8B1A1A'</span>,
+  gold:         <span class="s">'#C9A961'</span>,
+  cream:        <span class="s">'#FAF7F2'</span>,
+  ink:          <span class="s">'#1A1A1A'</span>,
+  muted:        <span class="s">'#6B5E52'</span>,
+  border:       <span class="s">'#E8DFD1'</span>,
+  olive:        <span class="s">'#6B7F3F'</span>,
+  amber:        <span class="s">'#D97706'</span>,
+  danger:       <span class="s">'#991B1B'</span>,
+
+  <span class="c">// type stacks</span>
+  arabic: <span class="s">'"Tajawal", system-ui'</span>,
+  sans:   <span class="s">'"Inter", -apple-system'</span>,
+  mono:   <span class="s">'"IBM Plex Mono"'</span>,
+};</pre>
+      </div>
+      <div>
+<pre class="code"><span class="c">// example usage in a screen</span>
+<span class="k">function</span> DishCard({ dish }) {
+  <span class="k">return</span> (
+    &lt;div style={{
+      background: MESA.surface,
+      border: <span class="s">`1px solid ${MESA.borderLite}`</span>,
+      borderRadius: <span class="s">14</span>,
+      padding: <span class="s">14</span>,
+    }}&gt;
+      &lt;DishGlyph dish={dish} size={56} /&gt;
+      &lt;div style={{
+        fontFamily: MESA.arabic,
+        fontSize: <span class="s">15</span>,
+        fontWeight: <span class="s">600</span>,
+        color: MESA.ink,
+      }}&gt;{dish.ar}&lt;/div&gt;
+      &lt;div style={{
+        color: MESA.burgundy,
+        fontVariantNumeric: <span class="s">'tabular-nums'</span>,
+      }}&gt;{iqd(dish.price)}&lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="margin-top: 100px; padding-top: 36px; border-top: 1px solid var(--border-lite);
+    display: flex; justify-content: space-between; align-items: baseline;">
+    <div>
+      <div style="font-family: var(--arabic); font-size: 22px; font-weight: 700; color: var(--ink);">نظام تصميم ميسا</div>
+      <div style="font-family: var(--sans); font-size: 11px; letter-spacing: 1.5px; color: var(--muted); margin-top: 4px;">MESA OS DESIGN SYSTEM · v0.5</div>
+    </div>
+    <div style="font-family: var(--arabic); font-size: 12px; color: var(--muted); text-align: left;">
+      صُنع في بغداد · ٢٠٢٥<br>
+      <a href="Mesa OS Lite.html" style="color: var(--burgundy); text-decoration: none;">← العودة إلى الـ Prototype</a>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>
