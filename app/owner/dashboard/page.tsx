@@ -82,7 +82,7 @@ export default async function OwnerDashboardPage() {
                   className={
                     'rounded px-2 py-0.5 text-xs ' +
                     (r.is_active
-                      ? 'bg-emerald-100 text-emerald-700'
+                      ? 'bg-olive/15 text-olive'
                       : 'bg-muted text-muted-foreground')
                   }
                 >

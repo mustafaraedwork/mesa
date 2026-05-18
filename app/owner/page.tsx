@@ -14,7 +14,7 @@ export default async function OwnerLoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
-      <div className="w-full max-w-sm space-y-6 rounded-lg border bg-card p-6 shadow-sm">
+      <div className="border-border-lite bg-card shadow-card w-full max-w-sm space-y-6 rounded-xl border p-6">
         <header className="space-y-1 text-center">
           <h1 className="text-xl font-semibold">Mesa OS Lite — لوحة المالك</h1>
           <p className="text-muted-foreground text-sm">سجّل الدخول لإدارة الحسابات</p>

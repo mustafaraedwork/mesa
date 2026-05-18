@@ -86,7 +86,7 @@ export function AccountsTable({ accounts }: { accounts: AccountRow[] }) {
                         className={
                           'rounded px-2 py-0.5 text-xs ' +
                           (a.is_active
-                            ? 'bg-emerald-100 text-emerald-700'
+                            ? 'bg-olive/15 text-olive'
                             : 'bg-muted text-muted-foreground')
                         }
                       >
