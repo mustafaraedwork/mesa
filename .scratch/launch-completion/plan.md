@@ -73,7 +73,7 @@ npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 ### ١.١ — git
 - [x] `git init` في جذر المشروع — `.gitignore` يستثني `.next`/`node_modules`/`.env*`/`*.tsbuildinfo`. أُضيف `.gitattributes` (`eol=lf`) لمنع ضجيج CRLF على Windows.
 - [x] commit أول (`8267b9b`) كنقطة استعادة قبل عمل المرحلة ١.
-- [ ] إنشاء repo خاص على GitHub وربطه + push. **معلّق — `gh` غير منصَّب على الجهاز؛ مهمة Mustafa** (أو تنصيب `gh`). شرط لربط Coolify (المرحلة ٦).
+- [x] repo على GitHub: `github.com/mustafaraedwork/mesa` — `origin` مربوط و`master` مدفوع.
 
 ### ١.٢ — صفحة `/`
 - [x] استُبدلت `app/page.tsx` بصفحة عربية RTL: عنوان "Mesa OS Lite" + جملة تعريفية + رابط `/admin`. لا `next/image`، تعتمد RTL/الخط من `app/layout.tsx`.
@@ -177,8 +177,8 @@ npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 **الهدف:** أيقونات حقيقية + أول deploy إنتاجي على HTTPS فعلي.
 
 - [x] **`next build` كامل** — نجح: تجميع نظيف، TypeScript تمّ، كل الـ١٦ مساراً بُنيت، صفر أخطاء/تحذيرات. يؤكّد أن drag & drop (المرحلة ٥) ومكوّنات `@dnd-kit` تُبنى للإنتاج سليمةً.
-- [ ] **أيقونات PWA:** استبدال placeholders (حرف M) بتصميم حقيقي → تشغيل `scripts/gen-icons.mjs` أو استبداله لإنتاج `icon-192/512/512-maskable/apple-touch-icon`. **مهمة Mustafa (قرار تصميمي).**
-- [ ] **النشر (Mustafa):** اتبع `DEPLOY.md` — DNS على Cloudflare لـ`qaema.app` → إنشاء تطبيق Coolify وربط الـrepo (يحتاج repo على GitHub — بند معلّق من المرحلة ١) → متغيرات البيئة (٣ build + ٦ runtime) → أول deploy + شهادة Let's Encrypt.
+- [x] **أيقونات PWA:** `gen-icons.mjs` يولّد كل الأيقونات من `public/logo.png` (شعار رمز QR) — `icon-192/512`, `icon-512-maskable`, `apple-touch-icon`, `app/icon.png`, `app/favicon.ico`.
+- [ ] **النشر (Mustafa):** اتبع `DEPLOY.md` — DNS على Cloudflare لـ`qaema.app` → إنشاء تطبيق Coolify وربط الـrepo (`github.com/mustafaraedwork/mesa`) → متغيرات البيئة (٣ build + ٦ runtime) → أول deploy + شهادة Let's Encrypt.
 - [ ] **بعد النشر — تشغيل migrations:** `0001` ثم `0002` على Supabase، ثم `UPDATE auth.users ... role:owner` يدوياً. **مهمة Mustafa.**
 - [ ] **التحقّق على HTTPS فعلي:** فحوصات `DEPLOY.md` (curl + متصفّح). **مهمة Mustafa.**
 
