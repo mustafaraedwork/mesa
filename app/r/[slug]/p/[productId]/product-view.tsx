@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
 import { isRtl, pickName, t, type Lang } from '@/lib/i18n';
@@ -35,8 +35,13 @@ export function ProductView({
   }, [slug]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Analytics — record this product view.
+  // Analytics — record this product view once per product. The ref guard
+  // stops React's dev StrictMode double-invoke from counting it twice, and
+  // still re-fires if the view navigates to a different product.
+  const trackedId = useRef<string | null>(null);
   useEffect(() => {
+    if (trackedId.current === product.id) return;
+    trackedId.current = product.id;
     track('product_open', { slug, productId: product.id });
   }, [slug, product.id]);
 
