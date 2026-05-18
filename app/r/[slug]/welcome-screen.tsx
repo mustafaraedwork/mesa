@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { LANGS, isRtl, t, type Lang } from '@/lib/i18n';
 
 type Brand = {
@@ -10,8 +11,9 @@ type Brand = {
   background_color: string;
 };
 
-// Diner entry screen — shown after the QR scan, before the menu. A language
-// popup opens on top; once a language is picked the diner taps "open menu".
+// Diner entry screen — shown after the QR scan, before the menu. Branded with
+// the tenant's logo + colours (set in the admin design tab). A language popup
+// opens on top; the top-corner pill reopens it.
 export function WelcomeScreen({
   restaurant,
   lang,
@@ -30,51 +32,71 @@ export function WelcomeScreen({
     new Date().getHours() < 12 ? 'greeting_morning' : 'greeting_evening',
   );
 
+  const primary = restaurant.primary_color;
+  const langLabel = LANGS.find((l) => l.code === lang)?.label ?? 'عربي';
+
   return (
     <main
       dir={isRtl(lang) ? 'rtl' : 'ltr'}
-      className="relative flex min-h-screen flex-col items-center justify-center px-8 text-center"
+      className="flex min-h-screen flex-col px-6 py-6"
       style={{ background: restaurant.background_color }}
     >
-      {restaurant.logo_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={restaurant.logo_url}
-          alt=""
-          className="mb-6 h-24 w-24 rounded-full bg-white object-contain p-1"
-        />
-      ) : (
-        <div
-          className="mb-6 flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold text-white"
-          style={{ background: restaurant.primary_color }}
+      {/* Top — language pill */}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setLangOpen(true)}
+          className="flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium"
+          style={{ borderColor: `${primary}33`, color: primary }}
         >
-          {restaurant.display_name.slice(0, 1) || '·'}
+          {langLabel}
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Middle — emblem block */}
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <div
+          className="mb-6 flex h-28 w-28 items-center justify-center rounded-full"
+          style={{ border: `1px solid ${primary}40` }}
+        >
+          {restaurant.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={restaurant.logo_url}
+              alt=""
+              className="h-20 w-20 rounded-full object-contain"
+            />
+          ) : (
+            <span className="text-4xl font-bold" style={{ color: primary }}>
+              {restaurant.display_name.slice(0, 1) || '·'}
+            </span>
+          )}
         </div>
-      )}
 
-      <h1 className="text-4xl font-bold" style={{ color: restaurant.primary_color }}>
-        {restaurant.display_name}
-      </h1>
-      <p className="mt-3 text-lg font-medium" style={{ color: restaurant.primary_color }}>
-        {t(greetingKey, lang)}
-      </p>
-      <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-7">
-        {t('welcome_tagline', lang)}
-      </p>
+        <h1 className="text-4xl font-bold tracking-tight" style={{ color: primary }}>
+          {restaurant.display_name}
+        </h1>
+        <p className="text-gold mt-3 text-lg font-medium">{t(greetingKey, lang)}</p>
+        <p className="text-muted-foreground mt-4 max-w-xs text-sm leading-7">
+          {t('welcome_tagline', lang)}
+        </p>
+      </div>
 
-      <button
-        type="button"
-        onClick={onStart}
-        className="shadow-lifted mt-10 rounded-lg px-8 py-3.5 text-sm font-semibold text-white"
-        style={{ background: restaurant.primary_color }}
-      >
-        {t('open_menu', lang)} ←
-      </button>
+      {/* Bottom — CTA */}
+      <div className="flex flex-col items-center gap-4">
+        <button
+          type="button"
+          onClick={onStart}
+          className="shadow-lifted w-full max-w-sm rounded-xl py-4 text-base font-semibold text-white"
+          style={{ background: primary }}
+        >
+          {t('open_menu', lang)} ←
+        </button>
+        <p className="text-muted-lite text-[10px] tracking-[0.2em]">POWERED BY MESA OS</p>
+      </div>
 
-      <p className="text-muted-lite absolute bottom-6 text-[10px] tracking-widest">
-        POWERED BY MESA OS
-      </p>
-
+      {/* Language popup */}
       {langOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
           <div className="bg-card shadow-modal w-full max-w-xs space-y-3 rounded-xl p-5">
@@ -88,7 +110,12 @@ export function WelcomeScreen({
                     onPickLang(l.code);
                     setLangOpen(false);
                   }}
-                  className="border-border hover:bg-muted w-full rounded-lg border py-3 text-sm font-medium transition-colors"
+                  className={
+                    'w-full rounded-lg border py-3 text-sm font-medium transition-colors ' +
+                    (l.code === lang
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:bg-muted')
+                  }
                 >
                   {l.label}
                 </button>
