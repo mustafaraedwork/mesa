@@ -49,6 +49,8 @@ const STRINGS = {
     welcome_tagline: 'منيو الليلة جاهز، اختر بروح الشيف وتفضّل.',
     open_menu: 'افتح المنيو',
     choose_lang: 'اختر لغتك',
+    chef_tonight: 'اختيارات الشيف الليلة',
+    cart_items: 'صنف في السلة',
   },
   en: {
     cart_button: 'My order',
@@ -76,6 +78,8 @@ const STRINGS = {
     welcome_tagline: "Tonight's menu is ready — pick what the chef loves.",
     open_menu: 'Open the menu',
     choose_lang: 'Choose your language',
+    chef_tonight: "Chef's picks tonight",
+    cart_items: 'item(s) in cart',
   },
   ku: {
     cart_button: 'فەرمایشم',
@@ -103,6 +107,8 @@ const STRINGS = {
     welcome_tagline: 'مینۆی ئەمشەو ئامادەیە، فەرموو هەڵبژێرە.',
     open_menu: 'مینۆ بکەرەوە',
     choose_lang: 'زمانەکەت هەڵبژێرە',
+    chef_tonight: 'هەڵبژاردنی شێف بۆ ئەمشەو',
+    cart_items: 'بەش لە سەبەتە',
   },
 } as const;
 

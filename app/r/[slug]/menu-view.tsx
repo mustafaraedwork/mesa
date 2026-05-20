@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
+import { Plus, ShoppingBag } from 'lucide-react';
+import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
 import { LANGS, isRtl, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import { track } from '@/lib/track';
@@ -13,6 +14,10 @@ const LANG_KEY = 'mesa-lang';
 const POLL_MS = 30_000;
 
 type CategoryNode = MenuCategory & { children: MenuCategory[] };
+type BrandColors = {
+  primary: string;
+  bg: string;
+};
 
 export function MenuView({
   slug,
@@ -23,23 +28,19 @@ export function MenuView({
 }) {
   const [data, setData] = useState<MenuPayload>(initialData);
   const [lang, setLang] = useState<Lang>('ar');
-  const [cartCount, setCartCount] = useState(0);
+  const [cart, setCart] = useState<Cart>({ items: [], updatedAt: 0 });
   const [started, setStarted] = useState(false);
 
   /* eslint-disable react-hooks/set-state-in-effect --
-     Both effects sync from client-only stores on mount (localStorage / cart):
-     these reads can't run during SSR, so an effect is the correct home. */
-  // Restore language preference on mount (avoids hydration mismatch — initial
-  // render is always 'ar', then we sync to localStorage in the effect).
+     Both effects sync from client-only stores on mount (localStorage / cart). */
   useEffect(() => {
     const saved = (window.localStorage.getItem(LANG_KEY) ?? 'ar') as Lang;
     if (saved === 'ar' || saved === 'en' || saved === 'ku') setLang(saved);
   }, []);
 
-  // Cart count + storage subscription.
   useEffect(() => {
-    setCartCount(totalQuantity(getCart(slug)));
-    return subscribe(slug, () => setCartCount(totalQuantity(getCart(slug))));
+    setCart(getCart(slug));
+    return subscribe(slug, () => setCart(getCart(slug)));
   }, [slug]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -66,20 +67,79 @@ export function MenuView({
     };
   }, [slug]);
 
-  const onAdd = useCallback(
-    (productId: string) => {
-      setCartCount(totalQuantity(addToCart(slug, productId)));
-    },
-    [slug],
-  );
+  const tree = useMemo(() => buildTree(data.categories), [data.categories]);
+
+  // Default selection = first parent that has products (direct or via children).
+  // If the first qualifying parent has no direct products but has children with
+  // products, auto-select the first such child so the diner isn't greeted with
+  // an empty grid.
+  const [parentId, setParentId] = useState<string | null>(() => initialParent(tree));
+  const [subId, setSubId] = useState<string | null>(() => initialSub(tree, initialParent(tree)));
+
+  const selectedParent = tree.find((c) => c.id === parentId) ?? null;
+  const hasSubs = selectedParent ? selectedParent.children.length > 0 : false;
+
+  const filteredProducts = useMemo<MenuProduct[]>(() => {
+    if (!selectedParent) return [];
+    if (subId) {
+      const sub = selectedParent.children.find((c) => c.id === subId);
+      return sub?.products ?? [];
+    }
+    return selectedParent.products;
+  }, [selectedParent, subId]);
+
+  // Chef's Picks = the virtual category surfaced by the active mode (currently
+  // only Closing — Normal mode's `is_chef_pick` selection is a deferred bit).
+  const chefPicks = useMemo<MenuProduct[]>(() => {
+    const vc = data.categories.find((c) => c.is_virtual);
+    return vc?.products ?? [];
+  }, [data.categories]);
+  const chefPicksCategory = data.categories.find((c) => c.is_virtual);
+
+  // Cart-bar count + total.
+  const productIndex = useMemo(() => {
+    const idx = new Map<string, MenuProduct>();
+    for (const cat of data.categories) {
+      if (cat.id === CLOSING_VIRTUAL_CATEGORY_ID) continue;
+      for (const p of cat.products) idx.set(p.id, p);
+    }
+    return idx;
+  }, [data.categories]);
+  const cartCount = cart.items.reduce((s, it) => s + it.quantity, 0);
+  const cartTotal = useMemo(() => {
+    let total = 0;
+    for (const it of cart.items) {
+      const p = productIndex.get(it.product_id);
+      if (p) total += p.price * it.quantity;
+    }
+    return total;
+  }, [cart, productIndex]);
+
+  const r = data.restaurant;
+  const dir = isRtl(lang) ? 'rtl' : 'ltr';
+  const colors: BrandColors = { primary: r.primary_color, bg: r.background_color };
 
   function pickLang(next: Lang) {
     setLang(next);
     window.localStorage.setItem(LANG_KEY, next);
   }
-
-  // The diner taps "open menu" on the welcome screen — count one menu_open
-  // per tab session, then reveal the menu.
+  function cycleLang() {
+    const order: Lang[] = ['ar', 'en', 'ku'];
+    const i = order.indexOf(lang);
+    pickLang(order[(i + 1) % order.length]);
+  }
+  function pickParent(id: string) {
+    setParentId(id);
+    const p = tree.find((c) => c.id === id);
+    setSubId(p ? defaultSubFor(p) : null);
+  }
+  function pickSub(id: string) {
+    setSubId(id);
+  }
+  function onAdd(productId: string) {
+    addToCart(slug, productId);
+    track('product_add', { slug, productId });
+  }
   function handleStart() {
     setStarted(true);
     const key = `mesa-opened-${slug}`;
@@ -88,10 +148,6 @@ export function MenuView({
       track('menu_open', { slug });
     }
   }
-
-  const tree = useMemo(() => buildTree(data.categories), [data.categories]);
-  const r = data.restaurant;
-  const dir = isRtl(lang) ? 'rtl' : 'ltr';
 
   if (!started) {
     return (
@@ -110,51 +166,140 @@ export function MenuView({
   }
 
   return (
-    <main
-      dir={dir}
-      className="min-h-screen pb-28"
-      style={{ background: r.background_color }}
-    >
-      <Header
-        displayName={r.display_name}
-        logoUrl={r.logo_url}
-        primary={r.primary_color}
-        lang={lang}
-        onLangChange={pickLang}
-      />
+    <main dir={dir} className="min-h-screen pb-28" style={{ background: colors.bg }}>
+      {/* Compact header */}
+      <header className="bg-card border-border-lite shadow-subtle sticky top-0 z-20 flex items-center gap-3 border-b px-4 py-3">
+        <BrandMark
+          logoUrl={r.logo_url}
+          displayName={r.display_name}
+          primary={colors.primary}
+        />
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={cycleLang}
+          className="border-border text-foreground hover:bg-muted rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+        >
+          {LANGS.find((l) => l.code === lang)?.label}
+        </button>
+        <Link href={`/r/${slug}/cart`} className="relative" aria-label={t('cart_button', lang)}>
+          <ShoppingBag className="h-6 w-6" style={{ color: colors.primary }} />
+          {cartCount > 0 && (
+            <span
+              className="text-primary-foreground absolute -top-1.5 -end-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+              style={{ background: colors.primary }}
+            >
+              {cartCount}
+            </span>
+          )}
+        </Link>
+      </header>
 
-      <div className="mx-auto max-w-3xl px-4 py-4">
-        {tree.length === 0 ? (
-          <p className="text-muted-foreground bg-card shadow-card rounded-xl p-6 text-center text-sm">
+      {/* Magazine intro */}
+      <div className="px-4 pt-6 pb-3 text-end">
+        <h1 className="text-3xl font-bold tracking-tight">{t('greeting_evening', lang)}.</h1>
+        <h2 className="text-xl font-bold mt-2" style={{ color: colors.primary }}>
+          {t('chef_tonight', lang)}
+        </h2>
+      </div>
+
+      {/* Parent category chips */}
+      {tree.length > 0 && (
+        <ChipBar>
+          {tree.map((cat) => (
+            <Chip
+              key={cat.id}
+              active={parentId === cat.id}
+              onClick={() => pickParent(cat.id)}
+            >
+              {pickName(cat, lang)}
+            </Chip>
+          ))}
+        </ChipBar>
+      )}
+
+      {/* Sub-category chips — only when the selected parent has children */}
+      {hasSubs && selectedParent && (
+        <ChipBar dense>
+          {selectedParent.children.map((sub) => (
+            <Chip
+              key={sub.id}
+              active={subId === sub.id}
+              onClick={() => pickSub(sub.id)}
+              variant="sub"
+            >
+              {pickName(sub, lang)}
+            </Chip>
+          ))}
+        </ChipBar>
+      )}
+
+      {/* Chef's Picks — surfaces the active mode's selection (Closing now) */}
+      {chefPicks.length > 0 && chefPicksCategory && (
+        <section className="px-4 pt-4 pb-2">
+          <p className="text-muted-foreground font-latin text-[10px] tracking-widest">
+            CHEF&apos;S SELECTION · TONIGHT
+          </p>
+          <h3 className="mt-1 mb-3 text-lg font-bold">
+            {pickName(chefPicksCategory, lang)}
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {chefPicks.map((p) => (
+              <ProductCard
+                key={`pick-${p.id}`}
+                slug={slug}
+                product={p}
+                lang={lang}
+                primary={colors.primary}
+                currency={r.currency}
+                onAdd={onAdd}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Filtered items — no heading, just the grid */}
+      <section className="px-4 pt-2 pb-32">
+        {filteredProducts.length === 0 ? (
+          <p className="text-muted-foreground py-10 text-center text-sm">
             {t('no_menu', lang)}
           </p>
         ) : (
-          <div className="space-y-6">
-            {tree.map((cat) => (
-              <CategoryBlock
-                key={cat.id}
+          <div className="grid grid-cols-2 gap-3">
+            {filteredProducts.map((p) => (
+              <ProductCard
+                key={p.id}
                 slug={slug}
-                category={cat}
+                product={p}
                 lang={lang}
-                primary={r.primary_color}
+                primary={colors.primary}
                 currency={r.currency}
-                showUnavailable={r.show_unavailable_items}
                 onAdd={onAdd}
               />
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      <FloatingCart slug={slug} count={cartCount} primary={r.primary_color} lang={lang} />
+      <CartBar
+        slug={slug}
+        count={cartCount}
+        total={cartTotal}
+        currency={r.currency}
+        lang={lang}
+      />
     </main>
   );
 }
+
+// ── helpers ────────────────────────────────────────────────────────────
 
 function buildTree(categories: MenuCategory[]): CategoryNode[] {
   const top: MenuCategory[] = [];
   const byParent = new Map<string, MenuCategory[]>();
   for (const c of categories) {
+    if (c.id === CLOSING_VIRTUAL_CATEGORY_ID) continue; // chef-picks section handles it
     if (c.parent_id) {
       const arr = byParent.get(c.parent_id) ?? [];
       arr.push(c);
@@ -169,129 +314,88 @@ function buildTree(categories: MenuCategory[]): CategoryNode[] {
   }));
 }
 
-function Header({
-  displayName,
+function initialParent(tree: CategoryNode[]): string | null {
+  for (const cat of tree) {
+    if (cat.products.length > 0) return cat.id;
+    if (cat.children.some((c) => c.products.length > 0)) return cat.id;
+  }
+  return tree[0]?.id ?? null;
+}
+
+function initialSub(tree: CategoryNode[], parentId: string | null): string | null {
+  if (!parentId) return null;
+  const p = tree.find((c) => c.id === parentId);
+  return p ? defaultSubFor(p) : null;
+}
+
+function defaultSubFor(parent: CategoryNode): string | null {
+  // Only auto-pick a sub when the parent itself has no direct products.
+  if (parent.products.length > 0) return null;
+  return parent.children.find((c) => c.products.length > 0)?.id ?? null;
+}
+
+// ── presentational ────────────────────────────────────────────────────
+
+function BrandMark({
   logoUrl,
+  displayName,
   primary,
-  lang,
-  onLangChange,
 }: {
-  displayName: string;
   logoUrl: string | null;
+  displayName: string;
   primary: string;
-  lang: Lang;
-  onLangChange: (l: Lang) => void;
 }) {
+  if (logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={logoUrl} alt="" className="h-8 w-8 rounded-full bg-white object-contain" />
+    );
+  }
   return (
-    <header
-      className="shadow-card sticky top-0 z-20 flex items-center gap-3 px-4 py-3"
-      style={{ background: primary, color: '#fff' }}
+    <div
+      className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white"
+      style={{ background: primary }}
     >
-      {logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={logoUrl}
-          alt=""
-          className="h-10 w-10 shrink-0 rounded bg-white object-contain p-0.5"
-        />
-      ) : (
-        <div className="bg-white/15 flex h-10 w-10 shrink-0 items-center justify-center rounded text-base font-bold">
-          {displayName.slice(0, 1) || '·'}
-        </div>
-      )}
-      <h1 className="flex-1 truncate text-base font-semibold">{displayName}</h1>
-      <div className="flex shrink-0 overflow-hidden rounded-full bg-white/15 text-xs">
-        {LANGS.map((l) => (
-          <button
-            key={l.code}
-            type="button"
-            onClick={() => onLangChange(l.code)}
-            className={
-              'px-2.5 py-1 transition ' +
-              (lang === l.code ? 'bg-white text-black' : 'text-white/90 hover:bg-white/10')
-            }
-            aria-pressed={lang === l.code}
-          >
-            {l.label}
-          </button>
-        ))}
-      </div>
-    </header>
+      {displayName.slice(0, 1) || '·'}
+    </div>
   );
 }
 
-function CategoryBlock({
-  slug,
-  category,
-  lang,
-  primary,
-  currency,
-  showUnavailable,
-  onAdd,
-  compact = false,
-}: {
-  slug: string;
-  category: MenuCategory & { children?: MenuCategory[] };
-  lang: Lang;
-  primary: string;
-  currency: string;
-  showUnavailable: boolean;
-  onAdd: (productId: string) => void;
-  compact?: boolean;
-}) {
-  const isVirtual = category.id === CLOSING_VIRTUAL_CATEGORY_ID;
-  const name = pickName(category, lang);
-  const visible = showUnavailable
-    ? category.products
-    : category.products.filter((p) => p.is_available);
-
+function ChipBar({ children, dense = false }: { children: ReactNode; dense?: boolean }) {
   return (
-    <section className="space-y-3">
-      <h2
-        className={
-          (compact ? 'text-base' : 'text-lg') +
-          ' font-semibold ' +
-          (isVirtual ? 'text-amber' : '')
-        }
-        style={!isVirtual && !compact ? { color: primary } : undefined}
-      >
-        {isVirtual ? `🔥 ${name}` : name}
-      </h2>
+    <div className={'no-scrollbar overflow-x-auto px-4 ' + (dense ? 'pb-3' : 'pt-2 pb-3')}>
+      <div className="flex w-max gap-2">{children}</div>
+    </div>
+  );
+}
 
-      {visible.length > 0 && (
-        <div className="grid gap-2">
-          {visible.map((p) => (
-            <ProductCard
-              key={p.id}
-              slug={slug}
-              product={p}
-              lang={lang}
-              primary={primary}
-              currency={currency}
-              onAdd={onAdd}
-            />
-          ))}
-        </div>
-      )}
-
-      {category.children && category.children.length > 0 && (
-        <div className="space-y-4 ps-3">
-          {category.children.map((sub) => (
-            <CategoryBlock
-              key={sub.id}
-              slug={slug}
-              category={sub}
-              lang={lang}
-              primary={primary}
-              currency={currency}
-              showUnavailable={showUnavailable}
-              onAdd={onAdd}
-              compact
-            />
-          ))}
-        </div>
-      )}
-    </section>
+function Chip({
+  active,
+  onClick,
+  variant = 'parent',
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  variant?: 'parent' | 'sub';
+  children: ReactNode;
+}) {
+  const base = 'shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors';
+  if (active) {
+    return (
+      <button type="button" onClick={onClick} className={base + ' bg-foreground text-background'}>
+        {children}
+      </button>
+    );
+  }
+  const inactive =
+    variant === 'sub'
+      ? 'border-border-lite text-muted-foreground border'
+      : 'border-border text-foreground border';
+  return (
+    <button type="button" onClick={onClick} className={base + ' ' + inactive}>
+      {children}
+    </button>
   );
 }
 
@@ -313,19 +417,17 @@ function ProductCard({
   const name = pickName(product, lang);
   const unavailable = !product.is_available;
   const hasDiscount = product.discount_percent !== null && product.original_price !== null;
+  const firstLetter = name.trim().charAt(0) || '·';
 
   return (
     <div
       className={
-        'flex items-center gap-3 rounded-xl bg-card p-3 shadow-card ' +
+        'bg-card border-border-lite shadow-card flex flex-col overflow-hidden rounded-xl border ' +
         (unavailable ? 'opacity-60 grayscale' : '')
       }
     >
-      <Link
-        href={`/r/${slug}/p/${product.id}`}
-        className="flex min-w-0 flex-1 items-center gap-3"
-      >
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
+      <Link href={`/r/${slug}/p/${product.id}`} className="relative block">
+        <div className="bg-cream-deep flex aspect-square w-full items-center justify-center">
           {product.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -336,52 +438,73 @@ function ProductCard({
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="bg-cream-deep h-full w-full" aria-hidden />
-          )}
-          {hasDiscount && (
-            <span className="bg-amber absolute -top-1 -start-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
-              -{product.discount_percent}%
-            </span>
+            <span className="text-muted-foreground text-3xl font-bold">{firstLetter}</span>
           )}
         </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-medium">{name}</div>
-          <div className="text-muted-foreground flex items-center gap-2 text-xs">
-            <span>⏱ {product.prep_time_minutes} {t('prep_unit', lang)}</span>
-            {unavailable && <span className="text-destructive font-medium">{t('unavailable', lang)}</span>}
-          </div>
-        </div>
-      </Link>
-
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <div className="flex items-baseline gap-1.5 leading-none">
-          {hasDiscount && (
-            <span className="text-muted-foreground text-xs line-through">
-              {formatPrice(product.original_price!, currency)}
-            </span>
-          )}
-          <span className="text-sm font-bold" style={{ color: primary }}>
-            {formatPrice(product.price, currency)}
+        {hasDiscount && (
+          <span className="bg-amber absolute start-2 top-2 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
+            -{product.discount_percent}%
           </span>
+        )}
+      </Link>
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        <h4 className="truncate text-sm font-medium" title={name}>
+          {name}
+        </h4>
+        <div className="mt-auto flex items-end justify-between gap-2">
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-bold tabular-nums" style={{ color: primary }}>
+              {formatPrice(product.price, currency)}
+            </span>
+            {hasDiscount && (
+              <span className="text-muted-foreground text-[10px] line-through tabular-nums">
+                {formatPrice(product.original_price!, currency)}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={unavailable}
+            onClick={() => onAdd(product.id)}
+            className="bg-foreground text-background flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label={t('add', lang)}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          type="button"
-          disabled={unavailable}
-          onClick={() => {
-            onAdd(product.id);
-            track('product_add', { slug, productId: product.id });
-          }}
-          className="rounded-full px-3 py-1 text-xs font-medium text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ background: primary }}
-        >
-          + {t('add', lang)}
-        </button>
       </div>
     </div>
   );
 }
 
+function CartBar({
+  slug,
+  count,
+  total,
+  currency,
+  lang,
+}: {
+  slug: string;
+  count: number;
+  total: number;
+  currency: string;
+  lang: Lang;
+}) {
+  if (count === 0) return null;
+  return (
+    <Link
+      href={`/r/${slug}/cart`}
+      className="bg-foreground text-background shadow-lifted fixed inset-x-4 bottom-4 z-30 flex items-center justify-between rounded-xl px-5 py-4"
+    >
+      <span className="text-sm font-medium">
+        {t('cart_button', lang)} · <span className="tabular-nums">{count}</span>
+      </span>
+      <span className="font-bold tabular-nums">{formatPrice(total, currency)}</span>
+    </Link>
+  );
+}
+
+// Legacy floating cart — kept for the product page (reuses this presentation).
 export function FloatingCart({
   slug,
   count,

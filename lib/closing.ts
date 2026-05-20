@@ -12,10 +12,13 @@ export const MODES = ['normal', 'rush', 'profit', 'closing'] as const;
 export const DISCOUNTS = [5, 10, 20] as const;
 
 export const CLOSING_VIRTUAL_CATEGORY_ID = '__closing__';
+// Diner-facing label — keeps the "current mode" generic so customers don't
+// see the word "closing". Discount overlays on the cards still show the
+// actual deal visually.
 export const CLOSING_VIRTUAL_CATEGORY_NAMES = {
-  name_ar: 'عروض اليوم',
-  name_en: "Today's Deals",
-  name_ku: 'ئەمڕۆ تەنزیلات',
+  name_ar: 'اختيارات الشيف',
+  name_en: "Chef's Picks",
+  name_ku: 'هەڵبژاردنی شێف',
 } as const;
 
 // IQD-only rounding step. Floor to nearest 250 ensures effective discount

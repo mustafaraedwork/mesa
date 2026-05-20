@@ -163,3 +163,7 @@
     @apply font-sans;
   }
 }
+
+/* Hide scrollbars on horizontally-scrollable rails (chip bars). */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
