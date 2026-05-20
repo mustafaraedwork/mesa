@@ -56,16 +56,16 @@ export function WelcomeScreen({
 
       {/* Middle — emblem block */}
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full">
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full">
           {restaurant.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={restaurant.logo_url}
               alt=""
-              className="h-14 w-14 rounded-full object-contain"
+              className="h-24 w-24 rounded-full object-contain"
             />
           ) : (
-            <span className="text-2xl font-bold" style={{ color: primary }}>
+            <span className="text-3xl font-bold" style={{ color: primary }}>
               {restaurant.display_name.slice(0, 1) || '·'}
             </span>
           )}
