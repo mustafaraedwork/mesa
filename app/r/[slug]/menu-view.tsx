@@ -209,7 +209,7 @@ export function MenuView({
       </header>
 
       {/* Editorial intro */}
-      <div className="px-5 pt-5 pb-2 text-end">
+      <div className="px-5 pt-5 pb-2 text-start">
         <p className="text-muted-foreground font-latin mb-1.5 text-[10px] tracking-[0.2em]">
           {dateEyebrow}
         </p>
@@ -251,7 +251,7 @@ export function MenuView({
       {/* Chef's Picks — surfaces the active mode's selection (Closing now) */}
       {chefPicks.length > 0 && chefPicksCategory && (
         <section className="pt-6">
-          <div className="mb-3 px-5 text-end">
+          <div className="mb-3 px-5 text-start">
             <h3 className="text-2xl font-bold">{pickName(chefPicksCategory, lang)}</h3>
             <p className="text-muted-foreground font-latin mt-0.5 text-[10px] tracking-widest">
               CHEF&apos;S SELECTION · TONIGHT
