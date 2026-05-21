@@ -51,6 +51,7 @@ const STRINGS = {
     choose_lang: 'اختر لغتك',
     chef_tonight: 'اختيارات الشيف الليلة',
     cart_items: 'صنف في السلة',
+    view_cart: 'عرض السلة',
   },
   en: {
     cart_button: 'My order',
@@ -80,6 +81,7 @@ const STRINGS = {
     choose_lang: 'Choose your language',
     chef_tonight: "Chef's picks tonight",
     cart_items: 'item(s) in cart',
+    view_cart: 'View cart',
   },
   ku: {
     cart_button: 'فەرمایشم',
@@ -109,6 +111,7 @@ const STRINGS = {
     choose_lang: 'زمانەکەت هەڵبژێرە',
     chef_tonight: 'هەڵبژاردنی شێف بۆ ئەمشەو',
     cart_items: 'بەش لە سەبەتە',
+    view_cart: 'بینینی سەبەتە',
   },
 } as const;
 

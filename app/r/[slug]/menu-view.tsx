@@ -12,6 +12,7 @@ import type { MenuCategory, MenuPayload, MenuProduct } from '@/lib/menu';
 
 const LANG_KEY = 'mesa-lang';
 const POLL_MS = 30_000;
+const DAY_NAMES = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
 type CategoryNode = MenuCategory & { children: MenuCategory[] };
 type BrandColors = {
@@ -30,6 +31,14 @@ export function MenuView({
   const [lang, setLang] = useState<Lang>('ar');
   const [cart, setCart] = useState<Cart>({ items: [], updatedAt: 0 });
   const [started, setStarted] = useState(false);
+
+  // Editorial date eyebrow — read the clock once on mount.
+  const [dateEyebrow] = useState(() => {
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${DAY_NAMES[d.getDay()]} · ${hh}:${mm}`;
+  });
 
   /* eslint-disable react-hooks/set-state-in-effect --
      Both effects sync from client-only stores on mount (localStorage / cart). */
@@ -167,40 +176,45 @@ export function MenuView({
 
   return (
     <main dir={dir} className="min-h-screen pb-28" style={{ background: colors.bg }}>
-      {/* Compact header */}
-      <header className="bg-card border-border-lite shadow-subtle sticky top-0 z-20 flex items-center gap-3 border-b px-4 py-3">
-        <BrandMark
-          logoUrl={r.logo_url}
-          displayName={r.display_name}
-          primary={colors.primary}
-        />
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={cycleLang}
-          className="border-border text-foreground hover:bg-muted rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-        >
-          {LANGS.find((l) => l.code === lang)?.label}
-        </button>
-        <Link href={`/r/${slug}/cart`} className="relative" aria-label={t('cart_button', lang)}>
-          <ShoppingBag className="h-6 w-6" style={{ color: colors.primary }} />
-          {cartCount > 0 && (
-            <span
-              className="text-primary-foreground absolute -top-1.5 -end-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
-              style={{ background: colors.primary }}
-            >
-              {cartCount}
-            </span>
-          )}
-        </Link>
+      {/* Header — cart + language on one side, brand on the other */}
+      <header
+        className="sticky top-0 z-20 flex items-center justify-between px-5 py-3"
+        style={{ background: colors.bg }}
+      >
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/r/${slug}/cart`}
+            aria-label={t('cart_button', lang)}
+            className="bg-card border-border relative flex h-10 w-10 items-center justify-center rounded-full border"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            {cartCount > 0 && (
+              <span
+                className="text-primary-foreground absolute -top-1 -end-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold tabular-nums"
+                style={{ background: colors.primary }}
+              >
+                {cartCount}
+              </span>
+            )}
+          </Link>
+          <button
+            type="button"
+            onClick={cycleLang}
+            className="bg-card border-border text-ink-2 flex h-10 items-center rounded-full border px-4 text-xs font-medium"
+          >
+            {LANGS.find((l) => l.code === lang)?.label}
+          </button>
+        </div>
+        <BrandMark logoUrl={r.logo_url} displayName={r.display_name} primary={colors.primary} />
       </header>
 
-      {/* Magazine intro */}
-      <div className="px-4 pt-6 pb-3 text-end">
-        <h1 className="text-3xl font-bold tracking-tight">{t('greeting_evening', lang)}.</h1>
-        <h2 className="text-xl font-bold mt-2" style={{ color: colors.primary }}>
-          {t('chef_tonight', lang)}
-        </h2>
+      {/* Editorial intro */}
+      <div className="px-5 pt-5 pb-2 text-end">
+        <p className="text-muted-foreground font-latin mb-1.5 text-[10px] tracking-[0.2em]">
+          {dateEyebrow}
+        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('greeting_evening', lang)}،</h1>
+        <h2 className="text-ink-2 mt-1 text-xl font-medium">{t('chef_tonight', lang)}</h2>
       </div>
 
       {/* Parent category chips */}
@@ -236,31 +250,34 @@ export function MenuView({
 
       {/* Chef's Picks — surfaces the active mode's selection (Closing now) */}
       {chefPicks.length > 0 && chefPicksCategory && (
-        <section className="px-4 pt-4 pb-2">
-          <p className="text-muted-foreground font-latin text-[10px] tracking-widest">
-            CHEF&apos;S SELECTION · TONIGHT
-          </p>
-          <h3 className="mt-1 mb-3 text-lg font-bold">
-            {pickName(chefPicksCategory, lang)}
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {chefPicks.map((p) => (
-              <ProductCard
-                key={`pick-${p.id}`}
-                slug={slug}
-                product={p}
-                lang={lang}
-                primary={colors.primary}
-                currency={r.currency}
-                onAdd={onAdd}
-              />
-            ))}
+        <section className="pt-6">
+          <div className="mb-3 px-5 text-end">
+            <h3 className="text-2xl font-bold">{pickName(chefPicksCategory, lang)}</h3>
+            <p className="text-muted-foreground font-latin mt-0.5 text-[10px] tracking-widest">
+              CHEF&apos;S SELECTION · TONIGHT
+            </p>
+          </div>
+          <div className="no-scrollbar overflow-x-auto px-5 pb-1">
+            <div className="flex w-max gap-3">
+              {chefPicks.map((p) => (
+                <div key={`pick-${p.id}`} className="w-44 shrink-0">
+                  <ProductCard
+                    slug={slug}
+                    product={p}
+                    lang={lang}
+                    primary={colors.primary}
+                    currency={r.currency}
+                    onAdd={onAdd}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
       {/* Filtered items — no heading, just the grid */}
-      <section className="px-4 pt-2 pb-32">
+      <section className="px-5 pt-6 pb-32">
         {filteredProducts.length === 0 ? (
           <p className="text-muted-foreground py-10 text-center text-sm">
             {t('no_menu', lang)}
@@ -348,12 +365,12 @@ function BrandMark({
   if (logoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={logoUrl} alt="" className="h-8 w-8 rounded-full bg-white object-contain" />
+      <img src={logoUrl} alt="" className="h-10 w-10 rounded-full bg-white object-contain" />
     );
   }
   return (
     <div
-      className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white"
+      className="flex h-10 w-10 items-center justify-center rounded-full text-base font-bold text-white"
       style={{ background: primary }}
     >
       {displayName.slice(0, 1) || '·'}
@@ -363,7 +380,7 @@ function BrandMark({
 
 function ChipBar({ children, dense = false }: { children: ReactNode; dense?: boolean }) {
   return (
-    <div className={'no-scrollbar overflow-x-auto px-4 ' + (dense ? 'pb-3' : 'pt-2 pb-3')}>
+    <div className={'no-scrollbar overflow-x-auto px-5 ' + (dense ? 'pb-3' : 'pt-4 pb-3')}>
       <div className="flex w-max gap-2">{children}</div>
     </div>
   );
@@ -390,8 +407,8 @@ function Chip({
   }
   const inactive =
     variant === 'sub'
-      ? 'border-border-lite text-muted-foreground border'
-      : 'border-border text-foreground border';
+      ? 'bg-card border-border-lite text-muted-foreground border'
+      : 'bg-card border-border text-ink-2 border';
   return (
     <button type="button" onClick={onClick} className={base + ' ' + inactive}>
       {children}
@@ -494,12 +511,12 @@ function CartBar({
   return (
     <Link
       href={`/r/${slug}/cart`}
-      className="bg-foreground text-background shadow-lifted fixed inset-x-4 bottom-4 z-30 flex items-center justify-between rounded-xl px-5 py-4"
+      className="bg-foreground shadow-lifted fixed inset-x-4 bottom-4 z-30 flex h-14 items-center justify-between rounded-2xl px-5"
     >
-      <span className="text-sm font-medium">
-        {t('cart_button', lang)} · <span className="tabular-nums">{count}</span>
+      <span className="text-background text-sm font-medium">
+        {t('view_cart', lang)} · <span className="tabular-nums">{count}</span>
       </span>
-      <span className="font-bold tabular-nums">{formatPrice(total, currency)}</span>
+      <span className="text-gold font-bold tabular-nums">{formatPrice(total, currency)}</span>
     </Link>
   );
 }
