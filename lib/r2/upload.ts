@@ -94,6 +94,17 @@ export async function deleteImage(key: string): Promise<void> {
   await client().send(new DeleteObjectCommand({ Bucket: BUCKET(), Key: key }));
 }
 
+// Best-effort image delete that never throws — logs on failure so orphaned R2
+// objects stay discoverable (Q-11). Use in cleanup paths where a delete failure
+// must not abort the surrounding operation.
+export async function safeDeleteImage(key: string): Promise<void> {
+  try {
+    await deleteImage(key);
+  } catch (e) {
+    console.error('[r2] image cleanup failed for key', key, e);
+  }
+}
+
 // Purge every object under `restaurants/<restaurantId>/`. Used when a tenant
 // account is deleted (PRD §3.3). DB cascade handles the rows; R2 doesn't.
 export async function deleteRestaurantImages(restaurantId: string): Promise<number> {

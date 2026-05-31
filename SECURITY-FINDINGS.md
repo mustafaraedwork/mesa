@@ -73,9 +73,9 @@
 |---|---|---|---|---|---|
 | Q-1 | `NaN` من `Number(r.price)`/`profit_percentage` يصل لإجمالي السلة ("NaN IQD") بلا حارس | HIGH | `lib/menu.ts:184, 208` | ✅ مُصلَح | ارفض/استبعد الصف إن كان `Number(r.price)` = `NaN` أو ≤ 0 قبل بناء `MenuProduct`. |
 | Q-2 | `closing_mode_ends_at` مشوّه → `new Date(x).getTime()=NaN` → الوضع عالق على closing للأبد (لا auto-revert) | HIGH | `lib/menu.ts:133` · `app/api/admin/state/route.ts:49` | ✅ مُصلَح | `const e=new Date(x).getTime(); if(!isNaN(e) && e<Date.now())`. |
-| Q-3 | `loadMenu` يتجاهل `error` من الاستعلامات الثلاثة المتوازية → منيو فارغ صامت يُخدَم عبر الـ polling | HIGH | `lib/menu.ts:150-166` | مفتوح | فكّك `error` للثلاثة وأعِد `null` (مسار "غير متوفر") عند أي فشل. |
+| Q-3 | `loadMenu` يتجاهل `error` من الاستعلامات الثلاثة المتوازية → منيو فارغ صامت يُخدَم عبر الـ polling | HIGH | `lib/menu.ts:150-166` | ✅ مُصلَح | فكّك `error` للثلاثة وأعِد `null` (مسار "غير متوفر") عند أي فشل. |
 | Q-4 | `reorderCategories`/`reorderProducts`: كتابات `Promise.all` متوازية بلا تعافٍ من فشل جزئي → `display_order` غير متّسق + `{ok:false}` رغم التزام جزئي | HIGH | `app/admin/dashboard/menu/actions.ts:422-430, 451-458` | مفتوح | استبدل بـ `upsert` واحد لكل الصفوف (round-trip ذرّي). |
-| Q-5 | `signOutTenant` يبتلع خطأ `deleteSession` → الكوكي يُمسح لكن صف الجلسة يبقى صالحًا خادم-side (جلسة شبح) | HIGH | `app/admin/actions.ts:58-63` · `lib/auth/session.ts:58-61` | مفتوح | اجعل `deleteSession` يتحقّق من `{error}` ويسجّله. |
+| Q-5 | `signOutTenant` يبتلع خطأ `deleteSession` → الكوكي يُمسح لكن صف الجلسة يبقى صالحًا خادم-side (جلسة شبح) | HIGH | `app/admin/actions.ts:58-63` · `lib/auth/session.ts:58-61` | ✅ مُصلَح | اجعل `deleteSession` يتحقّق من `{error}` ويسجّله. |
 | Q-6 | `data.restaurant_id as string` على FK قابل لـ null → null مُموَّه كـ string يمرّ عبر الحارس ثم ينهار لاحقًا | HIGH | `lib/auth/session.ts:55` | ✅ مُصلَح | `if(!data.restaurant_id) return null;` بدل الـ cast. |
 | Q-7 | poll السلة بلا fetch أوّلي ولا `visibilitychange` → تعرض `initialData` حتى 30s فيظهر سعر خصم منتهٍ | HIGH | `app/r/[slug]/cart/cart-view.tsx:58-78` | مفتوح | أطلق `tick()` عند mount + مستمع `visibilitychange`؛ استخرج `useMenuPoll(slug)` مشترك. |
 
@@ -85,8 +85,8 @@
 |---|---|---|---|---|---|
 | Q-8 | `extractR2Key` مكرّر حرفيًا في ملفّين | MEDIUM | `app/admin/dashboard/menu/actions.ts:466-475` · `app/admin/dashboard/design/actions.ts:89-97` | مفتوح | انقله إلى `lib/r2/upload.ts` وصدّره؛ كلا الـ caller يستوردان منه. |
 | Q-9 | كتلة lazy-revert مكرّرة حرفيًا (تكرار بنيوي — منفصل عن H-3 الذرّية) | MEDIUM | `lib/menu.ts:130-148` · `app/api/admin/state/route.ts:46-64` | مفتوح | استخرج `applyLazyRevert(sb,id,endsAt)` في `lib/closing.ts`. |
-| Q-10 | `changeAccountPassword` يتجاهل خطأ حذف الجلسات → هدف "فرض إعادة الدخول" قد يفشل صامتًا | MEDIUM | `app/owner/dashboard/accounts/actions.ts:71` | مفتوح | تحقّق من `{error}` لحذف الجلسات وأعِد/سجّل الفشل. |
-| Q-11 | كتل `catch {}` لتنظيف R2 بلا تسجيل → صور يتيمة غير مكتشَفة عند فشل مزدوج | MEDIUM | `app/admin/dashboard/menu/actions.ts:148, 247, 293, 340` | مفتوح | `console.error` في كل كتلة cleanup. |
+| Q-10 | `changeAccountPassword` يتجاهل خطأ حذف الجلسات → هدف "فرض إعادة الدخول" قد يفشل صامتًا | MEDIUM | `app/owner/dashboard/accounts/actions.ts:71` | ✅ مُصلَح | تحقّق من `{error}` لحذف الجلسات وأعِد/سجّل الفشل. |
+| Q-11 | كتل `catch {}` لتنظيف R2 بلا تسجيل → صور يتيمة غير مكتشَفة عند فشل مزدوج | MEDIUM | `app/admin/dashboard/menu/actions.ts:148, 247, 293, 340` | ✅ مُصلَح | `console.error` في كل كتلة cleanup. |
 | Q-12 | coercion للوضع موجود في `state` route لكن غائب في `loadMenu` → صف legacy `rush/profit` يعرض فئة افتراضية فارغة | MEDIUM | `lib/menu.ts:126` مقابل `app/api/admin/state/route.ts:71` | مفتوح | `coerceMode(raw)` مشتركة في `lib/closing.ts` تُستدعى في الموضعين. |
 | Q-13 | `closing_mode_discount as Discount\|null` بلا فحص عضوية → قيمة DB مثل `15` تُعرض كشارة `-15%` لم يضبطها المالك | MEDIUM | `lib/menu.ts:172` | ✅ مُصلَح | `[5,10,20].includes(x) ? x as Discount : null` قبل الاستخدام. |
 | Q-14 | `getCart`: `JSON.parse(raw) as Cart` بلا تحقّق بنية → `updatedAt` غير معرّف يتخطّى فحص TTL | MEDIUM | `lib/cart.ts:19` | ✅ مُصلَح | تحقّق `typeof updatedAt==='number'` و`Array.isArray(items)`، وإلا أعِد سلة فارغة. |

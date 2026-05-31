@@ -57,5 +57,6 @@ export async function getRestaurantIdFromCookie(): Promise<string | null> {
 
 export async function deleteSession(token: string): Promise<void> {
   const supabase = getServiceClient();
-  await supabase.from('tenant_sessions').delete().eq('token', token);
+  const { error } = await supabase.from('tenant_sessions').delete().eq('token', token);
+  if (error) console.error('[session] deleteSession failed:', error.message);
 }

@@ -72,7 +72,14 @@ export async function changeAccountPassword(id: string, newPassword: string): Pr
   // Update password and revoke every existing tenant session to force re-login.
   const { error: updErr } = await sb.from('restaurants').update({ password_hash }).eq('id', id);
   if (updErr) return { ok: false, error: 'فشل تغيير كلمة السر' };
-  await sb.from('tenant_sessions').delete().eq('restaurant_id', id);
+  const { error: revokeErr } = await sb.from('tenant_sessions').delete().eq('restaurant_id', id);
+  if (revokeErr) {
+    console.error('[accounts] session revoke after password change failed:', revokeErr.message);
+    return {
+      ok: false,
+      error: 'تم تغيير كلمة السر، لكن تعذّر إنهاء الجلسات القديمة. أعد المحاولة لإنهائها.',
+    };
+  }
 
   revalidatePath(ACCOUNTS_PATH);
   return { ok: true };

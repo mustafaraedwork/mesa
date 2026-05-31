@@ -149,7 +149,11 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     closing_mode_discount = null;
   }
 
-  const [{ data: cats }, { data: prods }, { data: complinks }] = await Promise.all([
+  const [
+    { data: cats, error: catsErr },
+    { data: prods, error: prodsErr },
+    { data: complinks, error: complinksErr },
+  ] = await Promise.all([
     sb
       .from('categories')
       .select('id, parent_id, name_ar, name_en, name_ku, display_order')
@@ -166,6 +170,10 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       .select('category_id, complement_id')
       .eq('restaurant_id', rest.id),
   ]);
+
+  // Q-3: surface a transient read failure instead of silently rendering an
+  // empty menu (the `?? []` fallbacks below would otherwise mask it).
+  if (catsErr || prodsErr || complinksErr) return null;
 
   const productsByCategory = new Map<string, MenuProduct[]>();
   const closingProducts: MenuProduct[] = [];
