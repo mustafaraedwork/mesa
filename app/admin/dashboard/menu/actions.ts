@@ -416,19 +416,19 @@ export async function reorderCategories(orderedIds: string[]): Promise<Result> {
   const unique = new Set(orderedIds);
   const { data: owned } = await sb
     .from('categories')
-    .select('id')
+    .select('*')
     .in('id', orderedIds)
     .eq('restaurant_id', restaurantId);
   if (!owned || owned.length !== unique.size || unique.size !== orderedIds.length) {
     return { ok: false, error: 'سكشن غير موجود' };
   }
 
-  const results = await Promise.all(
-    orderedIds.map((id, i) =>
-      sb.from('categories').update({ display_order: i }).eq('id', id).eq('restaurant_id', restaurantId),
-    ),
-  );
-  if (results.some((r) => r.error)) return { ok: false, error: 'فشل حفظ الترتيب' };
+  // Q-4: one atomic upsert (all-or-nothing) instead of N parallel UPDATEs that
+  // could partially fail and leave an inconsistent display_order.
+  const byId = new Map(owned.map((c) => [c.id, c]));
+  const reordered = orderedIds.map((id, i) => ({ ...byId.get(id)!, display_order: i }));
+  const { error } = await sb.from('categories').upsert(reordered);
+  if (error) return { ok: false, error: 'فشل حفظ الترتيب' };
 
   revalidatePath(MENU_PATH);
   return { ok: true };
@@ -444,7 +444,7 @@ export async function reorderProducts(categoryId: string, orderedIds: string[]):
   const unique = new Set(orderedIds);
   const { data: owned } = await sb
     .from('products')
-    .select('id')
+    .select('*')
     .in('id', orderedIds)
     .eq('category_id', categoryId)
     .eq('restaurant_id', restaurantId);
@@ -452,12 +452,11 @@ export async function reorderProducts(categoryId: string, orderedIds: string[]):
     return { ok: false, error: 'منتج غير موجود' };
   }
 
-  const results = await Promise.all(
-    orderedIds.map((id, i) =>
-      sb.from('products').update({ display_order: i }).eq('id', id).eq('restaurant_id', restaurantId),
-    ),
-  );
-  if (results.some((r) => r.error)) return { ok: false, error: 'فشل حفظ الترتيب' };
+  // Q-4: one atomic upsert (all-or-nothing) — see reorderCategories.
+  const byId = new Map(owned.map((p) => [p.id, p]));
+  const reordered = orderedIds.map((id, i) => ({ ...byId.get(id)!, display_order: i }));
+  const { error } = await sb.from('products').upsert(reordered);
+  if (error) return { ok: false, error: 'فشل حفظ الترتيب' };
 
   revalidatePath(MENU_PATH);
   return { ok: true };

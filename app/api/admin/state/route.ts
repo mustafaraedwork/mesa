@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getRestaurantIdFromCookie } from '@/lib/auth/session';
 import { getServiceClient } from '@/lib/supabase/server';
+import { applyLazyRevert } from '@/lib/closing';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,21 +44,15 @@ export async function GET() {
 
   let { active_mode, closing_mode_ends_at, closing_mode_discount } = rest;
 
+  // Q-2: treat a malformed `closing_mode_ends_at` (NaN) as expired so it
+  // self-heals to Normal instead of sticking in Closing forever.
+  const closingExpiry = closing_mode_ends_at ? new Date(closing_mode_ends_at).getTime() : null;
   if (
     active_mode === 'closing' &&
-    closing_mode_ends_at &&
-    new Date(closing_mode_ends_at).getTime() < Date.now()
+    closingExpiry !== null &&
+    (Number.isNaN(closingExpiry) || closingExpiry < Date.now())
   ) {
-    await sb
-      .from('restaurants')
-      .update({ active_mode: 'normal', closing_mode_ends_at: null, closing_mode_discount: null })
-      .eq('id', restaurantId)
-      .eq('active_mode', 'closing');
-    await sb
-      .from('products')
-      .update({ is_in_closing_mode: false })
-      .eq('restaurant_id', restaurantId)
-      .eq('is_in_closing_mode', true);
+    await applyLazyRevert(sb, restaurantId);
     active_mode = 'normal';
     closing_mode_ends_at = null;
     closing_mode_discount = null;

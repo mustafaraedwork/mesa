@@ -4,6 +4,7 @@
 import { getServiceClient } from '@/lib/supabase/server';
 import {
   applyDiscount,
+  applyLazyRevert,
   CLOSING_VIRTUAL_CATEGORY_ID,
   CLOSING_VIRTUAL_CATEGORY_NAMES,
   DISCOUNTS,
@@ -134,16 +135,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     closingExpiry !== null &&
     (Number.isNaN(closingExpiry) || closingExpiry < Date.now())
   ) {
-    await sb
-      .from('restaurants')
-      .update({ active_mode: 'normal', closing_mode_ends_at: null, closing_mode_discount: null })
-      .eq('id', rest.id)
-      .eq('active_mode', 'closing');
-    await sb
-      .from('products')
-      .update({ is_in_closing_mode: false })
-      .eq('restaurant_id', rest.id)
-      .eq('is_in_closing_mode', true);
+    await applyLazyRevert(sb, rest.id);
     active_mode = 'normal';
     closing_mode_ends_at = null;
     closing_mode_discount = null;

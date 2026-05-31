@@ -5,6 +5,8 @@
 // boolean `is_in_closing_mode` flag. Reverting Closing is therefore O(1):
 // clear three columns on `restaurants` + flip the flag on products.
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 export type Mode = 'normal' | 'closing' | 'off';
 export type Discount = 5 | 10 | 20;
 
@@ -43,4 +45,26 @@ export function applyDiscount(price: number, discountPct: Discount, currency: st
   const raw = price * (1 - discountPct / 100);
   if (step) return Math.floor(raw / step) * step;
   return Math.floor(raw);
+}
+
+// Lazy revert of an expired Closing window. Prefers the atomic
+// `revert_closing_mode()` RPC (migration 0008); if that isn't applied yet (or
+// errors transiently), falls back to the two-statement revert so the app works
+// either way (H-3 atomicity + Q-9 de-duplication). Both UPDATEs are idempotent,
+// so a fallback after a partial RPC failure is harmless. Shared by `loadMenu`
+// and GET /api/admin/state.
+export async function applyLazyRevert(sb: SupabaseClient, restaurantId: string): Promise<void> {
+  const { error } = await sb.rpc('revert_closing_mode', { p_restaurant_id: restaurantId });
+  if (!error) return;
+
+  await sb
+    .from('restaurants')
+    .update({ active_mode: 'normal', closing_mode_ends_at: null, closing_mode_discount: null })
+    .eq('id', restaurantId)
+    .eq('active_mode', 'closing');
+  await sb
+    .from('products')
+    .update({ is_in_closing_mode: false })
+    .eq('restaurant_id', restaurantId)
+    .eq('is_in_closing_mode', true);
 }
