@@ -39,8 +39,17 @@ export async function clearSessionCookie(): Promise<void> {
   c.delete(SESSION_COOKIE);
 }
 
+// H-5: cap session lifetime so a leaked (otherwise permanent) token can't be
+// used indefinitely. Generous bound that preserves the PRD's long-lived,
+// multi-device intent while still self-expiring. Owner-side revocation also
+// exists: changeAccountPassword deletes all of a tenant's sessions.
+// Deferred by decision: hashing the token at rest + timingSafeEqual — the
+// timing channel is negligible behind HTTPS and hashing would invalidate every
+// currently-active session.
+const MAX_SESSION_AGE_MS = 365 * 24 * 60 * 60 * 1000; // 365 days
+
 // Resolve the current request's restaurant_id from the session cookie.
-// Returns null if no cookie or no matching session row.
+// Returns null if no cookie, no matching session row, or the session is too old.
 export async function getRestaurantIdFromCookie(): Promise<string | null> {
   const c = await cookies();
   const token = c.get(SESSION_COOKIE)?.value;
@@ -48,10 +57,22 @@ export async function getRestaurantIdFromCookie(): Promise<string | null> {
   const supabase = getServiceClient();
   const { data, error } = await supabase
     .from('tenant_sessions')
-    .select('restaurant_id')
+    .select('restaurant_id, created_at')
     .eq('token', token)
     .maybeSingle();
   if (error || !data || !data.restaurant_id) return null;
+
+  // H-5: reject and prune sessions older than the max age.
+  const createdAt = data.created_at ? new Date(data.created_at).getTime() : null;
+  if (
+    createdAt === null ||
+    Number.isNaN(createdAt) ||
+    Date.now() - createdAt > MAX_SESSION_AGE_MS
+  ) {
+    await deleteSession(token);
+    return null;
+  }
+
   return data.restaurant_id as string;
 }
 
