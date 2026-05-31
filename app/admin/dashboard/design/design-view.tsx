@@ -170,7 +170,7 @@ export function DesignView({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={previewLogoSrc}
-                    alt=""
+                    alt="شعار المطعم"
                     className="h-16 w-16 rounded border bg-white object-contain"
                   />
                   {initial.logo_url && !logoFile && !removeLogo && (
@@ -282,11 +282,13 @@ export function DesignView({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  // Q-25: wrap the control in the <label> so clicking the label focuses it
+  // (implicit association) instead of a disconnected standalone <label>.
   return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium">{label}</label>
+    <label className="block space-y-1">
+      <span className="block text-sm font-medium">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 
@@ -356,7 +358,7 @@ function Preview({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={logoSrc}
-            alt=""
+            alt="شعار المطعم"
             className="h-10 w-10 rounded bg-white object-contain p-0.5"
           />
         ) : (

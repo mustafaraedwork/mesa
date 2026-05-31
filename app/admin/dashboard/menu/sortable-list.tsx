@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -39,7 +39,8 @@ export function SortableList<T extends { id: string }>({
   children: (item: T, handle: ReactNode) => ReactNode;
 }) {
   const [order, setOrder] = useState(() => items.map((i) => i.id));
-  const byId = new Map(items.map((i) => [i.id, i]));
+  // Q-27: memoize the lookup map so it isn't rebuilt on every drag-driven render.
+  const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

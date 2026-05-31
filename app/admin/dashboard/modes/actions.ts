@@ -27,7 +27,7 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
     return { ok: false, error: 'وضع غير معروف' };
   }
 
-  const { restaurantId } = await requireTenant();
+  const { restaurantId, currency } = await requireTenant();
   const sb = getServiceClient();
 
   // ── Closing branch validation (Q8) — done BEFORE any DB writes ─────────
@@ -64,15 +64,8 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
       }
     }
 
-    // Currency for rounding (per Q2).
-    const { data: rest } = await sb
-      .from('restaurants')
-      .select('currency')
-      .eq('id', restaurantId)
-      .single();
-    const currency = rest?.currency ?? 'IQD';
-
-    // Reject products whose discounted price would round to 0.
+    // Reject products whose discounted price would round to 0. (currency comes
+    // from requireTenant() — Q-22, no extra round-trip.)
     const offending = prods.filter((p) => applyDiscount(Number(p.price), d as Discount, currency) <= 0);
     if (offending.length > 0) {
       const names = offending.map((p) => p.name_ar).join('، ');

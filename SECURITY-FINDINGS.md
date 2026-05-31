@@ -41,7 +41,7 @@
 | M-4 | قيد المستويين للفئات مُطبَّق في كود التطبيق فقط (DB يسمح بأي عمق) | MEDIUM | `app/admin/dashboard/menu/actions.ts:61-73` · `supabase/migrations/0001_init.sql` | ⏳ `0009` يدوي | trigger `trg_categories_two_levels` في `0009_db_hardening.sql` يرفض `parent_id` لصفّ والده غير NULL (يؤثّر على الكتابات المستقبلية فقط). يحتاج تطبيقًا يدويًا. |
 | M-5 | فهارس/ترتيب: لا فهرس على `complementary_categories.restaurant_id`؛ منتجات `loadMenu` تُرتَّب في JS؛ فهارس جزئية مفقودة | MEDIUM | `supabase/migrations/0001_init.sql:89-96` · `lib/menu.ts:157-163, 177-178` | ✅ كود + ⏳ `0009` يدوي | `.order('display_order')` أُضيف لاستعلام المنتجات في `loadMenu` (كود ✅). الفهارس (`idx_complementary_restaurant` + جزئية) في `0009_db_hardening.sql` تحتاج تطبيقًا يدويًا. |
 | M-6 | ثغرات قيود المخطط: `UNIQUE(category_id, complement_id)` بلا `restaurant_id`؛ لا قيد يمنع `active_mode='closing'` مع `closing_mode_discount IS NULL` | MEDIUM | `supabase/migrations/0001_init.sql:31, 95` | ⏳ `0010` يدوي + تحقّق بيانات | `0010_schema_constraints.sql` يضيف `UNIQUE(restaurant_id,category_id,complement_id)` وCHECK يفرض `discount`+`ends_at` عند closing. **قد يفشل على بيانات موجودة** — pre-flight SELECTs في الملف؛ يحتاج تطبيقًا يدويًا. |
-| M-7 | هشاشة `extractR2Key`: fallback عند غياب `R2_PUBLIC_URL` قد يستخرج مفتاحاً عشوائياً مع `catch {}` صامت | MEDIUM | `app/admin/dashboard/menu/actions.ts:466-474` · `app/admin/dashboard/design/actions.ts:89-96` | مفتوح | تحقّق أن `image_url` يبدأ بـ `R2_PUBLIC_URL` قبل أي حذف؛ ارمِ خطأً إن لم تُضبَط البيئة بدل الـ fallback. |
+| M-7 | هشاشة `extractR2Key`: fallback عند غياب `R2_PUBLIC_URL` قد يستخرج مفتاحاً عشوائياً مع `catch {}` صامت | MEDIUM | `app/admin/dashboard/menu/actions.ts:466-474` · `app/admin/dashboard/design/actions.ts:89-96` | ✅ مُصلَح | `extractR2Key` يرمي إن غابت `R2_PUBLIC_URL` أو لم يبدأ الـURL بها (لا fallback عشوائي)، ويُلفّ في `safeDeleteImageByUrl` (لا يرمي، يسجّل) في كل مسارات التنظيف. |
 | M-8 | تحقّق UUID مفقود في أكشنات المالك + `secure` على الكوكي مشروط بـ `NODE_ENV` | MEDIUM | `app/owner/dashboard/accounts/actions.ts:54, 77` · `lib/auth/session.ts:30` | ✅ مُصلَح | `UUID_RE` يتحقّق من `id` في setAccountActive/changeAccountPassword/deleteAccount. `secure` المشروط بـ`NODE_ENV` صحيح بالتصميم (كوكي secure يتطلب HTTPS الغائب في dev) ووُثّق في `session.ts`. |
 
 ---
@@ -77,7 +77,7 @@
 | Q-4 | `reorderCategories`/`reorderProducts`: كتابات `Promise.all` متوازية بلا تعافٍ من فشل جزئي → `display_order` غير متّسق + `{ok:false}` رغم التزام جزئي | HIGH | `app/admin/dashboard/menu/actions.ts:422-430, 451-458` | ✅ مُصلَح | استبدل بـ `upsert` واحد لكل الصفوف (round-trip ذرّي). |
 | Q-5 | `signOutTenant` يبتلع خطأ `deleteSession` → الكوكي يُمسح لكن صف الجلسة يبقى صالحًا خادم-side (جلسة شبح) | HIGH | `app/admin/actions.ts:58-63` · `lib/auth/session.ts:58-61` | ✅ مُصلَح | اجعل `deleteSession` يتحقّق من `{error}` ويسجّله. |
 | Q-6 | `data.restaurant_id as string` على FK قابل لـ null → null مُموَّه كـ string يمرّ عبر الحارس ثم ينهار لاحقًا | HIGH | `lib/auth/session.ts:55` | ✅ مُصلَح | `if(!data.restaurant_id) return null;` بدل الـ cast. |
-| Q-7 | poll السلة بلا fetch أوّلي ولا `visibilitychange` → تعرض `initialData` حتى 30s فيظهر سعر خصم منتهٍ | HIGH | `app/r/[slug]/cart/cart-view.tsx:58-78` | مفتوح | أطلق `tick()` عند mount + مستمع `visibilitychange`؛ استخرج `useMenuPoll(slug)` مشترك. |
+| Q-7 | poll السلة بلا fetch أوّلي ولا `visibilitychange` → تعرض `initialData` حتى 30s فيظهر سعر خصم منتهٍ | HIGH | `app/r/[slug]/cart/cart-view.tsx:58-78` | ✅ مُصلَح | `void tick()` عند mount في cart-view (الـ`visibilitychange`+`document.hidden` موجودان أصلًا). لم يُستخرج hook مشترك للحفاظ على أنماط smoke-polling-contract الحرفية. |
 
 ### MEDIUM
 
@@ -91,25 +91,25 @@
 | Q-13 | `closing_mode_discount as Discount\|null` بلا فحص عضوية → قيمة DB مثل `15` تُعرض كشارة `-15%` لم يضبطها المالك | MEDIUM | `lib/menu.ts:172` | ✅ مُصلَح | `[5,10,20].includes(x) ? x as Discount : null` قبل الاستخدام. |
 | Q-14 | `getCart`: `JSON.parse(raw) as Cart` بلا تحقّق بنية → `updatedAt` غير معرّف يتخطّى فحص TTL | MEDIUM | `lib/cart.ts:19` | ✅ مُصلَح | تحقّق `typeof updatedAt==='number'` و`Array.isArray(items)`، وإلا أعِد سلة فارغة. |
 | Q-15 | استجابة الـ poll `as MenuPayload` بلا shape-guard على العميل | MEDIUM | `app/r/[slug]/menu-view.tsx:74` · `cart/cart-view.tsx:65` | ✅ مُصلَح | تحقّق `typeof json?.restaurant?.id==='string'` قبل `setData`. |
-| Q-16 | `!` على متغيّرَي بيئة Supabase في proxy (Edge) → 500 معتم لكل مسارات المالك عند الغياب | MEDIUM | `proxy.ts:28-29` | مفتوح | حارس بدء يتحقّق من المتغيّرات، أو إزالة `!`. |
+| Q-16 | `!` على متغيّرَي بيئة Supabase في proxy (Edge) → 500 معتم لكل مسارات المالك عند الغياب | MEDIUM | `proxy.ts:28-29` | ✅ مُصلَح | حارس في proxy: عند غياب متغيّرات Supabase يسجّل ويعيد توجيه لـ`/owner` بدل تمرير undefined (لا 500 معتم). |
 | Q-17 | `body.kind as Kind` cast قبل حارس `KINDS.includes` | MEDIUM | `app/api/track/route.ts:24` | ✅ مُصلَح | `typeof body.kind==='string' && KINDS.includes(body.kind as Kind)`. |
-| Q-18 | `firstParentId` memo على `tree` التفاعلي ينزاح بعد إعادة ترتيب poll → ظهور/اختفاء اختيارات الشيف دون تدخّل | MEDIUM | `app/r/[slug]/menu-view.tsx:95-100` | مفتوح | احسبه من `initialData` الثابت (memo بلا deps / ref). |
-| Q-19 | poll الأدمن (10s) بلا حارس `document.hidden` → يطلق في الخلفية ويستنزف البطارية (menu-view يحرس) | MEDIUM | `app/admin/dashboard/modes/modes-view.tsx:77-94` | مفتوح | أضف نفس حارس الرؤية + مستمع `visibilitychange`. |
-| Q-20 | `offset` (تصحيح انحراف الساعة) يُحسب في جسم الـ render بلا memo → إعادة حساب غير متّسقة | MEDIUM | `app/admin/dashboard/modes/modes-view.tsx:73-74` | مفتوح | `useMemo(() => …, [state.server_now])`. |
-| Q-21 | `dateEyebrow` مجمَّد عند mount → يوم/وقت خاطئ بعد منتصف الليل | MEDIUM | `app/r/[slug]/menu-view.tsx:46-51` | مفتوح | احسبه أثناء render (دالة نقية رخيصة) أو وثّق المقايضة صراحةً. |
-| Q-22 | `setMode` جولة DB إضافية متسلسلة لجلب `currency` على مسار التفعيل الحرج | MEDIUM | `app/admin/dashboard/modes/actions.ts:67-73` | مفتوح | أضف `currency` إلى `requireTenant()`/`TenantContext` أو ادمج الجلب. |
+| Q-18 | `firstParentId` memo على `tree` التفاعلي ينزاح بعد إعادة ترتيب poll → ظهور/اختفاء اختيارات الشيف دون تدخّل | MEDIUM | `app/r/[slug]/menu-view.tsx:95-100` | ✅ مُصلَح | `firstParentId` يُحسب من `initialData` الثابت (`buildTree(initialData.categories)`), لا من `tree` التفاعلي. |
+| Q-19 | poll الأدمن (10s) بلا حارس `document.hidden` → يطلق في الخلفية ويستنزف البطارية (menu-view يحرس) | MEDIUM | `app/admin/dashboard/modes/modes-view.tsx:77-94` | ✅ مُصلَح | `if(document.hidden) return` + مستمع `visibilitychange` في poll الأدمن (10s). |
+| Q-20 | `offset` (تصحيح انحراف الساعة) يُحسب في جسم الـ render بلا memo → إعادة حساب غير متّسقة | MEDIUM | `app/admin/dashboard/modes/modes-view.tsx:73-74` | ✅ مُصلَح | `offset` صار `useMemo(..., [state.server_now])`. |
+| Q-21 | `dateEyebrow` مجمَّد عند mount → يوم/وقت خاطئ بعد منتصف الليل | MEDIUM | `app/r/[slug]/menu-view.tsx:46-51` | ✅ موثّق | المقايضة موثّقة في `menu-view` (قراءة الساعة مرة عند mount لـeyebrow تجميلي؛ تجنّب `Date()` غير نقية كل render). |
+| Q-22 | `setMode` جولة DB إضافية متسلسلة لجلب `currency` على مسار التفعيل الحرج | MEDIUM | `app/admin/dashboard/modes/actions.ts:67-73` | ✅ مُصلَح | `currency` أُضيف إلى `TenantContext`/`requireTenant`؛ `setMode` يستخدمه ويحذف الجلب المنفصل. |
 
 ### LOW
 
 | المعرّف | العنوان | الخطورة | الملف / السطر | الحالة | ملخص الإصلاح |
 |---|---|---|---|---|---|
-| Q-23 | modals يدوية بلا Escape/`role="dialog"`/focus-trap → مستخدمو لوحة المفاتيح/AT محتجزون | LOW | `app/r/[slug]/cart/cart-view.tsx:399-461` · `welcome-screen.tsx:109-135` | مفتوح | `onKeyDown` Escape + `role`/`aria-modal` + focus-trap، أو shadcn `Dialog`. |
-| Q-24 | إساءة ARIA لقائمة اللغة (`button[role="option"]`, لا `aria-controls`/`id`) | LOW | `app/r/[slug]/menu-view.tsx:404-440` | مفتوح | `div[role=option]` + ربط `aria-controls`/`id`، أو shadcn `Select`. |
-| Q-25 | `Field` `<label>` بلا `htmlFor` → النقر لا يركّز الحقل | LOW | `closing-dialog.tsx:214` · `design-view.tsx:284` · `product-dialog.tsx:201` | مفتوح | مرّر `id` مطابق؛ لمجموعات الأزرار `role="group"`+`aria-labelledby`. |
-| Q-26 | شعار `alt=""` يُخفي اسم المطعم حيث لا اسم مجاور | LOW | `app/r/[slug]/welcome-screen.tsx:75` · `design/design-view.tsx:356` | مفتوح | `alt={restaurant.display_name}` في هذين الموضعين. |
-| Q-27 | `byId` Map يُعاد بناؤه كل render في مكوّن DnD حسّاس للأداء | LOW | `app/admin/dashboard/menu/sortable-list.tsx:42` | مفتوح | `useMemo(() => new Map(...), [items])`. |
-| Q-28 | `setTimeout` في `copyLink` بلا تنظيف عند unmount | LOW | `app/admin/dashboard/design/qr-section.tsx:25-30` | مفتوح | `useRef` للمؤقّت + cleanup effect. |
-| Q-29 | `key={index}` في قوائم skeleton مولّدة | LOW | `app/r/[slug]/cart/loading.tsx:10` (وأشقاؤه تحت `/r/[slug]/`) | مفتوح | مفتاح نصّي ثابت `skeleton-row-${i}`. |
+| Q-23 | modals يدوية بلا Escape/`role="dialog"`/focus-trap → مستخدمو لوحة المفاتيح/AT محتجزون | LOW | `app/r/[slug]/cart/cart-view.tsx:399-461` · `welcome-screen.tsx:109-135` | ✅ مُصلَح | Escape (useEffect/keydown) للمودالين + `role="dialog"`/`aria-modal` + إغلاق بالنقر على الخلفية لـwelcome. focus-trap كامل مؤجّل. |
+| Q-24 | إساءة ARIA لقائمة اللغة (`button[role="option"]`, لا `aria-controls`/`id`) | LOW | `app/r/[slug]/menu-view.tsx:404-440` | ✅ مُصلَح | `div[role=option]`+`tabIndex`+`onKeyDown` بدل `button`، و`id="lang-listbox"`+`aria-controls`. |
+| Q-25 | `Field` `<label>` بلا `htmlFor` → النقر لا يركّز الحقل | LOW | `closing-dialog.tsx:214` · `design-view.tsx:284` · `product-dialog.tsx:201` | ✅ مُصلَح | `Field` يلفّ الحقل داخل `<label>` (ربط ضمني) في الملفات الأربعة (design/product/category/closing). |
+| Q-26 | شعار `alt=""` يُخفي اسم المطعم حيث لا اسم مجاور | LOW | `app/r/[slug]/welcome-screen.tsx:75` · `design/design-view.tsx:356` | ✅ مُصلَح | welcome: `alt={restaurant.display_name}`؛ معاينتا design: `alt="شعار المطعم"`. |
+| Q-27 | `byId` Map يُعاد بناؤه كل render في مكوّن DnD حسّاس للأداء | LOW | `app/admin/dashboard/menu/sortable-list.tsx:42` | ✅ مُصلَح | `byId` صار `useMemo(() => new Map(...), [items])`. |
+| Q-28 | `setTimeout` في `copyLink` بلا تنظيف عند unmount | LOW | `app/admin/dashboard/design/qr-section.tsx:25-30` | ✅ مُصلَح | `copiedTimer` ref + cleanup effect عند unmount في qr-section. |
+| Q-29 | `key={index}` في قوائم skeleton مولّدة | LOW | `app/r/[slug]/cart/loading.tsx:10` (وأشقاؤه تحت `/r/[slug]/`) | ✅ مُصلَح | مفاتيح نصّية ثابتة في cart/loading + admin/dashboard/loading. |
 | Q-30 | تدبير/تكرار: `NO_STORE_HEADERS` معرّف مرتين، رقم سحري `3_600_000`، نمط `reorder` مكرّر، parser لغة مكرّر 3× مع `as Lang` مبكّر، `original_price!` بلا type-predicate | LOW | `api/menu/[slug]/route.ts:11` · `api/admin/state/route.ts:10` · `modes/actions.ts:95` · `menu-view.tsx:56,580` · `cart-view.tsx:46,292` · `product-view.tsx:37,101` | ✅ مُصلَح (جزئي) | `parseLang()` في `lib/i18n.ts` (يستبدل التكرار + `as Lang` في 3 views) + `MS_PER_HOUR` في modes/actions. **مُبقى بقرار:** `NO_STORE_HEADERS` مكرّر (smoke-polling-contract يعتمد على السلسلة الحرفية داخل كل route)، و`original_price!` (محروس بـ`hasDiscount`)، ودالتا reorder (صارتا upsert في Q-4). |
 
 ### ملاحظات إضافية (Code Quality)

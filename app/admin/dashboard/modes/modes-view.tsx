@@ -69,14 +69,18 @@ export function ModesView({
 
   /* eslint-disable react-hooks/purity -- the countdown gating reads the wall
      clock on purpose; this view re-renders on the 10s state poll. */
-  // Q12 server-now offset for the countdown.
-  const offset =
-    new Date(state.server_now).getTime() - Date.now();
+  // Q12 server-now offset for the countdown. Q-20: memoized on server_now so it
+  // isn't recomputed (with a fresh Date.now()) on unrelated re-renders.
+  const offset = useMemo(
+    () => new Date(state.server_now).getTime() - Date.now(),
+    [state.server_now],
+  );
 
   // Q10 — 10s polling against /api/admin/state.
   useEffect(() => {
     let cancelled = false;
     const tick = async () => {
+      if (document.hidden) return; // Q-19: don't poll while the tab is backgrounded.
       try {
         const res = await fetch('/api/admin/state', { cache: 'no-store' });
         if (!res.ok) return;
@@ -87,9 +91,11 @@ export function ModesView({
       }
     };
     const id = setInterval(tick, 10_000);
+    document.addEventListener('visibilitychange', tick);
     return () => {
       cancelled = true;
       clearInterval(id);
+      document.removeEventListener('visibilitychange', tick);
     };
   }, []);
 

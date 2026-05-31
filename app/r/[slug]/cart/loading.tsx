@@ -7,7 +7,7 @@ export default function Loading() {
       </header>
       <div className="mx-auto max-w-3xl space-y-3 px-4 py-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-card flex items-center gap-3 rounded-xl border p-3">
+          <div key={`cart-skel-${i}`} className="bg-card flex items-center gap-3 rounded-xl border p-3">
             <div className="bg-muted h-16 w-16 shrink-0 animate-pulse rounded" />
             <div className="flex-1 space-y-2">
               <div className="bg-muted h-4 w-1/2 animate-pulse rounded" />

@@ -5,9 +5,8 @@ import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
 import {
   uploadProductImage,
-  safeDeleteImage,
+  safeDeleteImageByUrl,
   validateImageUpload,
-  extractR2Key,
 } from '@/lib/r2/upload';
 import { isSupportedCurrency } from '@/lib/currencies';
 
@@ -80,13 +79,13 @@ export async function saveDesign(formData: FormData): Promise<Result> {
   const { error } = await sb.from('restaurants').update(update).eq('id', restaurantId);
   if (error) {
     if (typeof update.logo_url === 'string') {
-      await safeDeleteImage(extractR2Key(update.logo_url));
+      await safeDeleteImageByUrl(update.logo_url);
     }
     return { ok: false, error: 'فشل حفظ التصميم' };
   }
 
   if (oldLogoToDelete) {
-    await safeDeleteImage(extractR2Key(oldLogoToDelete));
+    await safeDeleteImageByUrl(oldLogoToDelete);
   }
 
   revalidatePath(DESIGN_PATH);

@@ -69,6 +69,7 @@ export function CartView({
         // Silent retry on next tick.
       }
     };
+    void tick(); // Q-7: fetch immediately on mount so the cart reflects fresh prices.
     const id = setInterval(tick, 30_000);
     document.addEventListener('visibilitychange', tick);
     return () => {
@@ -397,6 +398,16 @@ function ReadToWaiterModal({
   onClose: () => void;
   onClear: () => void;
 }) {
+  // Q-23: dismiss on Escape for keyboard/AT users (the hand-rolled modal has no
+  // Radix to do this for it).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
     <div
       role="dialog"

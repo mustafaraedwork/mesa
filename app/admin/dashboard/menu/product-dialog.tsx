@@ -199,10 +199,11 @@ export function ProductDialog(props: Props) {
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  // Q-25: wrap the control in the <label> for implicit label↔control association.
   return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium">{label}</label>
+    <label className="block space-y-1">
+      <span className="block text-sm font-medium">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }

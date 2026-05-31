@@ -42,7 +42,10 @@ export function MenuView({
   const [started, setStarted] = useState(() => menuOpenedThisLoad);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
-  // Editorial date eyebrow — read the clock once on mount.
+  // Editorial date eyebrow — read the client clock once on mount (cosmetic).
+  // Q-21: known limitation — crossing midnight without reloading keeps the
+  // mount-time day/time; acceptable for a decorative greeting and avoids a
+  // non-pure Date() read on every render.
   const [dateEyebrow] = useState(() => {
     const d = new Date();
     const hh = String(d.getHours()).padStart(2, '0');
@@ -97,8 +100,13 @@ export function MenuView({
   const [subId, setSubId] = useState<string | null>(() => initialSub(tree, initialParent(tree)));
 
   // Chef's Picks rides along with the first (default) section only — it hides
-  // once the diner navigates to any other section.
-  const firstParentId = useMemo(() => initialParent(tree), [tree]);
+  // once the diner navigates to any other section. Q-18: derive it from the
+  // immutable initialData prop, not the reactive `tree`, so a poll that reorders
+  // categories can't silently move which section it rides along with.
+  const firstParentId = useMemo(
+    () => initialParent(buildTree(initialData.categories)),
+    [initialData],
+  );
 
   const selectedParent = tree.find((c) => c.id === parentId) ?? null;
   const hasSubs = selectedParent ? selectedParent.children.length > 0 : false;
@@ -406,6 +414,7 @@ function LanguageDropdown({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls="lang-listbox"
         onClick={() => onOpenChange(!open)}
         className="bg-card border-border-lite shadow-card text-ink-2 flex h-9 items-center gap-1 rounded-full border px-3 text-xs font-medium"
       >
@@ -416,24 +425,32 @@ function LanguageDropdown({
       {open && (
         <div
           role="listbox"
+          id="lang-listbox"
+          aria-label="اختر اللغة"
           className="bg-card border-border-lite shadow-modal absolute right-0 top-11 z-30 min-w-28 overflow-hidden rounded-xl border py-1"
         >
           {LANGS.map((l) => (
-            <button
+            <div
               key={l.code}
-              type="button"
               role="option"
+              tabIndex={0}
               aria-selected={l.code === lang}
               onClick={() => onPickLang(l.code)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onPickLang(l.code);
+                }
+              }}
               className={
-                'block w-full px-3 py-2 text-start text-xs transition-colors ' +
+                'block w-full cursor-pointer px-3 py-2 text-start text-xs transition-colors ' +
                 (l.code === lang
                   ? 'bg-muted text-foreground font-semibold'
                   : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground')
               }
             >
               {l.label}
-            </button>
+            </div>
           ))}
         </div>
       )}

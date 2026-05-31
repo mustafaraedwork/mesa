@@ -5,9 +5,8 @@ import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
 import {
   uploadProductImage,
-  safeDeleteImage,
+  safeDeleteImageByUrl,
   validateImageUpload,
-  extractR2Key,
 } from '@/lib/r2/upload';
 
 const MENU_PATH = '/admin/dashboard/menu';
@@ -161,7 +160,7 @@ export async function deleteCategory(id: string): Promise<Result> {
     .eq('restaurant_id', restaurantId);
 
   for (const p of products ?? []) {
-    if (p.image_url) await safeDeleteImage(extractR2Key(p.image_url));
+    if (p.image_url) await safeDeleteImageByUrl(p.image_url);
   }
 
   const { error } = await sb
@@ -253,7 +252,7 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
     .select('id')
     .single();
   if (error || !inserted) {
-    if (image_url) await safeDeleteImage(extractR2Key(image_url));
+    if (image_url) await safeDeleteImageByUrl(image_url);
     return { ok: false, error: 'فشل إنشاء المنتج' };
   }
 
@@ -302,12 +301,12 @@ export async function updateProduct(formData: FormData): Promise<Result> {
     try {
       const up = await uploadProductImage(buf, `restaurants/${restaurantId}/products`);
       update.image_url = up.url;
-      if (existing.image_url) await safeDeleteImage(extractR2Key(existing.image_url));
+      if (existing.image_url) await safeDeleteImageByUrl(existing.image_url);
     } catch {
       return { ok: false, error: 'فشل رفع الصورة — جرّب صورة أخرى' };
     }
   } else if (removeImage && existing.image_url) {
-    await safeDeleteImage(extractR2Key(existing.image_url));
+    await safeDeleteImageByUrl(existing.image_url);
     update.image_url = null;
   }
 
@@ -347,7 +346,7 @@ export async function deleteProduct(id: string): Promise<Result> {
     .maybeSingle();
   if (!existing) return { ok: false, error: 'المنتج غير موجود' };
 
-  if (existing.image_url) await safeDeleteImage(extractR2Key(existing.image_url));
+  if (existing.image_url) await safeDeleteImageByUrl(existing.image_url);
 
   const { error } = await sb
     .from('products')

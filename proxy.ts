@@ -23,11 +23,16 @@ export async function proxy(req: NextRequest) {
   }
 
   if (pathname.startsWith('/owner/dashboard')) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anon) {
+      // Q-16: fail safe to the login page instead of a 500 from passing
+      // undefined into createServerClient when env vars are missing.
+      console.error('[proxy] Supabase env vars missing for owner auth');
+      return redirectTo(req, '/owner', pathname);
+    }
     const res = NextResponse.next();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
+    const supabase = createServerClient(url, anon, {
         cookies: {
           getAll: () => req.cookies.getAll(),
           setAll: (cookiesToSet) => {

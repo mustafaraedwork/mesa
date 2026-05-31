@@ -109,13 +109,28 @@ export async function safeDeleteImage(key: string): Promise<void> {
 // The URL format is `${R2_PUBLIC_URL}/${key}`. Single source of truth (Q-8) —
 // previously duplicated in the menu and design actions.
 export function extractR2Key(publicUrl: string): string {
-  const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, '') ?? '';
-  if (publicUrl.startsWith(base + '/')) return publicUrl.slice(base.length + 1);
-  // Fallback: strip protocol+host.
+  const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
+  // M-7: never derive a key from an arbitrary string. Require R2_PUBLIC_URL to
+  // be configured and the stored URL to live under it — otherwise a
+  // misconfigured env or a foreign URL could target an arbitrary bucket key for
+  // deletion.
+  if (!base) {
+    throw new Error('R2_PUBLIC_URL is not configured — refusing to derive an R2 key');
+  }
+  if (!publicUrl.startsWith(base + '/')) {
+    throw new Error(`image_url is not under R2_PUBLIC_URL — refusing to derive a key from "${publicUrl}"`);
+  }
+  return publicUrl.slice(base.length + 1);
+}
+
+// Best-effort delete by public URL: derives the key and deletes, never throwing
+// — logs on any failure (bad/foreign URL, missing env, R2 down) so orphaned
+// objects stay discoverable (Q-11 + M-7). Use in cleanup paths.
+export async function safeDeleteImageByUrl(publicUrl: string): Promise<void> {
   try {
-    return new URL(publicUrl).pathname.replace(/^\//, '');
-  } catch {
-    return publicUrl;
+    await deleteImage(extractR2Key(publicUrl));
+  } catch (e) {
+    console.error('[r2] image cleanup failed for url', publicUrl, e);
   }
 }
 

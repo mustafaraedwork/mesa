@@ -39,6 +39,16 @@ export function WelcomeScreen({
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  // Q-23: dismiss the language popup on Escape.
+  useEffect(() => {
+    if (!langOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLangOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [langOpen]);
+
   // One-time clock read in a lazy initializer — morning vs evening greeting.
   const [greetingKey] = useState<'greeting_morning' | 'greeting_evening'>(() =>
     new Date().getHours() < 12 ? 'greeting_morning' : 'greeting_evening',
@@ -73,7 +83,7 @@ export function WelcomeScreen({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={restaurant.logo_url}
-              alt=""
+              alt={restaurant.display_name}
               className="h-20 w-20 rounded-full object-contain"
             />
           ) : (
@@ -107,8 +117,16 @@ export function WelcomeScreen({
 
       {/* Language popup */}
       {langOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8">
-          <div className="bg-card border-foreground shadow-modal w-full max-w-xs space-y-3 rounded-xl border-2 p-6">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8"
+          onClick={() => setLangOpen(false)}
+        >
+          <div
+            className="bg-card border-foreground shadow-modal w-full max-w-xs space-y-3 rounded-xl border-2 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="text-center text-base font-semibold">{t('choose_lang', lang)}</h2>
             <div className="space-y-2">
               {LANGS.map((l) => (

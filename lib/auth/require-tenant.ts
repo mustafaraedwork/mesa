@@ -6,6 +6,7 @@ export type TenantContext = {
   restaurantId: string;
   displayName: string;
   isActive: boolean;
+  currency: string;
 };
 
 // For Server Components / Server Actions inside `/admin/dashboard/*`. The
@@ -18,7 +19,7 @@ export async function requireTenant(): Promise<TenantContext> {
   const sb = getServiceClient();
   const { data, error } = await sb
     .from('restaurants')
-    .select('id, display_name, is_active')
+    .select('id, display_name, is_active, currency')
     .eq('id', restaurantId)
     .maybeSingle();
 
@@ -28,5 +29,6 @@ export async function requireTenant(): Promise<TenantContext> {
     restaurantId: data.id,
     displayName: data.display_name,
     isActive: data.is_active ?? false,
+    currency: data.currency ?? 'IQD',
   };
 }

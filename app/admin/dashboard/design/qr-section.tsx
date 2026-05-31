@@ -7,6 +7,15 @@ import { Button } from '@/components/ui/button';
 export function QrSection({ menuUrl, slug }: { menuUrl: string; slug: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Q-28: clear the "copied" reset timer on unmount.
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
 
   // Render the QR onto the canvas whenever the URL changes.
   useEffect(() => {
@@ -24,7 +33,8 @@ export function QrSection({ menuUrl, slug }: { menuUrl: string; slug: string }) 
     try {
       await navigator.clipboard.writeText(menuUrl);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopied(false), 1500);
     } catch {
       // Older browsers without clipboard API: ignore.
     }
