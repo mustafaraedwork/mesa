@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
 import { isRtl, pickName, t, type Lang } from '@/lib/i18n';
 import { track } from '@/lib/track';
@@ -21,6 +21,15 @@ export function ProductView({
 }) {
   const [lang, setLang] = useState<Lang>('ar');
   const [cartCount, setCartCount] = useState(0);
+  const router = useRouter();
+
+  // Step back through history so the diner returns to wherever they came from
+  // (menu scroll position, chosen category) instead of a fresh menu load.
+  // Fall back to the menu for deep-linked entries with no in-app history.
+  function goBack() {
+    if (window.history.length > 1) router.back();
+    else router.push(`/r/${slug}`);
+  }
 
   /* eslint-disable react-hooks/set-state-in-effect --
      Mount-time reads from client-only stores (localStorage / cart). */
@@ -54,20 +63,23 @@ export function ProductView({
     <main
       dir={dir}
       className="min-h-screen pb-28"
-      style={{ background: restaurant.background_color }}
+      style={{ background: restaurant.background_color, color: restaurant.text_color }}
     >
       <header
         className="shadow-card sticky top-0 z-20 flex items-center gap-3 px-4 py-3"
         style={{ background: restaurant.primary_color, color: '#fff' }}
       >
-        <Link href={`/r/${slug}`} className="text-sm hover:underline">
+        <button type="button" onClick={goBack} className="text-sm hover:underline">
           ← {t('back_to_menu', lang)}
-        </Link>
+        </button>
         <h1 className="flex-1 truncate text-base font-semibold">{restaurant.display_name}</h1>
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-5">
-        <div className="bg-card shadow-card overflow-hidden rounded-xl">
+        <div
+          className="shadow-card overflow-hidden rounded-xl"
+          style={{ background: restaurant.card_color }}
+        >
           <div className="bg-cream-deep relative aspect-square w-full">
             {product.image_url && (
               // eslint-disable-next-line @next/next/no-img-element

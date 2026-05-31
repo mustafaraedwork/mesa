@@ -14,6 +14,9 @@ export type DesignInitial = {
   logo_url: string | null;
   primary_color: string;
   background_color: string;
+  header_color: string;
+  card_color: string;
+  text_color: string;
   currency: string;
   show_unavailable_items: boolean;
 };
@@ -36,6 +39,9 @@ export function DesignView({
   const [displayName, setDisplayName] = useState(initial.display_name);
   const [primary, setPrimary] = useState(initial.primary_color);
   const [background, setBackground] = useState(initial.background_color);
+  const [header, setHeader] = useState(initial.header_color);
+  const [card, setCard] = useState(initial.card_color);
+  const [text, setText] = useState(initial.text_color);
   const [currency, setCurrency] = useState(initial.currency);
   const [showUnavailable, setShowUnavailable] = useState(initial.show_unavailable_items);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -59,6 +65,9 @@ export function DesignView({
     displayName !== initial.display_name ||
     primary !== initial.primary_color ||
     background !== initial.background_color ||
+    header !== initial.header_color ||
+    card !== initial.card_color ||
+    text !== initial.text_color ||
     currency !== initial.currency ||
     showUnavailable !== initial.show_unavailable_items ||
     logoFile !== null ||
@@ -72,6 +81,9 @@ export function DesignView({
     fd.set('display_name', displayName);
     fd.set('primary_color', primary);
     fd.set('background_color', background);
+    fd.set('header_color', header);
+    fd.set('card_color', card);
+    fd.set('text_color', text);
     fd.set('currency', currency);
     fd.set('show_unavailable_items', showUnavailable ? 'true' : 'false');
     if (logoFile) fd.set('logo', logoFile);
@@ -142,6 +154,9 @@ export function DesignView({
             <CardContent className="grid grid-cols-2 gap-4">
               <ColorField label="لون أساسي" value={primary} onChange={setPrimary} />
               <ColorField label="لون الخلفية" value={background} onChange={setBackground} />
+              <ColorField label="لون الهيدر" value={header} onChange={setHeader} />
+              <ColorField label="لون بطاقة الصنف" value={card} onChange={setCard} />
+              <ColorField label="لون الخط" value={text} onChange={setText} />
             </CardContent>
           </Card>
 
@@ -246,6 +261,9 @@ export function DesignView({
             logoSrc={previewLogoSrc}
             primary={primary}
             background={background}
+            header={header}
+            card={card}
+            text={text}
             currency={currency}
           />
         </div>
@@ -309,12 +327,18 @@ function Preview({
   logoSrc,
   primary,
   background,
+  header,
+  card,
+  text,
   currency,
 }: {
   displayName: string;
   logoSrc: string | null;
   primary: string;
   background: string;
+  header: string;
+  card: string;
+  text: string;
   currency: string;
 }) {
   // Fake sample data to give Mustafa a feel of how a real menu card will read.
@@ -322,11 +346,11 @@ function Preview({
   return (
     <div
       className="overflow-hidden rounded-xl border shadow-sm"
-      style={{ background }}
+      style={{ background, color: text }}
     >
       <div
         className="flex items-center gap-3 px-4 py-3"
-        style={{ background: primary, color: '#fff' }}
+        style={{ background: header }}
       >
         {logoSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -336,19 +360,25 @@ function Preview({
             className="h-10 w-10 rounded bg-white object-contain p-0.5"
           />
         ) : (
-          <div className="bg-white/15 flex h-10 w-10 items-center justify-center rounded text-base font-bold">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-full border text-base font-bold"
+            style={{ borderColor: `${primary}66`, color: primary }}
+          >
             {displayName.slice(0, 1) || 'م'}
           </div>
         )}
         <div className="flex-1 truncate font-semibold">{displayName || 'اسم المطعم'}</div>
-        <div className="text-xs opacity-80">AR · EN · KU</div>
+        <div className="text-xs opacity-70">AR · EN · KU</div>
       </div>
 
       <div className="space-y-3 p-4">
         <div className="text-sm font-semibold" style={{ color: primary }}>
           ☕ مشروبات باردة
         </div>
-        <div className="bg-card flex items-center gap-3 rounded-lg border p-3">
+        <div
+          className="flex items-center gap-3 rounded-lg border p-3"
+          style={{ background: card }}
+        >
           <div
             className="h-14 w-14 shrink-0 rounded"
             style={{ background: primary, opacity: 0.15 }}
@@ -356,7 +386,7 @@ function Preview({
           />
           <div className="flex-1">
             <div className="font-medium">{sample.name}</div>
-            <div className="text-muted-foreground text-xs">⏱ ٥ د</div>
+            <div className="text-xs opacity-60">⏱ ٥ د</div>
           </div>
           <div className="text-sm font-bold" style={{ color: primary }}>
             {sample.price.toLocaleString('en-US')} {currencyLabel(currency).split(' ')[0]}

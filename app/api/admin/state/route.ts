@@ -66,7 +66,9 @@ export async function GET() {
   return NextResponse.json(
     {
       server_now: new Date().toISOString(),
-      active_mode,
+      // Coerce any legacy rush/profit row to normal (migration 0004); pass
+      // through the live modes normal/closing/off.
+      active_mode: active_mode === 'closing' || active_mode === 'off' ? active_mode : 'normal',
       closing_mode_ends_at,
       closing_mode_discount,
     },

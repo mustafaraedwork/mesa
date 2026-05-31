@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Plus, ShoppingBag } from 'lucide-react';
+import { ChevronDown, Plus, ShoppingBag } from 'lucide-react';
 import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
 import { LANGS, isRtl, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
@@ -12,12 +12,21 @@ import type { MenuCategory, MenuPayload, MenuProduct } from '@/lib/menu';
 
 const LANG_KEY = 'mesa-lang';
 const POLL_MS = 30_000;
+
+// Survives client navigations within a page load (server never writes it, so
+// it stays false in SSR — no hydration mismatch). Once the diner opens the
+// menu, returning here via the back button skips the welcome screen instead of
+// landing them back on it. A fresh page load / QR scan resets it.
+let menuOpenedThisLoad = false;
 const DAY_NAMES = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
 type CategoryNode = MenuCategory & { children: MenuCategory[] };
 type BrandColors = {
   primary: string;
   bg: string;
+  header: string;
+  card: string;
+  text: string;
 };
 
 export function MenuView({
@@ -30,7 +39,8 @@ export function MenuView({
   const [data, setData] = useState<MenuPayload>(initialData);
   const [lang, setLang] = useState<Lang>('ar');
   const [cart, setCart] = useState<Cart>({ items: [], updatedAt: 0 });
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(() => menuOpenedThisLoad);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   // Editorial date eyebrow — read the clock once on mount.
   const [dateEyebrow] = useState(() => {
@@ -85,6 +95,10 @@ export function MenuView({
   const [parentId, setParentId] = useState<string | null>(() => initialParent(tree));
   const [subId, setSubId] = useState<string | null>(() => initialSub(tree, initialParent(tree)));
 
+  // Chef's Picks rides along with the first (default) section only — it hides
+  // once the diner navigates to any other section.
+  const firstParentId = useMemo(() => initialParent(tree), [tree]);
+
   const selectedParent = tree.find((c) => c.id === parentId) ?? null;
   const hasSubs = selectedParent ? selectedParent.children.length > 0 : false;
 
@@ -126,16 +140,20 @@ export function MenuView({
 
   const r = data.restaurant;
   const dir = isRtl(lang) ? 'rtl' : 'ltr';
-  const colors: BrandColors = { primary: r.primary_color, bg: r.background_color };
+  const colors: BrandColors = {
+    primary: r.primary_color,
+    bg: r.background_color,
+    header: r.header_color,
+    card: r.card_color,
+    text: r.text_color,
+  };
+  // Off mode: a plain menu — drop the editorial greeting + chef-picks heading.
+  const isOff = r.active_mode === 'off';
 
   function pickLang(next: Lang) {
     setLang(next);
     window.localStorage.setItem(LANG_KEY, next);
-  }
-  function cycleLang() {
-    const order: Lang[] = ['ar', 'en', 'ku'];
-    const i = order.indexOf(lang);
-    pickLang(order[(i + 1) % order.length]);
+    setLangMenuOpen(false);
   }
   function pickParent(id: string) {
     setParentId(id);
@@ -150,6 +168,7 @@ export function MenuView({
     track('product_add', { slug, productId });
   }
   function handleStart() {
+    menuOpenedThisLoad = true;
     setStarted(true);
     const key = `mesa-opened-${slug}`;
     if (!window.sessionStorage.getItem(key)) {
@@ -175,47 +194,57 @@ export function MenuView({
   }
 
   return (
-    <main dir={dir} className="min-h-screen pb-28" style={{ background: colors.bg }}>
-      {/* Header — cart + language on one side, brand on the other */}
+    <main
+      dir={dir}
+      className="min-h-screen pb-28"
+      style={{ background: colors.bg, color: colors.text }}
+    >
+      {/* Header */}
       <header
-        className="sticky top-0 z-20 flex items-center justify-between px-5 py-3"
-        style={{ background: colors.bg }}
+        dir="ltr"
+        className="sticky top-0 z-20 flex items-center justify-between px-4 py-3"
+        style={{ background: colors.header }}
       >
+        <BrandMark logoUrl={r.logo_url} displayName={r.display_name} primary={colors.primary} />
+
         <div className="flex items-center gap-2">
+          <LanguageDropdown
+            lang={lang}
+            open={langMenuOpen}
+            onOpenChange={setLangMenuOpen}
+            onPickLang={pickLang}
+          />
           <Link
             href={`/r/${slug}/cart`}
             aria-label={t('cart_button', lang)}
-            className="bg-card border-border relative flex h-10 w-10 items-center justify-center rounded-full border"
+            className={
+              'bg-card border-border-lite shadow-card flex h-10 items-center rounded-full border ' +
+              (cartCount > 0 ? 'gap-1.5 px-3' : 'w-10 justify-center')
+            }
           >
-            <ShoppingBag className="h-5 w-5" />
+            <ShoppingBag className="text-ink-2 h-5 w-5" />
             {cartCount > 0 && (
               <span
-                className="text-primary-foreground absolute -top-1 -end-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold tabular-nums"
-                style={{ background: colors.primary }}
+                className="text-xs font-bold tabular-nums leading-none"
+                style={{ color: colors.primary }}
               >
                 {cartCount}
               </span>
             )}
           </Link>
-          <button
-            type="button"
-            onClick={cycleLang}
-            className="bg-card border-border text-ink-2 flex h-10 items-center rounded-full border px-4 text-xs font-medium"
-          >
-            {LANGS.find((l) => l.code === lang)?.label}
-          </button>
         </div>
-        <BrandMark logoUrl={r.logo_url} displayName={r.display_name} primary={colors.primary} />
       </header>
 
-      {/* Editorial intro */}
-      <div className="px-5 pt-5 pb-2 text-start">
-        <p className="text-muted-foreground font-latin mb-1.5 text-[10px] tracking-[0.2em]">
-          {dateEyebrow}
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight">{t('greeting_evening', lang)}،</h1>
-        <h2 className="text-ink-2 mt-1 text-xl font-medium">{t('chef_tonight', lang)}</h2>
-      </div>
+      {/* Editorial intro — hidden in Off mode for a plain menu */}
+      {!isOff && (
+        <div className="px-5 pt-5 pb-2 text-start">
+          <p className="text-muted-foreground font-latin mb-1.5 text-[10px] tracking-[0.2em]">
+            {dateEyebrow}
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('greeting_evening', lang)}،</h1>
+          <h2 className="text-ink-2 mt-1 text-xl font-medium">{t('chef_tonight', lang)}</h2>
+        </div>
+      )}
 
       {/* Parent category chips */}
       {tree.length > 0 && (
@@ -224,6 +253,7 @@ export function MenuView({
             <Chip
               key={cat.id}
               active={parentId === cat.id}
+              primary={colors.primary}
               onClick={() => pickParent(cat.id)}
             >
               {pickName(cat, lang)}
@@ -239,6 +269,7 @@ export function MenuView({
             <Chip
               key={sub.id}
               active={subId === sub.id}
+              primary={colors.primary}
               onClick={() => pickSub(sub.id)}
               variant="sub"
             >
@@ -248,8 +279,8 @@ export function MenuView({
         </ChipBar>
       )}
 
-      {/* Chef's Picks — surfaces the active mode's selection (Closing now) */}
-      {chefPicks.length > 0 && chefPicksCategory && (
+      {/* Chef's Picks — only alongside the first/default section, not every one */}
+      {chefPicks.length > 0 && chefPicksCategory && parentId === firstParentId && (
         <section className="pt-6">
           <div className="mb-3 px-5 text-start">
             <h3 className="text-2xl font-bold">{pickName(chefPicksCategory, lang)}</h3>
@@ -266,6 +297,7 @@ export function MenuView({
                     product={p}
                     lang={lang}
                     primary={colors.primary}
+                    card={colors.card}
                     currency={r.currency}
                     onAdd={onAdd}
                   />
@@ -291,6 +323,7 @@ export function MenuView({
                 product={p}
                 lang={lang}
                 primary={colors.primary}
+                card={colors.card}
                 currency={r.currency}
                 onAdd={onAdd}
               />
@@ -353,6 +386,60 @@ function defaultSubFor(parent: CategoryNode): string | null {
 
 // ── presentational ────────────────────────────────────────────────────
 
+function LanguageDropdown({
+  lang,
+  open,
+  onOpenChange,
+  onPickLang,
+}: {
+  lang: Lang;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onPickLang: (lang: Lang) => void;
+}) {
+  const current = LANGS.find((l) => l.code === lang)?.label ?? 'عربي';
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
+        className="bg-card border-border-lite shadow-card text-ink-2 flex h-9 items-center gap-1 rounded-full border px-3 text-xs font-medium"
+      >
+        <span>{current}</span>
+        <ChevronDown className="text-muted-foreground h-3.5 w-3.5" />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className="bg-card border-border-lite shadow-modal absolute right-0 top-11 z-30 min-w-28 overflow-hidden rounded-xl border py-1"
+        >
+          {LANGS.map((l) => (
+            <button
+              key={l.code}
+              type="button"
+              role="option"
+              aria-selected={l.code === lang}
+              onClick={() => onPickLang(l.code)}
+              className={
+                'block w-full px-3 py-2 text-start text-xs transition-colors ' +
+                (l.code === lang
+                  ? 'bg-muted text-foreground font-semibold'
+                  : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground')
+              }
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BrandMark({
   logoUrl,
   displayName,
@@ -365,13 +452,18 @@ function BrandMark({
   if (logoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={logoUrl} alt="" className="h-10 w-10 rounded-full bg-white object-contain" />
+      <img
+        src={logoUrl}
+        alt=""
+        className="bg-card h-11 w-11 rounded-full border object-contain p-1"
+        style={{ borderColor: `${primary}66` }}
+      />
     );
   }
   return (
     <div
-      className="flex h-10 w-10 items-center justify-center rounded-full text-base font-bold text-white"
-      style={{ background: primary }}
+      className="bg-card flex h-11 w-11 items-center justify-center rounded-full border text-lg font-bold"
+      style={{ borderColor: `${primary}66`, color: primary }}
     >
       {displayName.slice(0, 1) || '·'}
     </div>
@@ -389,18 +481,25 @@ function ChipBar({ children, dense = false }: { children: ReactNode; dense?: boo
 function Chip({
   active,
   onClick,
+  primary,
   variant = 'parent',
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  primary: string;
   variant?: 'parent' | 'sub';
   children: ReactNode;
 }) {
   const base = 'shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors';
   if (active) {
     return (
-      <button type="button" onClick={onClick} className={base + ' bg-foreground text-background'}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={base + ' text-white'}
+        style={{ background: primary }}
+      >
         {children}
       </button>
     );
@@ -421,6 +520,7 @@ function ProductCard({
   product,
   lang,
   primary,
+  card,
   currency,
   onAdd,
 }: {
@@ -428,6 +528,7 @@ function ProductCard({
   product: MenuProduct;
   lang: Lang;
   primary: string;
+  card: string;
   currency: string;
   onAdd: (productId: string) => void;
 }) {
@@ -439,9 +540,10 @@ function ProductCard({
   return (
     <div
       className={
-        'bg-card border-border-lite shadow-card flex flex-col overflow-hidden rounded-xl border ' +
+        'border-border-lite shadow-card flex flex-col overflow-hidden rounded-xl border ' +
         (unavailable ? 'opacity-60 grayscale' : '')
       }
+      style={{ background: card }}
     >
       <Link href={`/r/${slug}/p/${product.id}`} className="relative block">
         <div className="bg-cream-deep flex aspect-square w-full items-center justify-center">
@@ -483,7 +585,8 @@ function ProductCard({
             type="button"
             disabled={unavailable}
             onClick={() => onAdd(product.id)}
-            className="bg-foreground text-background flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ background: primary }}
             aria-label={t('add', lang)}
           >
             <Plus className="h-4 w-4" />

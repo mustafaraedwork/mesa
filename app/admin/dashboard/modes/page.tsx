@@ -30,7 +30,7 @@ export default async function ModesPage() {
       .order('display_order', { ascending: true }),
     sb
       .from('products')
-      .select('id, category_id, name_ar, price, is_available, is_in_closing_mode, display_order')
+      .select('id, category_id, name_ar, price, is_available, is_in_closing_mode, is_chef_pick, display_order')
       .eq('restaurant_id', tenant.restaurantId)
       .order('display_order', { ascending: true }),
   ]);
@@ -52,13 +52,19 @@ export default async function ModesPage() {
       price: Number(p.price),
       is_available: p.is_available ?? true,
       is_in_closing_mode: p.is_in_closing_mode ?? false,
+      is_chef_pick: p.is_chef_pick ?? false,
     })),
   }));
 
   return (
     <ModesView
       initialState={{
-        active_mode: rest!.active_mode,
+        // Coerce any legacy rush/profit row to normal (migration 0004); pass
+        // through the live modes normal/closing/off.
+        active_mode:
+          rest!.active_mode === 'closing' || rest!.active_mode === 'off'
+            ? rest!.active_mode
+            : 'normal',
         closing_mode_ends_at: rest!.closing_mode_ends_at,
         closing_mode_discount: rest!.closing_mode_discount,
         server_now: new Date().toISOString(),

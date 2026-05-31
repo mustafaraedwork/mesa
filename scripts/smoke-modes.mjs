@@ -5,7 +5,7 @@
 //   2. Hit GET /api/menu/:slug → expect Normal sort + no virtual category
 //   3. Activate Closing on 2 products with 10% discount, 1h
 //   4. Hit menu API → expect __closing__ at top + derived prices + Q11 defensive
-//   5. Switch to Rush → expect virtual gone + clearing of is_in_closing_mode
+//   5. Switch to Normal → expect virtual gone + clearing of is_in_closing_mode
 //   6. Activate Closing again, simulate expiry → expect lazy revert on next read
 //   7. Set custom suggestions → expect suggestions_type + custom_suggestion_ids
 //      surfaced in the menu payload (Phase 2)
@@ -129,18 +129,20 @@ try {
   const saladInCat = realAppetizers.products.find((p) => p.name_ar === 'سلطة');
   assert(saladInCat.original_price === null, 'سلطة has no original_price (not in closing)');
 
-  console.log('\n— [3] Switch to Rush — clean-and-apply should clear closing state —');
+  console.log('\n— [3] Switch to Normal — clean-and-apply should clear closing state —');
   // Simulate the setMode action's clean-and-apply manually.
-  await sb.from('restaurants').update({ active_mode: 'rush', closing_mode_ends_at: null, closing_mode_discount: null }).eq('id', restaurantId);
+  await sb.from('restaurants').update({ active_mode: 'normal', closing_mode_ends_at: null, closing_mode_discount: null }).eq('id', restaurantId);
   await sb.from('products').update({ is_in_closing_mode: false }).eq('restaurant_id', restaurantId).eq('is_in_closing_mode', true);
 
   menu = await fetchMenu();
-  assert(menu.restaurant.active_mode === 'rush', 'active_mode is rush');
+  assert(menu.restaurant.active_mode === 'normal', 'active_mode is normal');
   assert(menu.categories.every((c) => c.id !== '__closing__'), 'virtual category gone');
-  // Rush sort: within مقبّلات, prep_time ASC → سلطة (3) before حمّص (5).
-  const appetizers = menu.categories.find((c) => c.name_ar === 'مقبّلات');
-  assert(appetizers.products[0].name_ar === 'سلطة', 'Rush sort: سلطة first (prep 3 < 5)');
-  assert(appetizers.products[1].name_ar === 'حمّص', 'Rush sort: حمّص second');
+  const { data: clearedFlags } = await sb
+    .from('products')
+    .select('is_in_closing_mode')
+    .eq('restaurant_id', restaurantId)
+    .eq('is_in_closing_mode', true);
+  assert(clearedFlags.length === 0, 'is_in_closing_mode cleared on all products after switch');
 
   console.log('\n— [4] Activate Closing then simulate expiry → lazy revert —');
   await sb
@@ -213,7 +215,15 @@ try {
   assert(cat1Now.products[0].id === productRows[1].id, 'سلطة first after reorder (display_order 0)');
   assert(cat1Now.products[1].id === productRows[0].id, 'حمّص second after reorder (display_order 1)');
 
-  console.log('\nOK — Phases 2-5 data paths green.');
+  console.log('\n— [8] Off mode — plain menu, no virtual category even with a chef pick —');
+  await sb.from('products').update({ is_chef_pick: true }).eq('id', productRows[0].id);
+  await sb.from('restaurants').update({ active_mode: 'off' }).eq('id', restaurantId);
+  menu = await fetchMenu();
+  assert(menu.restaurant.active_mode === 'off', 'active_mode is off');
+  assert(menu.categories.every((c) => !c.is_virtual), 'no virtual category in off mode (chef picks suppressed)');
+  assert(menu.categories.reduce((s, c) => s + c.products.length, 0) > 0, 'real menu items still present in off mode');
+
+  console.log('\nOK — modes/chef-picks/off + suggestions/complementary/reorder data paths green.');
 } finally {
   console.log('\n— cleanup —');
   await sb.from('restaurants').delete().eq('id', restaurantId);

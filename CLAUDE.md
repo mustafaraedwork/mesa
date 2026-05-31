@@ -23,7 +23,7 @@ The project owner is **Mustafa**; he prefers Arabic communication and authored t
 
 ## Product in one paragraph
 
-**Mesa OS Lite** is a one-time-purchase SaaS (no subscriptions) for small/medium single-branch restaurants — primary market Iraq (IQD default), expanded market the Arab world (18 currencies). It delivers a QR-scanned digital menu for diners and a mobile PWA dashboard for restaurant owners. The killer feature is **4 mutually-exclusive smart modes** (Normal / Rush / Profit / Closing) that re-rank the menu in real time. Mustafa creates tenant accounts manually; payments are handled offline.
+**Mesa OS Lite** is a one-time-purchase SaaS (no subscriptions) for small/medium single-branch restaurants — primary market Iraq (IQD default), expanded market the Arab world (18 currencies). It delivers a QR-scanned digital menu for diners and a mobile PWA dashboard for restaurant owners. The signature feature is **mutually-exclusive smart modes** — now **Normal** and **Closing** (the Rush and Profit re-rank modes were retired 2026-05-26 — see below). Mustafa creates tenant accounts manually; payments are handled offline.
 
 ## Three user surfaces, three auth models
 
@@ -35,14 +35,15 @@ The project owner is **Mustafa**; he prefers Arabic communication and authored t
 
 Three auth systems coexist on purpose — do not unify them. RLS policies in §4.4 distinguish public reads (only when `restaurants.is_active = TRUE`) from owner full access. Tenant writes go through API routes that validate the session token; they do **not** rely on RLS for tenant identity.
 
-## The 4 modes (the core feature)
+## The modes (the core feature)
 
-Exactly one mode active per restaurant at any time, stored as `restaurants.active_mode` ∈ `{normal, rush, profit, closing}`. Mode changes propagate to the diner view eventually, bounded by the polling window (≤30s typical — see "Menu freshness" below). PRD §3.1 says "فوراً"; the actual contract is "within one polling cycle".
+Exactly one mode active per restaurant at any time, stored as `restaurants.active_mode` ∈ `{normal, closing, off}` (migration `0004` removed the original rush/profit; `0006` added `off`). Mode changes propagate to the diner view eventually, bounded by the polling window (≤30s typical — see "Menu freshness" below). PRD §3.1 says "فوراً"; the actual contract is "within one polling cycle".
 
-- **Normal** — manual `display_order` only.
-- **Rush** — within each category, sort by `prep_time_minutes` ascending. Category order unchanged.
-- **Profit** — within each category, sort by `profit_percentage` descending. Category order unchanged.
-- **Closing** — discount 5/10/20% on a multi-select of products for 1–24h. A virtual "عروض اليوم" category renders **at the top** of the menu; the same items also appear in their original categories with the discounted price + struck-through original. Driven by `closing_mode_ends_at` and `closing_mode_discount` on `restaurants`, plus `products.is_in_closing_mode`. **A cron / scheduled task auto-reverts** to Normal when the timer expires and resets prices everywhere — this is required, not optional.
+- **Normal** — manual `display_order`, plus an optional curated **Chef's Picks** selection: the owner flags products via `products.is_chef_pick` (modes tab → Normal card → "تعديل اختيارات الشيف" → `setChefPicks` clean-and-apply). Flagged items surface in the virtual "اختيارات الشيف" category at the top of the diner menu **with no discount** — but only alongside the first/default section (`parentId === firstParentId`), not every section. Empty selection hides it.
+- **Closing** — discount 5/10/20% on a multi-select of products for 1–24h. A virtual "اختيارات الشيف" category renders **at the top** of the menu; the same items also appear in their original categories with the discounted price + struck-through original. Driven by `closing_mode_ends_at` and `closing_mode_discount` on `restaurants`, plus `products.is_in_closing_mode`. Auto-reverts to Normal via **lazy revert** (no cron) — `loadMenu` / `GET /api/admin/state` flip it back on the first read after the timer expires.
+- **Off** (migration `0006`, 2026-05-26) — a plain menu: no Closing offers and no Chef's Picks section/heading; the diner sees only categories + products (the editorial greeting is also hidden). Set via the "إيقاف كل الأوضاع" button beside the mode cards. **Not** the same as deactivating the restaurant (`is_active = false`, which shows the closed screen). Chef-pick flags are preserved — they reappear when Normal is reactivated.
+
+**Retired 2026-05-26 (owner decision):** **Rush** (sort by `prep_time_minutes` ASC within category) and **Profit** (sort by `profit_percentage` DESC within category). Reason: after the magazine/chip-filter redesign they were invisible within-category reordering with no diner-facing signal and no auto-revert — near-redundant with manually dragging items in Normal. The `profit_percentage` and `prep_time_minutes` **columns stay** (owner-facing fields, still shown in the admin menu); only the re-rank modes are gone.
 
 When implementing modes, the re-ranking is a query/view-layer concern over the same `products` rows; do not duplicate data per mode.
 

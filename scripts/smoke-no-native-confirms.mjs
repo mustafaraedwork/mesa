@@ -93,9 +93,9 @@ try {
   pass(`landed on ${page.url()}`);
   await page.waitForSelector('text=نشط', { timeout: 5000 });
 
-  console.log('— [2] click "تفعيل" on Rush card → expect DOM alertdialog —');
-  const rushCard = page.locator('[data-mode="rush"]');
-  await rushCard.locator('button:has-text("تفعيل")').click();
+  console.log('— [2] click "تفعيل" on Normal card → expect DOM alertdialog —');
+  const normalCard = page.locator('[data-mode="normal"]');
+  await normalCard.locator('button:has-text("تفعيل")').click();
 
   const t2 = page.locator('[role="alertdialog"]');
   await t2.waitFor({ state: 'visible', timeout: 3000 });
@@ -107,18 +107,18 @@ try {
   }
   pass('T2 contains the expected Arabic confirmation text');
 
-  console.log('— [3] click متابعة → mode flips to rush, dialog dismisses —');
+  console.log('— [3] click متابعة → mode flips to normal, dialog dismisses —');
   await t2.locator('button:has-text("متابعة")').click();
   // Poll the DB for up to 5s — dev-mode server actions can compile on first hit.
   let postT2;
   for (let i = 0; i < 25; i++) {
     const r = await sb.from('restaurants').select('active_mode').eq('id', rest.id).single();
     postT2 = r.data;
-    if (postT2?.active_mode === 'rush') break;
+    if (postT2?.active_mode === 'normal') break;
     await page.waitForTimeout(200);
   }
-  if (postT2.active_mode !== 'rush') fail(`expected active_mode=rush, got ${postT2.active_mode}`);
-  pass('Action button switched mode to rush in DB');
+  if (postT2.active_mode !== 'normal') fail(`expected active_mode=normal, got ${postT2.active_mode}`);
+  pass('Action button switched mode to normal in DB');
 
   if (await t2.isVisible().catch(() => false)) {
     fail('T2 dialog still visible after action click');

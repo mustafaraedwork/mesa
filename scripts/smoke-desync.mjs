@@ -47,7 +47,7 @@ const { data: rest } = await sb
     is_active: true,
     currency: 'IQD',
     show_unavailable_items: true,
-    active_mode: 'rush',
+    active_mode: 'normal',
   })
   .select('id')
   .single();
@@ -75,9 +75,9 @@ const { data: p1 } = await sb
   .single();
 
 try {
-  console.log('\n— [1] baseline read: rush, no virtual category —');
+  console.log('\n— [1] baseline read: normal, no virtual category —');
   let { json: menu } = await fetchMenu();
-  assert(menu.restaurant.active_mode === 'rush', 'baseline active_mode is rush');
+  assert(menu.restaurant.active_mode === 'normal', 'baseline active_mode is normal');
   assert(menu.categories.every((c) => c.id !== '__closing__'), 'no virtual category');
 
   console.log('\n— [2] Cache-Control: no-store on the response —');

@@ -5,10 +5,10 @@
 // boolean `is_in_closing_mode` flag. Reverting Closing is therefore O(1):
 // clear three columns on `restaurants` + flip the flag on products.
 
-export type Mode = 'normal' | 'rush' | 'profit' | 'closing';
+export type Mode = 'normal' | 'closing' | 'off';
 export type Discount = 5 | 10 | 20;
 
-export const MODES = ['normal', 'rush', 'profit', 'closing'] as const;
+export const MODES = ['normal', 'closing', 'off'] as const;
 export const DISCOUNTS = [5, 10, 20] as const;
 
 export const CLOSING_VIRTUAL_CATEGORY_ID = '__closing__';

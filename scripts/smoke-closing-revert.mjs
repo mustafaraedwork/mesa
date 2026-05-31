@@ -3,9 +3,9 @@
 // smoke-modes.mjs already exercises one revert. This script adds:
 //   - Idempotency: a second read after revert must not flip anything, must not
 //     error, must keep the state stable
-//   - Race-safety: the revert UPDATE has `.eq('active_mode', 'closing')`. We
-//     verify a concurrent flip to 'rush' before the revert lands does NOT get
-//     stomped (revert is a no-op for non-closing rows)
+//   - Race-safety: the lazy revert keys off `ends_at < now`. We verify a
+//     concurrent re-activation of Closing with a FRESH timer before the stale
+//     expiry is read does NOT get stomped back to normal
 //   - Boundary: ends_at exactly equal to now (within ~1ms) → must revert (<= ?)
 //
 // Run dev server first, then:
@@ -112,7 +112,7 @@ try {
     m1.categories.length === m2.categories.length;
   stable ? ok('payload stable between reads (apart from server_now)') : fail('payload diverged on re-read');
 
-  console.log('— Case C: race safety — concurrent flip to rush is not stomped —');
+  console.log('— Case C: race safety — fresh Closing re-activation is not stomped —');
   // Re-arm closing with past ends_at, but BEFORE reading, flip to rush manually.
   // The revert UPDATE has `.eq('active_mode', 'closing')` so it should not fire.
   await sb
@@ -128,20 +128,23 @@ try {
     .update({ is_in_closing_mode: true })
     .in('id', productIds);
 
-  // Simulate a concurrent operator action: switch to rush.
+  // Simulate a concurrent operator action: re-activate Closing with a FRESH
+  // timer before the stale expiry is read. The lazy revert keys off
+  // `ends_at < now`, so a live timer must survive — a buggy revert would
+  // wrongly flip the freshly re-activated closing back to normal.
   await sb
     .from('restaurants')
     .update({
-      active_mode: 'rush',
-      closing_mode_ends_at: null,
-      closing_mode_discount: null,
+      active_mode: 'closing',
+      closing_mode_ends_at: new Date(Date.now() + 3_600_000).toISOString(),
+      closing_mode_discount: 10,
     })
     .eq('id', restaurantId);
 
   const m3 = await fetchMenu();
-  m3.restaurant.active_mode === 'rush'
-    ? ok('concurrent rush survives — lazy revert did not stomp it')
-    : fail(`expected rush, got ${m3.restaurant.active_mode}`);
+  m3.restaurant.active_mode === 'closing' && m3.restaurant.closing_mode_ends_at !== null
+    ? ok('freshly re-activated Closing survives — stale expiry did not stomp it')
+    : fail(`expected live closing, got ${m3.restaurant.active_mode}`);
 
   console.log('— Case D: boundary — ends_at = now → must revert (strict less-than is fine) —');
   await sb

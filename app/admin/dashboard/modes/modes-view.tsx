@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Countdown } from './countdown';
 import { ClosingDialog } from './closing-dialog';
+import { ChefPicksDialog } from './chef-picks-dialog';
 import { setMode } from './actions';
 import type { Mode, Discount } from '@/lib/closing';
 
@@ -28,6 +29,7 @@ export type CategoryGroup = {
     price: number;
     is_available: boolean;
     is_in_closing_mode: boolean;
+    is_chef_pick: boolean;
   }[];
 };
 
@@ -40,9 +42,8 @@ type LiveState = {
 
 const MODE_META: Record<Mode, { label: string; description: string; color: string }> = {
   normal: { label: 'العادي', description: 'الترتيب اليدوي.', color: 'bg-muted text-muted-foreground' },
-  rush: { label: 'الزحام', description: 'الأسرع تحضيراً أولاً داخل كل سكشن.', color: 'bg-amber/15 text-amber' },
-  profit: { label: 'الربح', description: 'الأعلى ربحاً أولاً داخل كل سكشن.', color: 'bg-olive/15 text-olive' },
-  closing: { label: 'الإغلاق', description: 'خصم محدود الوقت — يظهر بقسم "عروض اليوم".', color: 'bg-primary/10 text-primary' },
+  closing: { label: 'الإغلاق', description: 'خصم محدود الوقت — يظهر بقسم "اختيارات الشيف".', color: 'bg-primary/10 text-primary' },
+  off: { label: 'متوقّف', description: 'منيو عادي بلا أي عروض أو قسم اختيارات الشيف.', color: 'bg-muted text-muted-foreground' },
 };
 
 export function ModesView({
@@ -58,10 +59,11 @@ export function ModesView({
   const [state, setState] = useState<LiveState>(initialState);
   const [pending, startTransition] = useTransition();
   const [closingOpen, setClosingOpen] = useState(false);
+  const [chefPicksOpen, setChefPicksOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[] | null>(null);
   const [t2Open, setT2Open] = useState(false);
-  const [t2PendingMode, setT2PendingMode] = useState<'normal' | 'rush' | 'profit' | null>(null);
+  const [t2PendingMode, setT2PendingMode] = useState<'normal' | 'off' | null>(null);
   const [t3Open, setT3Open] = useState(false);
   const [t3RemainingMs, setT3RemainingMs] = useState(0);
 
@@ -98,17 +100,27 @@ export function ModesView({
     new Date(state.closing_mode_ends_at).getTime() + offset < Date.now();
   /* eslint-enable react-hooks/purity */
 
-  function performSwitch(mode: 'normal' | 'rush' | 'profit') {
+  const chefPickIds = useMemo(
+    () => categoryGroups.flatMap((g) => g.products).filter((p) => p.is_chef_pick).map((p) => p.id),
+    [categoryGroups],
+  );
+
+  function performSwitch(mode: 'normal' | 'off') {
     setError(null);
     setWarnings(null);
     startTransition(async () => {
       const r = await setMode({ mode });
-      if (!r.ok) setError(r.error);
-      else router.refresh();
+      if (!r.ok) {
+        setError(r.error);
+        return;
+      }
+      // Reflect the switch instantly; router.refresh + the 10s poll re-sync.
+      setState((s) => ({ ...s, active_mode: mode, closing_mode_ends_at: null, closing_mode_discount: null }));
+      router.refresh();
     });
   }
 
-  function switchMode(mode: 'normal' | 'rush' | 'profit') {
+  function switchMode(mode: 'normal' | 'off') {
     // T2 confirm — switching AWAY from active Closing
     if (isClosing && !expired) {
       setT2PendingMode(mode);
@@ -168,7 +180,7 @@ export function ModesView({
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {(['normal', 'rush', 'profit', 'closing'] as Mode[]).map((m) => {
+        {(['normal', 'closing'] as Mode[]).map((m) => {
           const meta = MODE_META[m];
           const active = state.active_mode === m;
           return (
@@ -191,20 +203,48 @@ export function ModesView({
                     {active ? 'تعديل العرض' : 'اختر منتجات'}
                   </Button>
                 ) : (
-                  <Button
-                    onClick={() => switchMode(m as 'normal' | 'rush' | 'profit')}
-                    disabled={active || pending}
-                    variant={active ? 'outline' : 'default'}
-                    className="w-full"
-                  >
-                    {active ? 'مفعّل' : 'تفعيل'}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => switchMode('normal')}
+                      disabled={active || pending}
+                      variant={active ? 'outline' : 'default'}
+                      className="w-full"
+                    >
+                      {active ? 'مفعّل' : 'تفعيل'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => {
+                        setError(null);
+                        setWarnings(null);
+                        setChefPicksOpen(true);
+                      }}
+                      className="w-full"
+                    >
+                      ⭐ تعديل اختيارات الشيف ({chefPickIds.length})
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      {/* Off — switch every mode off; the diner sees a plain menu (no offers,
+          no Chef's Picks section/heading). Not the same as deactivating. */}
+      <Button
+        variant={state.active_mode === 'off' ? 'default' : 'outline'}
+        onClick={() => switchMode('off')}
+        disabled={state.active_mode === 'off' || pending}
+        className="w-full"
+      >
+        {state.active_mode === 'off'
+          ? '✕ العرض متوقّف — لا يظهر للزبون أي قسم خاص'
+          : '✕ إيقاف كل الأوضاع'}
+      </Button>
 
       {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
       {warnings && warnings.length > 0 && (
@@ -218,9 +258,11 @@ export function ModesView({
           <AlertDialogHeader>
             <AlertDialogTitle>تنبيه</AlertDialogTitle>
             <AlertDialogDescription>
-              {t2PendingMode
-                ? `تفعيل ${MODE_META[t2PendingMode].label} سيُلغي عرض الإغلاق الجاري. متابعة؟`
-                : ''}
+              {t2PendingMode === 'off'
+                ? 'إيقاف كل الأوضاع سيُلغي عرض الإغلاق الجاري. متابعة؟'
+                : t2PendingMode
+                  ? `تفعيل ${MODE_META[t2PendingMode].label} سيُلغي عرض الإغلاق الجاري. متابعة؟`
+                  : ''}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -286,6 +328,19 @@ export function ModesView({
             } else {
               setError(r.error);
             }
+          }}
+        />
+      )}
+
+      {chefPicksOpen && (
+        <ChefPicksDialog
+          categoryGroups={categoryGroups}
+          initialSelection={chefPickIds}
+          onClose={() => setChefPicksOpen(false)}
+          onResult={(r) => {
+            setChefPicksOpen(false);
+            if (r.ok) router.refresh();
+            else setError(r.error);
           }}
         />
       )}

@@ -11,6 +11,9 @@ type Restaurant = {
   logo_url: string | null;
   primary_color: string;
   background_color: string;
+  header_color: string | null;
+  card_color: string | null;
+  text_color: string | null;
   currency: string;
   show_unavailable_items: boolean;
 };
@@ -21,7 +24,7 @@ export default async function DesignPage() {
 
   const { data: rest } = await sb
     .from('restaurants')
-    .select('id, slug, display_name, logo_url, primary_color, background_color, currency, show_unavailable_items')
+    .select('id, slug, display_name, logo_url, primary_color, background_color, header_color, card_color, text_color, currency, show_unavailable_items')
     .eq('id', tenant.restaurantId)
     .single<Restaurant>();
 
@@ -35,6 +38,10 @@ export default async function DesignPage() {
         logo_url: rest!.logo_url,
         primary_color: rest!.primary_color,
         background_color: rest!.background_color,
+        // NULL → defaults matching the pre-customization look.
+        header_color: rest!.header_color ?? rest!.background_color,
+        card_color: rest!.card_color ?? '#ffffff',
+        text_color: rest!.text_color ?? '#1a1a1a',
         currency: rest!.currency,
         show_unavailable_items: rest!.show_unavailable_items ?? true,
       }}

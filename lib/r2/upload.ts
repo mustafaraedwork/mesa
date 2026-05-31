@@ -38,7 +38,9 @@ const PUBLIC_URL = () => {
   return u.replace(/\/$/, '');
 };
 
-// Re-encode incoming image as WebP, max 800x800, quality 80 (PRD §4.6).
+// Re-encode incoming image as WebP, cropped to a centered 800x800 square
+// (PRD §4.6). `fit: 'cover'` crops the overflow so every product image has the
+// same 1:1 ratio regardless of the uploaded dimensions — uniform menu cards.
 // `keyPrefix` should be e.g. `restaurants/<uuid>/products/`.
 export async function uploadProductImage(
   input: Buffer | Uint8Array,
@@ -46,7 +48,7 @@ export async function uploadProductImage(
 ): Promise<{ url: string; key: string }> {
   const buffer = await sharp(input)
     .rotate()
-    .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+    .resize(800, 800, { fit: 'cover', position: 'center' })
     .webp({ quality: 80 })
     .toBuffer();
 

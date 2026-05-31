@@ -3,12 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
-import { applyDiscount, DISCOUNTS, MODES, type Discount, type Mode } from '@/lib/closing';
+import { applyDiscount, DISCOUNTS, MODES, type Discount } from '@/lib/closing';
 
 const MODES_PATH = '/admin/dashboard/modes';
 
 type SetModeInput =
-  | { mode: 'normal' | 'rush' | 'profit' }
+  | { mode: 'normal' | 'off' }
   | {
       mode: 'closing';
       closing: { product_ids: string[]; discount: Discount; duration_hours: number };
@@ -19,8 +19,8 @@ type SetModeResult =
   | { ok: false; error: string; offending_ids?: string[] };
 
 // Unified mode-transition endpoint per Q6 — clean-and-apply in one transaction.
-// Covers normal | rush | profit (trivial branches) and closing (validated +
-// activated). No partial-extend; re-activating Closing fully replaces.
+// Covers normal/off (trivial branches) and closing (validated + activated). No
+// partial-extend; re-activating Closing fully replaces.
 export async function setMode(input: SetModeInput): Promise<SetModeResult> {
   if (!MODES.includes(input.mode)) {
     return { ok: false, error: 'وضع غير معروف' };
@@ -128,4 +128,46 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
   revalidatePath(MODES_PATH);
   revalidatePath('/admin/dashboard/menu');
   return warnings ? { ok: true, warnings } : { ok: true };
+}
+
+// Curated Chef's Picks for Normal mode (clean-and-apply). Independent of the
+// active mode — the diner only surfaces these while in Normal mode. An empty
+// selection is valid and simply hides the section.
+export async function setChefPicks(
+  productIds: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { restaurantId } = await requireTenant();
+  const sb = getServiceClient();
+
+  if (productIds.length > 0) {
+    const { data: prods } = await sb
+      .from('products')
+      .select('id, restaurant_id')
+      .in('id', productIds);
+    if (!prods || prods.length !== productIds.length) {
+      return { ok: false, error: 'منتج واحد أو أكثر غير موجود' };
+    }
+    if (prods.some((p) => p.restaurant_id !== restaurantId)) {
+      return { ok: false, error: 'منتج لا يخصّ هذا الحساب' };
+    }
+  }
+
+  const { error: clearErr } = await sb
+    .from('products')
+    .update({ is_chef_pick: false })
+    .eq('restaurant_id', restaurantId)
+    .eq('is_chef_pick', true);
+  if (clearErr) return { ok: false, error: 'فشل تحديث اختيارات الشيف' };
+
+  if (productIds.length > 0) {
+    const { error: setErr } = await sb
+      .from('products')
+      .update({ is_chef_pick: true })
+      .in('id', productIds);
+    if (setErr) return { ok: false, error: 'فشل حفظ اختيارات الشيف' };
+  }
+
+  revalidatePath(MODES_PATH);
+  revalidatePath('/admin/dashboard/menu');
+  return { ok: true };
 }

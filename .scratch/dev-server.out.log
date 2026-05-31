@@ -1,0 +1,54 @@
+
+> mesa-os-lite@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.56.1:3000
+- Environments: .env.local
+✓ Ready in 759ms
+Creating turbopack project { dir: 'C:\\Users\\pc\\Desktop\\menupro', testMode: true }
+
+ GET /admin/dashboard/menu 200 in 3.0s (next.js: 579ms, proxy.ts: 299ms, application-code: 2.1s)
+ GET /r/baghdad-test 200 in 2.8s (next.js: 1188ms, application-code: 1632ms)
+ GET / 200 in 163ms (next.js: 57ms, application-code: 106ms)
+ GET /api/menu/baghdad-test 200 in 4.2s (next.js: 1383ms, application-code: 2.8s)
+ GET /r/baghdad-test 200 in 1433ms (next.js: 34ms, application-code: 1399ms)
+✓ Compiled in 200ms
+ GET /r/baghdad-test 200 in 727ms (next.js: 236ms, application-code: 491ms)
+ GET /api/menu/baghdad-test 200 in 2.6s (next.js: 25ms, application-code: 2.6s)
+ GET /admin/dashboard/menu 200 in 1257ms (next.js: 506ms, proxy.ts: 131ms, application-code: 620ms)
+ GET /admin/dashboard/menu 200 in 622ms (next.js: 11ms, proxy.ts: 186ms, application-code: 425ms)
+ GET /admin/dashboard/menu 200 in 291ms (next.js: 17ms, proxy.ts: 31ms, application-code: 243ms)
+ GET /r/baghdad-test 200 in 1747ms (next.js: 14ms, application-code: 1733ms)
+ GET /r/baghdad-test 200 in 1390ms (next.js: 22ms, application-code: 1368ms)
+ GET /r/baghdad-test 200 in 1076ms (next.js: 21ms, application-code: 1055ms)
+ GET /r/baghdad-test/cart 200 in 3.1s (next.js: 1023ms, application-code: 2.0s)
+ GET /r/baghdad-test 200 in 2.0s (next.js: 22ms, application-code: 2.0s)
+ GET /api/menu/baghdad-test 200 in 1875ms (next.js: 112ms, application-code: 1763ms)
+ GET /r/baghdad-test 200 in 1147ms (next.js: 51ms, application-code: 1095ms)
+ GET /api/menu/baghdad-test 200 in 1568ms (next.js: 20ms, application-code: 1548ms)
+ GET /api/menu/baghdad-test 200 in 1328ms (next.js: 21ms, application-code: 1306ms)
+✓ Compiled in 147ms
+ GET /admin/dashboard/menu 200 in 1401ms (next.js: 208ms, proxy.ts: 118ms, application-code: 1075ms)
+ GET /r/baghdad-test 200 in 1270ms (next.js: 514ms, application-code: 756ms)
+ GET /admin/dashboard/menu 200 in 566ms (next.js: 13ms, proxy.ts: 15ms, application-code: 538ms)
+ GET /r/baghdad-test 200 in 550ms (next.js: 67ms, application-code: 483ms)
+ GET /admin/dashboard/menu 200 in 292ms (next.js: 17ms, proxy.ts: 11ms, application-code: 264ms)
+ GET /r/baghdad-test 200 in 131ms (next.js: 22ms, application-code: 109ms)
+ GET /r/baghdad-test 200 in 3.8s (next.js: 662ms, application-code: 3.2s)
+ GET /api/menu/baghdad-test 200 in 2.2s (next.js: 194ms, application-code: 1965ms)
+ GET /api/menu/baghdad-test 200 in 1406ms (next.js: 6ms, application-code: 1400ms)
+ GET /api/menu/baghdad-test 200 in 2.1s (next.js: 25ms, application-code: 2.0s)
+ GET /r/baghdad-test 200 in 1882ms (next.js: 21ms, application-code: 1861ms)
+ GET /api/menu/baghdad-test 200 in 1432ms (next.js: 26ms, application-code: 1406ms)
+ GET /r/baghdad-test 200 in 1349ms (next.js: 22ms, application-code: 1326ms)
+ GET /r/baghdad-test 200 in 1343ms (next.js: 28ms, application-code: 1315ms)
+ GET /r/baghdad-test 200 in 942ms (next.js: 21ms, application-code: 920ms)
+ GET /r/baghdad-test/manifest.webmanifest 200 in 1453ms (next.js: 1135ms, application-code: 318ms)
+ GET /r/baghdad-test/manifest.webmanifest 200 in 401ms (next.js: 18ms, application-code: 383ms)
+ GET /api/menu/baghdad-test 200 in 2.8s (next.js: 23ms, application-code: 2.7s)
+ GET /api/menu/baghdad-test 200 in 2.7s (next.js: 9ms, application-code: 2.7s)
+ POST /api/track 204 in 1172ms (next.js: 90ms, application-code: 1081ms)
+ POST /api/track 204 in 1066ms (next.js: 7ms, application-code: 1059ms)
+ POST /api/track 204 in 1056ms (next.js: 5ms, application-code: 1051ms)

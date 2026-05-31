@@ -1,0 +1,69 @@
+⚠ Fast Refresh had to perform a full reload when ./app/r/[slug]/menu-view.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[browser] Failed to fetch RSC payload for http://localhost:3000/r/baghdad-test. Falling back to browser navigation. TypeError: Failed to fetch
+[browser] Failed to fetch RSC payload for http://localhost:3000/r/baghdad-test. Falling back to browser navigation. TypeError: Failed to fetch
+[browser] Failed to fetch RSC payload for http://localhost:3000/r/baghdad-test. Falling back to browser navigation. TypeError: Failed to fetch
+⚠ Fast Refresh had to perform a full reload when ./app/r/[slug]/menu-view.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <SortableList items={[...]} onReorder={function onReorder} className="space-y-2">
+      <DndContext sensors={[...]} collisionDetection={function closestCenter} onDragEnd={function handleDragEnd}>
+        <SortableContext items={[...]} strategy={function verticalListSortingStrategy}>
+          <div className="space-y-2">
+            <SortableRow id="345bc050-5...">
+              <div ref={function useCombinedRefs.useMemo} style={{...}}>
+                <div className="bg-card ro...">
+                  <CategoryHeader category={{id:"345bc0...", ...}} compact={true} handle={<button>} ...>
+                    <div className="flex items...">
+                      <div className="flex min-w...">
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground shrink-0 cursor-grab touch-none"
+                          aria-label="إعادة الترتيب بالسحب"
+                          role="button"
+                          tabIndex={0}
+                          aria-disabled={false}
+                          aria-pressed={undefined}
+                          aria-roledescription="sortable"
++                         aria-describedby="DndDescribedBy-2"
+-                         aria-describedby="DndDescribedBy-1"
+                          onPointerDown={function useSyntheticListeners.useMemo}
+                          onKeyDown={function useSyntheticListeners.useMemo}
+                        >
+                        ...
+                      ...
+                  ...
+                    <SortableContext items={[...]} strategy={function verticalListSortingStrategy}>
+                      <div className="divide-y b...">
+                        <SortableRow id="df7ce26b-8...">
+                          <div ref={function useCombinedRefs.useMemo} style={{...}}>
+                            <ProductRow product={{id:"df7ce2...", ...}} handle={<button>} onEdit={function onEdit} ...>
+                              <div className="flex items...">
+                                <button
+                                  type="button"
+                                  className="text-muted-foreground hover:text-foreground shrink-0 cursor-grab touch-none"
+                                  aria-label="إعادة الترتيب بالسحب"
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-disabled={false}
+                                  aria-pressed={undefined}
+                                  aria-roledescription="sortable"
++                                 aria-describedby="DndDescribedBy-4"
+-                                 aria-describedby="DndDescribedBy-2"
+                                  onPointerDown={function useSyntheticListeners.useMemo}
+                                  onKeyDown={function useSyntheticListeners.useMemo}
+                                >
+                                ...
+        ...
+        ...
+ 

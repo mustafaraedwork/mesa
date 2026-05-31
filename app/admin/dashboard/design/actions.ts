@@ -19,6 +19,9 @@ export async function saveDesign(formData: FormData): Promise<Result> {
   const display_name = String(formData.get('display_name') ?? '').trim();
   const primary_color = String(formData.get('primary_color') ?? '').trim();
   const background_color = String(formData.get('background_color') ?? '').trim();
+  const header_color = String(formData.get('header_color') ?? '').trim();
+  const card_color = String(formData.get('card_color') ?? '').trim();
+  const text_color = String(formData.get('text_color') ?? '').trim();
   const currency = String(formData.get('currency') ?? '').trim();
   const logo = formData.get('logo');
   const removeLogo = formData.get('remove_logo') === 'true';
@@ -28,6 +31,9 @@ export async function saveDesign(formData: FormData): Promise<Result> {
   if (display_name.length > 100) return { ok: false, error: 'اسم المطعم طويل جداً' };
   if (!HEX_RE.test(primary_color)) return { ok: false, error: 'لون أساسي غير صالح' };
   if (!HEX_RE.test(background_color)) return { ok: false, error: 'لون خلفية غير صالح' };
+  if (!HEX_RE.test(header_color)) return { ok: false, error: 'لون الهيدر غير صالح' };
+  if (!HEX_RE.test(card_color)) return { ok: false, error: 'لون البطاقة غير صالح' };
+  if (!HEX_RE.test(text_color)) return { ok: false, error: 'لون الخط غير صالح' };
   if (!isSupportedCurrency(currency)) return { ok: false, error: 'العملة غير مدعومة' };
 
   const { data: existing } = await sb
@@ -41,6 +47,9 @@ export async function saveDesign(formData: FormData): Promise<Result> {
     display_name,
     primary_color: primary_color.toLowerCase(),
     background_color: background_color.toLowerCase(),
+    header_color: header_color.toLowerCase(),
+    card_color: card_color.toLowerCase(),
+    text_color: text_color.toLowerCase(),
     currency,
     show_unavailable_items,
   };

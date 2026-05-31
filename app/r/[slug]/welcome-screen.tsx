@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { LANGS, isRtl, t, type Lang } from '@/lib/i18n';
+
+const LANG_KEY = 'mesa-lang';
 
 type Brand = {
   display_name: string;
@@ -25,7 +27,17 @@ export function WelcomeScreen({
   onPickLang: (l: Lang) => void;
   onStart: () => void;
 }) {
-  const [langOpen, setLangOpen] = useState(true);
+  const [langOpen, setLangOpen] = useState(false);
+
+  // Auto-open the language picker only on the first ever visit. Once the diner
+  // picks a language it's cached in localStorage, so on later visits the popup
+  // stays shut — the top-corner pill still reopens it on demand.
+  /* eslint-disable react-hooks/set-state-in-effect --
+     Mount-time read from a client-only store (localStorage). */
+  useEffect(() => {
+    if (!window.localStorage.getItem(LANG_KEY)) setLangOpen(true);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // One-time clock read in a lazy initializer — morning vs evening greeting.
   const [greetingKey] = useState<'greeting_morning' | 'greeting_evening'>(() =>

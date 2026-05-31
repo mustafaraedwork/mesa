@@ -16,10 +16,13 @@ type Restaurant = {
   is_active: boolean;
   primary_color: string;
   background_color: string;
+  header_color: string | null;
+  card_color: string | null;
+  text_color: string | null;
   logo_url: string | null;
   currency: string;
   show_unavailable_items: boolean;
-  active_mode: 'normal' | 'rush' | 'profit' | 'closing';
+  active_mode: 'normal' | 'closing' | 'off';
   closing_mode_ends_at: string | null;
   closing_mode_discount: number | null;
 };
@@ -36,6 +39,7 @@ type ProductRow = {
   image_url: string | null;
   is_available: boolean | null;
   is_in_closing_mode: boolean | null;
+  is_chef_pick: boolean | null;
   display_order: number;
   suggestions_type: string | null;
   custom_suggestion_ids: string[] | null;
@@ -64,6 +68,7 @@ export type MenuProduct = {
   image_url: string | null;
   is_available: boolean;
   is_in_closing_mode: boolean;
+  is_chef_pick: boolean;
   display_order: number;
   suggestions_type: 'default' | 'custom';
   custom_suggestion_ids: string[] | null;
@@ -89,6 +94,9 @@ export type MenuPayload = {
     display_name: string;
     primary_color: string;
     background_color: string;
+    header_color: string;
+    card_color: string;
+    text_color: string;
     logo_url: string | null;
     currency: string;
     show_unavailable_items: boolean;
@@ -107,7 +115,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
   const { data: rest } = await sb
     .from('restaurants')
     .select(
-      'id, slug, display_name, is_active, primary_color, background_color, logo_url, currency, show_unavailable_items, active_mode, closing_mode_ends_at, closing_mode_discount',
+      'id, slug, display_name, is_active, primary_color, background_color, header_color, card_color, text_color, logo_url, currency, show_unavailable_items, active_mode, closing_mode_ends_at, closing_mode_discount',
     )
     .eq('slug', slug)
     .maybeSingle<Restaurant>();
@@ -148,7 +156,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     sb
       .from('products')
       .select(
-        'id, category_id, name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes, image_url, is_available, is_in_closing_mode, display_order, suggestions_type, custom_suggestion_ids',
+        'id, category_id, name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes, image_url, is_available, is_in_closing_mode, is_chef_pick, display_order, suggestions_type, custom_suggestion_ids',
       )
       .eq('restaurant_id', rest.id),
     sb
@@ -157,24 +165,17 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       .eq('restaurant_id', rest.id),
   ]);
 
-  const sortComparator = (() => {
-    switch (active_mode) {
-      case 'rush':
-        return (a: ProductRow, b: ProductRow) => a.prep_time_minutes - b.prep_time_minutes;
-      case 'profit':
-        return (a: ProductRow, b: ProductRow) =>
-          Number(b.profit_percentage) - Number(a.profit_percentage);
-      default:
-        return (a: ProductRow, b: ProductRow) => a.display_order - b.display_order;
-    }
-  })();
-
   const productsByCategory = new Map<string, MenuProduct[]>();
   const closingProducts: MenuProduct[] = [];
+  const chefPickProducts: MenuProduct[] = [];
   const isClosing = active_mode === 'closing';
   const discount = (closing_mode_discount ?? null) as Discount | null;
 
-  const sortedRows = (prods ?? []).slice().sort(sortComparator);
+  // Both surviving modes (normal + closing) present products in the tenant's
+  // manual order. Legacy rows still flagged rush/profit fall through here too.
+  const sortedRows = (prods ?? [])
+    .slice()
+    .sort((a, b) => a.display_order - b.display_order);
 
   for (const r of sortedRows as ProductRow[]) {
     const available = r.is_available ?? true;
@@ -209,6 +210,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       image_url: r.image_url,
       is_available: available,
       is_in_closing_mode: inClosing,
+      is_chef_pick: (r.is_chef_pick ?? false) === true,
       display_order: r.display_order,
       suggestions_type: r.suggestions_type === 'custom' ? 'custom' : 'default',
       custom_suggestion_ids: r.custom_suggestion_ids,
@@ -219,6 +221,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     productsByCategory.set(r.category_id, arr);
 
     if (isClosing && inClosing) closingProducts.push(product);
+    if (!isClosing && product.is_chef_pick) chefPickProducts.push(product);
   }
 
   const complementsByCategory = new Map<string, string[]>();
@@ -239,7 +242,12 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     products: productsByCategory.get(c.id) ?? [],
   }));
 
-  if (isClosing && closingProducts.length > 0) {
+  // One virtual "اختيارات الشيف" slot at the top. In Closing mode it holds the
+  // discounted items; in Normal mode it holds the owner's curated chef picks.
+  // In Off mode nothing special surfaces — a plain menu.
+  const virtualProducts =
+    active_mode === 'off' ? [] : isClosing ? closingProducts : chefPickProducts;
+  if (virtualProducts.length > 0) {
     categories.unshift({
       id: CLOSING_VIRTUAL_CATEGORY_ID,
       parent_id: null,
@@ -247,7 +255,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       display_order: -1,
       is_virtual: true,
       complement_ids: [],
-      products: closingProducts,
+      products: virtualProducts,
     });
   }
 
@@ -259,6 +267,10 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       display_name: rest.display_name,
       primary_color: rest.primary_color,
       background_color: rest.background_color,
+      // NULL → sensible default that matches the pre-customization look.
+      header_color: rest.header_color ?? rest.background_color,
+      card_color: rest.card_color ?? '#ffffff',
+      text_color: rest.text_color ?? '#1a1a1a',
       logo_url: rest.logo_url,
       currency: rest.currency,
       show_unavailable_items: rest.show_unavailable_items,

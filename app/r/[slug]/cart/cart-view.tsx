@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   clearCart,
   getCart,
@@ -30,6 +30,14 @@ export function CartView({
   const [cart, setCart] = useState<Cart>({ items: [], updatedAt: 0 });
   const [lang, setLang] = useState<Lang>('ar');
   const [readModal, setReadModal] = useState(false);
+  const router = useRouter();
+
+  // Step back one entry instead of forcing a fresh menu load, preserving the
+  // diner's place. Deep-linked entries with no history fall back to the menu.
+  function goBack() {
+    if (window.history.length > 1) router.back();
+    else router.push(`/r/${slug}`);
+  }
 
   /* eslint-disable react-hooks/set-state-in-effect --
      Both effects sync from client-only stores on mount (localStorage / cart):
@@ -150,24 +158,24 @@ export function CartView({
     <main
       dir={dir}
       className="min-h-screen pb-32"
-      style={{ background: r.background_color }}
+      style={{ background: r.background_color, color: r.text_color }}
     >
       <header
         className="shadow-card sticky top-0 z-20 flex items-center gap-3 px-4 py-3"
         style={{ background: r.primary_color, color: '#fff' }}
       >
-        <Link href={`/r/${slug}`} className="text-sm hover:underline">
+        <button type="button" onClick={goBack} className="text-sm hover:underline">
           ← {t('back_to_menu', lang)}
-        </Link>
+        </button>
         <h1 className="flex-1 truncate text-base font-semibold">{t('cart_button', lang)}</h1>
       </header>
 
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-4">
         {resolved.length === 0 ? (
-          <p className="text-muted-foreground bg-card shadow-card rounded-xl p-6 text-center text-sm">{t('cart_empty', lang)}</p>
+          <p className="text-muted-foreground shadow-card rounded-xl p-6 text-center text-sm" style={{ background: r.card_color }}>{t('cart_empty', lang)}</p>
         ) : (
           <>
-            <ul className="divide-y rounded-xl bg-card shadow-card">
+            <ul className="divide-y rounded-xl shadow-card" style={{ background: r.card_color }}>
               {resolved.map((row) => (
                 <CartRow
                   key={row.product.id}
@@ -182,7 +190,7 @@ export function CartView({
               ))}
             </ul>
 
-            <div className="rounded-xl bg-card p-4 shadow-card">
+            <div className="rounded-xl p-4 shadow-card" style={{ background: r.card_color }}>
               <div className="flex items-center justify-between text-base font-semibold">
                 <span>{t('cart_total', lang)}</span>
                 <span style={{ color: r.primary_color }}>{formatPrice(total, r.currency)}</span>
@@ -203,6 +211,7 @@ export function CartView({
                   product={p}
                   lang={lang}
                   primary={r.primary_color}
+                  card={r.card_color}
                   currency={r.currency}
                   onAdd={() => setQuantity(slug, p.id, 1)}
                 />
@@ -327,12 +336,14 @@ function SuggestionCard({
   product,
   lang,
   primary,
+  card,
   currency,
   onAdd,
 }: {
   product: MenuProduct;
   lang: Lang;
   primary: string;
+  card: string;
   currency: string;
   onAdd: () => void;
 }) {
@@ -341,7 +352,8 @@ function SuggestionCard({
     <button
       type="button"
       onClick={onAdd}
-      className="bg-card border-border-lite shadow-card hover:shadow-lifted flex flex-col items-stretch overflow-hidden rounded-xl border text-start transition-shadow"
+      className="border-border-lite shadow-card hover:shadow-lifted flex flex-col items-stretch overflow-hidden rounded-xl border text-start transition-shadow"
+      style={{ background: card }}
     >
       <div className="relative aspect-square">
         {product.image_url ? (
