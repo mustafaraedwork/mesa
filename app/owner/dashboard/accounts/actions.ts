@@ -9,6 +9,8 @@ import { requireOwner } from '@/lib/auth/require-owner';
 const ACCOUNTS_PATH = '/owner/dashboard/accounts';
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 const USERNAME_RE = /^[A-Za-z0-9_.-]{3,32}$/;
+// M-8: validate the restaurant id at the function boundary before it hits the DB.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -55,6 +57,7 @@ export async function createAccount(input: {
 
 export async function setAccountActive(id: string, is_active: boolean): Promise<ActionResult> {
   await requireOwner();
+  if (!UUID_RE.test(id)) return { ok: false, error: 'معرّف غير صالح' };
   const sb = getServiceClient();
   const { error } = await sb.from('restaurants').update({ is_active }).eq('id', id);
   if (error) return { ok: false, error: 'فشل تحديث الحالة' };
@@ -65,6 +68,7 @@ export async function setAccountActive(id: string, is_active: boolean): Promise<
 
 export async function changeAccountPassword(id: string, newPassword: string): Promise<ActionResult> {
   await requireOwner();
+  if (!UUID_RE.test(id)) return { ok: false, error: 'معرّف غير صالح' };
   if (newPassword.length < 8) return { ok: false, error: 'كلمة السر ٨ أحرف على الأقل' };
   const password_hash = await hashPassword(newPassword);
   const sb = getServiceClient();
@@ -87,6 +91,7 @@ export async function changeAccountPassword(id: string, newPassword: string): Pr
 
 export async function deleteAccount(id: string): Promise<ActionResult> {
   await requireOwner();
+  if (!UUID_RE.test(id)) return { ok: false, error: 'معرّف غير صالح' };
   const sb = getServiceClient();
 
   // 1. Purge R2 images (DB cascade can't reach external storage).

@@ -158,7 +158,8 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       .select(
         'id, category_id, name_ar, name_en, name_ku, price, prep_time_minutes, image_url, is_available, is_in_closing_mode, is_chef_pick, display_order, suggestions_type, custom_suggestion_ids',
       )
-      .eq('restaurant_id', rest.id),
+      .eq('restaurant_id', rest.id)
+      .order('display_order', { ascending: true }),
     sb
       .from('complementary_categories')
       .select('category_id, complement_id')
