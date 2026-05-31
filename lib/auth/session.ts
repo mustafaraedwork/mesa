@@ -28,9 +28,16 @@ export async function setSessionCookie(token: string): Promise<void> {
   c.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
+    // M-2: 'lax' (not 'strict') is intentional — the installed PWA launches via
+    // a top-level navigation, and 'strict' would drop the cookie there, logging
+    // the tenant out on every launch. 'lax' is NOT sent on cross-site fetch/XHR,
+    // so /api/admin/state can't be invoked cross-site; and its only GET-time
+    // mutation (the expired-Closing lazy revert) is an idempotent self-heal with
+    // no value to an attacker.
     sameSite: 'lax',
     path: '/',
-    // No `expires` — sessions are permanent (PRD §4.3).
+    // No `expires` — sessions are long-lived by design (PRD §4.3); capped at
+    // MAX_SESSION_AGE_MS in getRestaurantIdFromCookie (H-5).
   });
 }
 
