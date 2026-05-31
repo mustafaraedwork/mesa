@@ -129,6 +129,17 @@ export async function deleteCategory(id: string): Promise<Result> {
   const { restaurantId } = await requireTenant();
   const sb = getServiceClient();
 
+  // Verify the category being deleted belongs to this tenant BEFORE using its
+  // id to enumerate products/images (H-2). Otherwise a foreign id would
+  // enumerate another tenant's product images for R2 deletion.
+  const { data: owner } = await sb
+    .from('categories')
+    .select('id')
+    .eq('id', id)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owner) return { ok: false, error: 'السكشن غير موجود' };
+
   // Collect image keys for products under this category (and its sub-categories)
   // so we can purge them from R2 before the DB cascade removes the rows.
   const { data: subs } = await sb
@@ -141,7 +152,8 @@ export async function deleteCategory(id: string): Promise<Result> {
   const { data: products } = await sb
     .from('products')
     .select('image_url')
-    .in('category_id', categoryIds);
+    .in('category_id', categoryIds)
+    .eq('restaurant_id', restaurantId);
 
   for (const p of products ?? []) {
     if (p.image_url) {

@@ -121,7 +121,8 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
     const { error: setProdErr } = await sb
       .from('products')
       .update({ is_in_closing_mode: true })
-      .in('id', closingProductIds);
+      .in('id', closingProductIds)
+      .eq('restaurant_id', restaurantId);
     if (setProdErr) return { ok: false, error: 'فشل تطبيق وضع الإغلاق على المنتجات' };
   }
 
@@ -163,7 +164,8 @@ export async function setChefPicks(
     const { error: setErr } = await sb
       .from('products')
       .update({ is_chef_pick: true })
-      .in('id', productIds);
+      .in('id', productIds)
+      .eq('restaurant_id', restaurantId);
     if (setErr) return { ok: false, error: 'فشل حفظ اختيارات الشيف' };
   }
 
