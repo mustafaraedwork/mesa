@@ -83,11 +83,11 @@
 
 | المعرّف | العنوان | الخطورة | الملف / السطر | الحالة | ملخص الإصلاح |
 |---|---|---|---|---|---|
-| Q-8 | `extractR2Key` مكرّر حرفيًا في ملفّين | MEDIUM | `app/admin/dashboard/menu/actions.ts:466-475` · `app/admin/dashboard/design/actions.ts:89-97` | مفتوح | انقله إلى `lib/r2/upload.ts` وصدّره؛ كلا الـ caller يستوردان منه. |
+| Q-8 | `extractR2Key` مكرّر حرفيًا في ملفّين | MEDIUM | `app/admin/dashboard/menu/actions.ts:466-475` · `app/admin/dashboard/design/actions.ts:89-97` | ✅ مُصلَح | نُقل إلى `lib/r2/upload.ts` (مصدر واحد)؛ menu+design يستوردانه. |
 | Q-9 | كتلة lazy-revert مكرّرة حرفيًا (تكرار بنيوي — منفصل عن H-3 الذرّية) | MEDIUM | `lib/menu.ts:130-148` · `app/api/admin/state/route.ts:46-64` | ✅ مُصلَح | استخرج `applyLazyRevert(sb,id,endsAt)` في `lib/closing.ts`. |
 | Q-10 | `changeAccountPassword` يتجاهل خطأ حذف الجلسات → هدف "فرض إعادة الدخول" قد يفشل صامتًا | MEDIUM | `app/owner/dashboard/accounts/actions.ts:71` | ✅ مُصلَح | تحقّق من `{error}` لحذف الجلسات وأعِد/سجّل الفشل. |
 | Q-11 | كتل `catch {}` لتنظيف R2 بلا تسجيل → صور يتيمة غير مكتشَفة عند فشل مزدوج | MEDIUM | `app/admin/dashboard/menu/actions.ts:148, 247, 293, 340` | ✅ مُصلَح | `console.error` في كل كتلة cleanup. |
-| Q-12 | coercion للوضع موجود في `state` route لكن غائب في `loadMenu` → صف legacy `rush/profit` يعرض فئة افتراضية فارغة | MEDIUM | `lib/menu.ts:126` مقابل `app/api/admin/state/route.ts:71` | مفتوح | `coerceMode(raw)` مشتركة في `lib/closing.ts` تُستدعى في الموضعين. |
+| Q-12 | coercion للوضع موجود في `state` route لكن غائب في `loadMenu` → صف legacy `rush/profit` يعرض فئة افتراضية فارغة | MEDIUM | `lib/menu.ts:126` مقابل `app/api/admin/state/route.ts:71` | ✅ مُصلَح | `coerceMode(raw)` في `lib/closing.ts`، تُستدعى في `loadMenu` و`state` route. |
 | Q-13 | `closing_mode_discount as Discount\|null` بلا فحص عضوية → قيمة DB مثل `15` تُعرض كشارة `-15%` لم يضبطها المالك | MEDIUM | `lib/menu.ts:172` | ✅ مُصلَح | `[5,10,20].includes(x) ? x as Discount : null` قبل الاستخدام. |
 | Q-14 | `getCart`: `JSON.parse(raw) as Cart` بلا تحقّق بنية → `updatedAt` غير معرّف يتخطّى فحص TTL | MEDIUM | `lib/cart.ts:19` | ✅ مُصلَح | تحقّق `typeof updatedAt==='number'` و`Array.isArray(items)`، وإلا أعِد سلة فارغة. |
 | Q-15 | استجابة الـ poll `as MenuPayload` بلا shape-guard على العميل | MEDIUM | `app/r/[slug]/menu-view.tsx:74` · `cart/cart-view.tsx:65` | ✅ مُصلَح | تحقّق `typeof json?.restaurant?.id==='string'` قبل `setData`. |
@@ -110,7 +110,7 @@
 | Q-27 | `byId` Map يُعاد بناؤه كل render في مكوّن DnD حسّاس للأداء | LOW | `app/admin/dashboard/menu/sortable-list.tsx:42` | مفتوح | `useMemo(() => new Map(...), [items])`. |
 | Q-28 | `setTimeout` في `copyLink` بلا تنظيف عند unmount | LOW | `app/admin/dashboard/design/qr-section.tsx:25-30` | مفتوح | `useRef` للمؤقّت + cleanup effect. |
 | Q-29 | `key={index}` في قوائم skeleton مولّدة | LOW | `app/r/[slug]/cart/loading.tsx:10` (وأشقاؤه تحت `/r/[slug]/`) | مفتوح | مفتاح نصّي ثابت `skeleton-row-${i}`. |
-| Q-30 | تدبير/تكرار: `NO_STORE_HEADERS` معرّف مرتين، رقم سحري `3_600_000`، نمط `reorder` مكرّر، parser لغة مكرّر 3× مع `as Lang` مبكّر، `original_price!` بلا type-predicate | LOW | `api/menu/[slug]/route.ts:11` · `api/admin/state/route.ts:10` · `modes/actions.ts:95` · `menu-view.tsx:56,580` · `cart-view.tsx:46,292` · `product-view.tsx:37,101` | مفتوح | استخرج ثوابت/أدوات مشتركة في `lib/` (`lib/http.ts`، `MS_PER_HOUR`، `parseLang`، helper إعادة ترتيب). |
+| Q-30 | تدبير/تكرار: `NO_STORE_HEADERS` معرّف مرتين، رقم سحري `3_600_000`، نمط `reorder` مكرّر، parser لغة مكرّر 3× مع `as Lang` مبكّر، `original_price!` بلا type-predicate | LOW | `api/menu/[slug]/route.ts:11` · `api/admin/state/route.ts:10` · `modes/actions.ts:95` · `menu-view.tsx:56,580` · `cart-view.tsx:46,292` · `product-view.tsx:37,101` | ✅ مُصلَح (جزئي) | `parseLang()` في `lib/i18n.ts` (يستبدل التكرار + `as Lang` في 3 views) + `MS_PER_HOUR` في modes/actions. **مُبقى بقرار:** `NO_STORE_HEADERS` مكرّر (smoke-polling-contract يعتمد على السلسلة الحرفية داخل كل route)، و`original_price!` (محروس بـ`hasDiscount`)، ودالتا reorder (صارتا upsert في Q-4). |
 
 ### ملاحظات إضافية (Code Quality)
 - **أولويات قبل الإنتاج:** Q-1، Q-2، Q-3، Q-4، Q-5 (أخطاء صحّة فعلية: NaN في الأسعار، وضع عالق، منيو فارغ صامت، عدم اتّساق الترتيب، جلسة شبح).

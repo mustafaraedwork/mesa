@@ -3,7 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
-import { uploadProductImage, safeDeleteImage, validateImageUpload } from '@/lib/r2/upload';
+import {
+  uploadProductImage,
+  safeDeleteImage,
+  validateImageUpload,
+  extractR2Key,
+} from '@/lib/r2/upload';
 
 const MENU_PATH = '/admin/dashboard/menu';
 
@@ -460,19 +465,4 @@ export async function reorderProducts(categoryId: string, orderedIds: string[]):
 
   revalidatePath(MENU_PATH);
   return { ok: true };
-}
-
-// ─────────────── helpers ─────────────────────────────────────────
-
-// Convert the public R2 URL stored in `image_url` back to the bucket key.
-// The URL format is `${R2_PUBLIC_URL}/${key}`.
-function extractR2Key(publicUrl: string): string {
-  const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, '') ?? '';
-  if (publicUrl.startsWith(base + '/')) return publicUrl.slice(base.length + 1);
-  // Fallback: strip protocol+host.
-  try {
-    return new URL(publicUrl).pathname.replace(/^\//, '');
-  } catch {
-    return publicUrl;
-  }
 }

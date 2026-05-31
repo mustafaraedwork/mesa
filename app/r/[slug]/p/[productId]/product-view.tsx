@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
-import { isRtl, pickName, t, type Lang } from '@/lib/i18n';
+import { isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
 import { track } from '@/lib/track';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
 import { formatPrice, FloatingCart } from '../../menu-view';
@@ -34,8 +34,7 @@ export function ProductView({
   /* eslint-disable react-hooks/set-state-in-effect --
      Mount-time reads from client-only stores (localStorage / cart). */
   useEffect(() => {
-    const saved = (window.localStorage.getItem(LANG_KEY) ?? 'ar') as Lang;
-    if (saved === 'ar' || saved === 'en' || saved === 'ku') setLang(saved);
+    setLang(parseLang(window.localStorage.getItem(LANG_KEY)));
   }, []);
 
   useEffect(() => {

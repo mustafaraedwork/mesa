@@ -3,7 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
-import { uploadProductImage, safeDeleteImage, validateImageUpload } from '@/lib/r2/upload';
+import {
+  uploadProductImage,
+  safeDeleteImage,
+  validateImageUpload,
+  extractR2Key,
+} from '@/lib/r2/upload';
 import { isSupportedCurrency } from '@/lib/currencies';
 
 const DESIGN_PATH = '/admin/dashboard/design';
@@ -86,14 +91,4 @@ export async function saveDesign(formData: FormData): Promise<Result> {
 
   revalidatePath(DESIGN_PATH);
   return { ok: true };
-}
-
-function extractR2Key(publicUrl: string): string {
-  const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, '') ?? '';
-  if (publicUrl.startsWith(base + '/')) return publicUrl.slice(base.length + 1);
-  try {
-    return new URL(publicUrl).pathname.replace(/^\//, '');
-  } catch {
-    return publicUrl;
-  }
 }

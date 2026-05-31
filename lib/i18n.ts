@@ -22,6 +22,13 @@ export function isRtl(lang: Lang): boolean {
   return lang === 'ar' || lang === 'ku';
 }
 
+// Parse a stored/raw language value to a valid Lang, defaulting to Arabic
+// (PRD §3.2 fallback). Replaces the duplicated `(... ?? 'ar') as Lang` + manual
+// membership check across the diner views (Q-30).
+export function parseLang(raw: string | null | undefined): Lang {
+  return raw === 'en' || raw === 'ku' ? raw : 'ar';
+}
+
 const STRINGS = {
   ar: {
     cart_button: 'طلبي',

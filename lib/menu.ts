@@ -7,6 +7,7 @@ import {
   applyLazyRevert,
   CLOSING_VIRTUAL_CATEGORY_ID,
   CLOSING_VIRTUAL_CATEGORY_NAMES,
+  coerceMode,
   DISCOUNTS,
   type Discount,
 } from '@/lib/closing';
@@ -123,7 +124,8 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
   if (!rest || !rest.is_active) return null;
 
   // Lazy auto-revert (Q3) — race-safe via the `active_mode='closing'` WHERE.
-  let active_mode = rest.active_mode;
+  // Q-12: coerce any legacy rush/profit row to a live mode on read.
+  let active_mode = coerceMode(rest.active_mode);
   let closing_mode_ends_at = rest.closing_mode_ends_at;
   let closing_mode_discount = rest.closing_mode_discount;
 

@@ -13,6 +13,13 @@ export type Discount = 5 | 10 | 20;
 export const MODES = ['normal', 'closing', 'off'] as const;
 export const DISCOUNTS = [5, 10, 20] as const;
 
+// Coerce a raw active_mode (which may still be a legacy 'rush'/'profit' from
+// before migration 0004) to a live mode. Shared by the menu loader and the
+// admin state route so the coercion lives in one place (Q-12).
+export function coerceMode(raw: string): Mode {
+  return raw === 'closing' || raw === 'off' ? raw : 'normal';
+}
+
 export const CLOSING_VIRTUAL_CATEGORY_ID = '__closing__';
 // Diner-facing label — keeps the "current mode" generic so customers don't
 // see the word "closing". Discount overlays on the cards still show the

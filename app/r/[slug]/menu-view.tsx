@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ChevronDown, Plus, ShoppingBag } from 'lucide-react';
 import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
-import { LANGS, isRtl, pickName, t, type Lang } from '@/lib/i18n';
+import { LANGS, isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import { track } from '@/lib/track';
 import { WelcomeScreen } from './welcome-screen';
@@ -53,8 +53,7 @@ export function MenuView({
   /* eslint-disable react-hooks/set-state-in-effect --
      Both effects sync from client-only stores on mount (localStorage / cart). */
   useEffect(() => {
-    const saved = (window.localStorage.getItem(LANG_KEY) ?? 'ar') as Lang;
-    if (saved === 'ar' || saved === 'en' || saved === 'ku') setLang(saved);
+    setLang(parseLang(window.localStorage.getItem(LANG_KEY)));
   }, []);
 
   useEffect(() => {

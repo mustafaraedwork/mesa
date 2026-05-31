@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getRestaurantIdFromCookie } from '@/lib/auth/session';
 import { getServiceClient } from '@/lib/supabase/server';
-import { applyLazyRevert } from '@/lib/closing';
+import { applyLazyRevert, coerceMode } from '@/lib/closing';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,9 +61,8 @@ export async function GET() {
   return NextResponse.json(
     {
       server_now: new Date().toISOString(),
-      // Coerce any legacy rush/profit row to normal (migration 0004); pass
-      // through the live modes normal/closing/off.
-      active_mode: active_mode === 'closing' || active_mode === 'off' ? active_mode : 'normal',
+      // Q-12: coerce any legacy rush/profit row (migration 0004) to a live mode.
+      active_mode: coerceMode(active_mode),
       closing_mode_ends_at,
       closing_mode_discount,
     },

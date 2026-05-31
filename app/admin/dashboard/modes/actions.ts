@@ -6,6 +6,7 @@ import { getServiceClient } from '@/lib/supabase/server';
 import { applyDiscount, DISCOUNTS, MODES, type Discount } from '@/lib/closing';
 
 const MODES_PATH = '/admin/dashboard/modes';
+const MS_PER_HOUR = 3_600_000;
 
 type SetModeInput =
   | { mode: 'normal' | 'off' }
@@ -92,7 +93,7 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
     closingProductIds = product_ids;
     // Server-computes `ends_at` per Q12 (`NOW() + INTERVAL`). Retry on
     // transient failure could extend by a few seconds — accepted MVP risk.
-    endsAt = new Date(Date.now() + duration_hours * 3_600_000).toISOString();
+    endsAt = new Date(Date.now() + duration_hours * MS_PER_HOUR).toISOString();
   }
 
   // ── Clean-and-apply (Q6) ───────────────────────────────────────────────

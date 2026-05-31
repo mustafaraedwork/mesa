@@ -9,7 +9,7 @@ import {
   subscribe,
   type Cart,
 } from '@/lib/cart';
-import { isRtl, pickName, t, type Lang } from '@/lib/i18n';
+import { isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
 import { formatPrice } from '../menu-view';
@@ -43,8 +43,7 @@ export function CartView({
      Both effects sync from client-only stores on mount (localStorage / cart):
      these reads can't run during SSR, so an effect is the correct home. */
   useEffect(() => {
-    const saved = (window.localStorage.getItem(LANG_KEY) ?? 'ar') as Lang;
-    if (saved === 'ar' || saved === 'en' || saved === 'ku') setLang(saved);
+    setLang(parseLang(window.localStorage.getItem(LANG_KEY)));
   }, []);
 
   useEffect(() => {

@@ -105,6 +105,20 @@ export async function safeDeleteImage(key: string): Promise<void> {
   }
 }
 
+// Convert the public R2 URL stored in `image_url` back to the bucket key.
+// The URL format is `${R2_PUBLIC_URL}/${key}`. Single source of truth (Q-8) —
+// previously duplicated in the menu and design actions.
+export function extractR2Key(publicUrl: string): string {
+  const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, '') ?? '';
+  if (publicUrl.startsWith(base + '/')) return publicUrl.slice(base.length + 1);
+  // Fallback: strip protocol+host.
+  try {
+    return new URL(publicUrl).pathname.replace(/^\//, '');
+  } catch {
+    return publicUrl;
+  }
+}
+
 // Purge every object under `restaurants/<restaurantId>/`. Used when a tenant
 // account is deleted (PRD §3.3). DB cascade handles the rows; R2 doesn't.
 export async function deleteRestaurantImages(restaurantId: string): Promise<number> {
