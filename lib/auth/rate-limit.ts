@@ -37,3 +37,21 @@ export function checkLoginAttempt(key: string):
 export function clearLoginAttempts(key: string): void {
   buckets.delete(key);
 }
+
+// Generic IP-based limiter for unauthenticated endpoints (H-4: a per-IP login
+// guard across all usernames, and a /api/track flood guard). Same in-memory,
+// restart-resetting trade-off as the per-username login bucket above. Returns
+// true when the request is allowed.
+const ipBuckets = new Map<string, number[]>();
+
+export function checkIpRate(key: string, maxHits: number, windowMs: number): boolean {
+  const now = Date.now();
+  const hits = (ipBuckets.get(key) ?? []).filter((t) => now - t < windowMs);
+  if (hits.length >= maxHits) {
+    ipBuckets.set(key, hits);
+    return false;
+  }
+  hits.push(now);
+  ipBuckets.set(key, hits);
+  return true;
+}

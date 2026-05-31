@@ -6,7 +6,7 @@ import { getServiceClient } from '@/lib/supabase/server';
 import { verifyPassword } from '@/lib/auth/password';
 import { createSession, setSessionCookie, clearSessionCookie, deleteSession } from '@/lib/auth/session';
 import { SESSION_COOKIE } from '@/lib/auth/cookie';
-import { checkLoginAttempt, clearLoginAttempts } from '@/lib/auth/rate-limit';
+import { checkLoginAttempt, clearLoginAttempts, checkIpRate } from '@/lib/auth/rate-limit';
 
 type SignInResult = { ok: true } | { ok: false; error: string };
 
@@ -15,6 +15,18 @@ export async function signInTenant(formData: FormData): Promise<SignInResult> {
   const password = String(formData.get('password') ?? '');
   if (!username || !password) {
     return { ok: false, error: 'اسم المستخدم وكلمة السر مطلوبان' };
+  }
+
+  // H-4: per-IP limit across all usernames (credential-stuffing guard), on top
+  // of the per-username window below.
+  const reqHeaders = await headers();
+  const ip = (
+    reqHeaders.get('x-forwarded-for')?.split(',')[0] ??
+    reqHeaders.get('x-real-ip') ??
+    'unknown'
+  ).trim();
+  if (!checkIpRate(`login-ip:${ip}`, 20, 15 * 60 * 1000)) {
+    return { ok: false, error: 'محاولات كثيرة من هذا الجهاز — جرّب لاحقاً' };
   }
 
   // Rate limit on the username — PRD §4.5: 5 attempts / 15 min.
@@ -44,8 +56,7 @@ export async function signInTenant(formData: FormData): Promise<SignInResult> {
   }
 
   // Success — bind session.
-  const h = await headers();
-  const ua = h.get('user-agent') ?? undefined;
+  const ua = reqHeaders.get('user-agent') ?? undefined;
   const token = await createSession(tenant.id, ua);
   await setSessionCookie(token);
   await sb.from('restaurants').update({ last_login_at: new Date().toISOString() }).eq('id', tenant.id);
