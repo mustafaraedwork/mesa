@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getServiceClient } from '@/lib/supabase/server';
+import { requireOwner } from '@/lib/auth/require-owner';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,7 @@ type RecentRow = {
 };
 
 async function loadOverview() {
+  await requireOwner();
   const sb = getServiceClient();
   const [
     { count: total },

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getServiceClient } from '@/lib/supabase/server';
 import { hashPassword } from '@/lib/auth/password';
 import { deleteRestaurantImages } from '@/lib/r2/upload';
+import { requireOwner } from '@/lib/auth/require-owner';
 
 const ACCOUNTS_PATH = '/owner/dashboard/accounts';
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
@@ -17,6 +18,7 @@ export async function createAccount(input: {
   username: string;
   password: string;
 }): Promise<ActionResult> {
+  await requireOwner();
   const display_name = input.display_name.trim();
   const slug = input.slug.trim().toLowerCase();
   const username = input.username.trim();
@@ -52,6 +54,7 @@ export async function createAccount(input: {
 }
 
 export async function setAccountActive(id: string, is_active: boolean): Promise<ActionResult> {
+  await requireOwner();
   const sb = getServiceClient();
   const { error } = await sb.from('restaurants').update({ is_active }).eq('id', id);
   if (error) return { ok: false, error: 'فشل تحديث الحالة' };
@@ -61,6 +64,7 @@ export async function setAccountActive(id: string, is_active: boolean): Promise<
 }
 
 export async function changeAccountPassword(id: string, newPassword: string): Promise<ActionResult> {
+  await requireOwner();
   if (newPassword.length < 8) return { ok: false, error: 'كلمة السر ٨ أحرف على الأقل' };
   const password_hash = await hashPassword(newPassword);
   const sb = getServiceClient();
@@ -75,6 +79,7 @@ export async function changeAccountPassword(id: string, newPassword: string): Pr
 }
 
 export async function deleteAccount(id: string): Promise<ActionResult> {
+  await requireOwner();
   const sb = getServiceClient();
 
   // 1. Purge R2 images (DB cascade can't reach external storage).

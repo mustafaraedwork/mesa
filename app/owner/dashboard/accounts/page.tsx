@@ -1,9 +1,11 @@
 import { getServiceClient } from '@/lib/supabase/server';
 import { AccountsTable, type AccountRow } from './accounts-table';
+import { requireOwner } from '@/lib/auth/require-owner';
 
 export const dynamic = 'force-dynamic';
 
 async function loadAccounts(): Promise<AccountRow[]> {
+  await requireOwner();
   const sb = getServiceClient();
 
   const [restaurants, productRows, categoryRows] = await Promise.all([
