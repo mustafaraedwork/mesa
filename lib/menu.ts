@@ -35,7 +35,6 @@ type ProductRow = {
   name_en: string | null;
   name_ku: string | null;
   price: string | number;
-  profit_percentage: string | number;
   prep_time_minutes: number;
   image_url: string | null;
   is_available: boolean | null;
@@ -64,7 +63,6 @@ export type MenuProduct = {
   price: number;
   original_price: number | null;
   discount_percent: number | null;
-  profit_percentage: number;
   prep_time_minutes: number;
   image_url: string | null;
   is_available: boolean;
@@ -160,7 +158,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     sb
       .from('products')
       .select(
-        'id, category_id, name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes, image_url, is_available, is_in_closing_mode, is_chef_pick, display_order, suggestions_type, custom_suggestion_ids',
+        'id, category_id, name_ar, name_en, name_ku, price, prep_time_minutes, image_url, is_available, is_in_closing_mode, is_chef_pick, display_order, suggestions_type, custom_suggestion_ids',
       )
       .eq('restaurant_id', rest.id),
     sb
@@ -219,7 +217,6 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
       price,
       original_price,
       discount_percent,
-      profit_percentage: Number(r.profit_percentage),
       prep_time_minutes: r.prep_time_minutes,
       image_url: r.image_url,
       is_available: available,
