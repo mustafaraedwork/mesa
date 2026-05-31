@@ -63,7 +63,9 @@ export function CartView({
         const res = await fetch(`/api/menu/${slug}`, { cache: 'no-store' });
         if (!res.ok) return;
         const json = (await res.json()) as MenuPayload;
-        if (!cancelled) setData(json);
+        // Q-15: guard against an unexpected/legacy payload shape before
+        // committing it to state (the poll response is otherwise untyped).
+        if (!cancelled && typeof json?.restaurant?.id === 'string') setData(json);
       } catch {
         // Silent retry on next tick.
       }

@@ -21,10 +21,10 @@ export async function POST(req: Request) {
   }
 
   const slug = typeof body.slug === 'string' ? body.slug : '';
-  const kind = body.kind as Kind;
+  const kind = typeof body.kind === 'string' ? body.kind : '';
   const productId = typeof body.product_id === 'string' ? body.product_id : null;
 
-  if (!slug || !KINDS.includes(kind)) {
+  if (!slug || !KINDS.includes(kind as Kind)) {
     return new NextResponse(null, { status: 204, headers: NO_STORE });
   }
 

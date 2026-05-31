@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
-import { uploadProductImage, deleteImage } from '@/lib/r2/upload';
+import { uploadProductImage, deleteImage, validateImageUpload } from '@/lib/r2/upload';
 import { isSupportedCurrency } from '@/lib/currencies';
 
 const DESIGN_PATH = '/admin/dashboard/design';
@@ -57,6 +57,8 @@ export async function saveDesign(formData: FormData): Promise<Result> {
   let oldLogoToDelete: string | null = null;
 
   if (logo instanceof File && logo.size > 0) {
+    const invalid = validateImageUpload(logo);
+    if (invalid) return { ok: false, error: invalid };
     const buf = Buffer.from(await logo.arrayBuffer());
     try {
       const up = await uploadProductImage(buf, `restaurants/${restaurantId}/logo`);

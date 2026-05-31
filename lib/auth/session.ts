@@ -51,7 +51,7 @@ export async function getRestaurantIdFromCookie(): Promise<string | null> {
     .select('restaurant_id')
     .eq('token', token)
     .maybeSingle();
-  if (error || !data) return null;
+  if (error || !data || !data.restaurant_id) return null;
   return data.restaurant_id as string;
 }
 

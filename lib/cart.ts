@@ -16,12 +16,23 @@ export function getCart(slug: string): Cart {
   const raw = window.localStorage.getItem(storageKey(slug));
   if (!raw) return { items: [], updatedAt: 0 };
   try {
-    const parsed = JSON.parse(raw) as Cart;
+    const parsed = JSON.parse(raw) as Partial<Cart>;
+    // Q-14: validate the parsed shape. A cart written by an older build (or a
+    // tampered value) could miss `updatedAt`/`items`, making the TTL check NaN
+    // and leaking a malformed cart to callers that iterate `items`.
+    if (
+      typeof parsed?.updatedAt !== 'number' ||
+      !Number.isFinite(parsed.updatedAt) ||
+      !Array.isArray(parsed.items)
+    ) {
+      window.localStorage.removeItem(storageKey(slug));
+      return { items: [], updatedAt: 0 };
+    }
     if (Date.now() - parsed.updatedAt > TTL_MS) {
       window.localStorage.removeItem(storageKey(slug));
       return { items: [], updatedAt: 0 };
     }
-    return parsed;
+    return { items: parsed.items, updatedAt: parsed.updatedAt };
   } catch {
     return { items: [], updatedAt: 0 };
   }

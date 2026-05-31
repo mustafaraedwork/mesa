@@ -38,6 +38,27 @@ const PUBLIC_URL = () => {
   return u.replace(/\/$/, '');
 };
 
+// Reject oversized or non-image uploads BEFORE the bytes reach sharp (C-3):
+// guards against decompression bombs and SVG/polyglot inputs. `file.type` is
+// client-controlled, so this is a cheap first gate; the size cap and sharp's
+// `limitInputPixels` are the real decode-time backstops.
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
+export function validateImageUpload(file: File): string | null {
+  if (file.size <= 0) return 'الملف فارغ';
+  if (file.size > MAX_IMAGE_BYTES) return 'حجم الصورة كبير جداً (الحد ١٠ ميغابايت)';
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    return 'صيغة الصورة غير مدعومة (JPG أو PNG أو WebP أو GIF فقط)';
+  }
+  return null;
+}
+
 // Re-encode incoming image as WebP, cropped to a centered 800x800 square
 // (PRD §4.6). `fit: 'cover'` crops the overflow so every product image has the
 // same 1:1 ratio regardless of the uploaded dimensions — uniform menu cards.
@@ -46,7 +67,9 @@ export async function uploadProductImage(
   input: Buffer | Uint8Array,
   keyPrefix: string,
 ): Promise<{ url: string; key: string }> {
-  const buffer = await sharp(input)
+  // limitInputPixels caps decoded dimensions (~100MP) as a decompression-bomb
+  // backstop — well above any phone/DSLR photo, far below bomb territory.
+  const buffer = await sharp(input, { limitInputPixels: 100_000_000 })
     .rotate()
     .resize(800, 800, { fit: 'cover', position: 'center' })
     .webp({ quality: 80 })

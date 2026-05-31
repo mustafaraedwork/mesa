@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
-import { uploadProductImage, deleteImage } from '@/lib/r2/upload';
+import { uploadProductImage, deleteImage, validateImageUpload } from '@/lib/r2/upload';
 
 const MENU_PATH = '/admin/dashboard/menu';
 
@@ -215,6 +215,8 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
 
   let image_url: string | null = null;
   if (image instanceof File && image.size > 0) {
+    const invalid = validateImageUpload(image);
+    if (invalid) return { ok: false, error: invalid };
     const buf = Buffer.from(await image.arrayBuffer());
     try {
       const up = await uploadProductImage(buf, `restaurants/${restaurantId}/products`);
@@ -297,6 +299,8 @@ export async function updateProduct(formData: FormData): Promise<Result> {
   };
 
   if (image instanceof File && image.size > 0) {
+    const invalid = validateImageUpload(image);
+    if (invalid) return { ok: false, error: invalid };
     const buf = Buffer.from(await image.arrayBuffer());
     try {
       const up = await uploadProductImage(buf, `restaurants/${restaurantId}/products`);

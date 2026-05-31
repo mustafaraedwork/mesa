@@ -6,6 +6,7 @@ import {
   applyDiscount,
   CLOSING_VIRTUAL_CATEGORY_ID,
   CLOSING_VIRTUAL_CATEGORY_NAMES,
+  DISCOUNTS,
   type Discount,
 } from '@/lib/closing';
 
@@ -127,10 +128,13 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
   let closing_mode_ends_at = rest.closing_mode_ends_at;
   let closing_mode_discount = rest.closing_mode_discount;
 
+  // Q-2: treat a malformed `closing_mode_ends_at` (NaN) as expired so a corrupt
+  // timestamp self-heals to Normal instead of sticking in Closing forever.
+  const closingExpiry = closing_mode_ends_at ? new Date(closing_mode_ends_at).getTime() : null;
   if (
     active_mode === 'closing' &&
-    closing_mode_ends_at &&
-    new Date(closing_mode_ends_at).getTime() < Date.now()
+    closingExpiry !== null &&
+    (Number.isNaN(closingExpiry) || closingExpiry < Date.now())
   ) {
     await sb
       .from('restaurants')
@@ -169,7 +173,14 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
   const closingProducts: MenuProduct[] = [];
   const chefPickProducts: MenuProduct[] = [];
   const isClosing = active_mode === 'closing';
-  const discount = (closing_mode_discount ?? null) as Discount | null;
+  // Q-13: only honour a discount value that is actually one of the allowed
+  // tiers — a stray DB value (e.g. 15 from a manual UPDATE) must not surface as
+  // a discount the tenant never configured.
+  const discount: Discount | null =
+    closing_mode_discount !== null &&
+    (DISCOUNTS as readonly number[]).includes(closing_mode_discount)
+      ? (closing_mode_discount as Discount)
+      : null;
 
   // Both surviving modes (normal + closing) present products in the tenant's
   // manual order. Legacy rows still flagged rush/profit fall through here too.
@@ -182,6 +193,9 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     if (!rest.show_unavailable_items && !available) continue;
 
     const originalPrice = Number(r.price);
+    // Q-1: drop rows with a corrupt price rather than letting NaN flow through
+    // the discount math and surface as "NaN IQD" in the cart total.
+    if (!Number.isFinite(originalPrice) || originalPrice < 0) continue;
     let price = originalPrice;
     let original_price: number | null = null;
     let discount_percent: number | null = null;

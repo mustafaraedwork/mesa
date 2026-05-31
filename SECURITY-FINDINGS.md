@@ -15,7 +15,7 @@
 |---|---|---|---|---|---|
 | C-1 | أكشنات المالك بلا تحقّق هوية داخلي — تجاوز كامل للوحة المالك (الـ proxy يحمي تنقّل الصفحات فقط، لا يحمي إرسال Server Actions) ✓ محقَّق | CRITICAL | `app/owner/dashboard/accounts/actions.ts` (كل الدوال) · `app/owner/dashboard/page.tsx` (`loadOverview`) · `app/owner/dashboard/accounts/page.tsx` (`loadAccounts`) | ✅ مُصلَح | أنشئ `requireOwner()` يستدعي `getAuthServerClient().auth.getUser()` ويرفض إن `app_metadata.role !== 'owner'`، واستدعِه كأول سطر في كل أكشن مالك وفي `loadOverview`/`loadAccounts`. لا تعتمد على الـ proxy وحده. |
 | C-2 | `setMode`/`setChefPicks`: كتابة `UPDATE` نهائية بلا قيد `restaurant_id` (service-role يتجاوز RLS؛ التحقق والكتابة غير ذرّيين) ✓✓ | CRITICAL | `app/admin/dashboard/modes/actions.ts:121-124` · `:163-166` | ✅ مُصلَح | أضف `.eq('restaurant_id', restaurantId)` لكلا الكتابتين، مطابقةً لخطوة المسح أعلاهما. |
-| C-3 | رفع الصور: لا حدّ للحجم ولا تحقّق MIME قبل تمرير البايتات لـ sharp (قنبلة فك‑ضغط / SVG / polyglot) | CRITICAL | `app/admin/dashboard/menu/actions.ts:205-212, 287-301` · `app/admin/dashboard/design/actions.ts:59-66` · `lib/r2/upload.ts:45-67` | مفتوح | افرض حدّاً أقصى للحجم (~10MB) وallowlist لنوع MIME (`jpeg/png/webp/gif`، ارفض `svg+xml`) قبل `uploadProductImage`؛ يفضَّل فحص magic-bytes لأول 12 بايت. |
+| C-3 | رفع الصور: لا حدّ للحجم ولا تحقّق MIME قبل تمرير البايتات لـ sharp (قنبلة فك‑ضغط / SVG / polyglot) | CRITICAL | `app/admin/dashboard/menu/actions.ts:205-212, 287-301` · `app/admin/dashboard/design/actions.ts:59-66` · `lib/r2/upload.ts:45-67` | ✅ مُصلَح | افرض حدّاً أقصى للحجم (~10MB) وallowlist لنوع MIME (`jpeg/png/webp/gif`، ارفض `svg+xml`) قبل `uploadProductImage`؛ يفضَّل فحص magic-bytes لأول 12 بايت. |
 
 ---
 
@@ -71,12 +71,12 @@
 
 | المعرّف | العنوان | الخطورة | الملف / السطر | الحالة | ملخص الإصلاح |
 |---|---|---|---|---|---|
-| Q-1 | `NaN` من `Number(r.price)`/`profit_percentage` يصل لإجمالي السلة ("NaN IQD") بلا حارس | HIGH | `lib/menu.ts:184, 208` | مفتوح | ارفض/استبعد الصف إن كان `Number(r.price)` = `NaN` أو ≤ 0 قبل بناء `MenuProduct`. |
-| Q-2 | `closing_mode_ends_at` مشوّه → `new Date(x).getTime()=NaN` → الوضع عالق على closing للأبد (لا auto-revert) | HIGH | `lib/menu.ts:133` · `app/api/admin/state/route.ts:49` | مفتوح | `const e=new Date(x).getTime(); if(!isNaN(e) && e<Date.now())`. |
+| Q-1 | `NaN` من `Number(r.price)`/`profit_percentage` يصل لإجمالي السلة ("NaN IQD") بلا حارس | HIGH | `lib/menu.ts:184, 208` | ✅ مُصلَح | ارفض/استبعد الصف إن كان `Number(r.price)` = `NaN` أو ≤ 0 قبل بناء `MenuProduct`. |
+| Q-2 | `closing_mode_ends_at` مشوّه → `new Date(x).getTime()=NaN` → الوضع عالق على closing للأبد (لا auto-revert) | HIGH | `lib/menu.ts:133` · `app/api/admin/state/route.ts:49` | ✅ مُصلَح | `const e=new Date(x).getTime(); if(!isNaN(e) && e<Date.now())`. |
 | Q-3 | `loadMenu` يتجاهل `error` من الاستعلامات الثلاثة المتوازية → منيو فارغ صامت يُخدَم عبر الـ polling | HIGH | `lib/menu.ts:150-166` | مفتوح | فكّك `error` للثلاثة وأعِد `null` (مسار "غير متوفر") عند أي فشل. |
 | Q-4 | `reorderCategories`/`reorderProducts`: كتابات `Promise.all` متوازية بلا تعافٍ من فشل جزئي → `display_order` غير متّسق + `{ok:false}` رغم التزام جزئي | HIGH | `app/admin/dashboard/menu/actions.ts:422-430, 451-458` | مفتوح | استبدل بـ `upsert` واحد لكل الصفوف (round-trip ذرّي). |
 | Q-5 | `signOutTenant` يبتلع خطأ `deleteSession` → الكوكي يُمسح لكن صف الجلسة يبقى صالحًا خادم-side (جلسة شبح) | HIGH | `app/admin/actions.ts:58-63` · `lib/auth/session.ts:58-61` | مفتوح | اجعل `deleteSession` يتحقّق من `{error}` ويسجّله. |
-| Q-6 | `data.restaurant_id as string` على FK قابل لـ null → null مُموَّه كـ string يمرّ عبر الحارس ثم ينهار لاحقًا | HIGH | `lib/auth/session.ts:55` | مفتوح | `if(!data.restaurant_id) return null;` بدل الـ cast. |
+| Q-6 | `data.restaurant_id as string` على FK قابل لـ null → null مُموَّه كـ string يمرّ عبر الحارس ثم ينهار لاحقًا | HIGH | `lib/auth/session.ts:55` | ✅ مُصلَح | `if(!data.restaurant_id) return null;` بدل الـ cast. |
 | Q-7 | poll السلة بلا fetch أوّلي ولا `visibilitychange` → تعرض `initialData` حتى 30s فيظهر سعر خصم منتهٍ | HIGH | `app/r/[slug]/cart/cart-view.tsx:58-78` | مفتوح | أطلق `tick()` عند mount + مستمع `visibilitychange`؛ استخرج `useMenuPoll(slug)` مشترك. |
 
 ### MEDIUM
@@ -88,11 +88,11 @@
 | Q-10 | `changeAccountPassword` يتجاهل خطأ حذف الجلسات → هدف "فرض إعادة الدخول" قد يفشل صامتًا | MEDIUM | `app/owner/dashboard/accounts/actions.ts:71` | مفتوح | تحقّق من `{error}` لحذف الجلسات وأعِد/سجّل الفشل. |
 | Q-11 | كتل `catch {}` لتنظيف R2 بلا تسجيل → صور يتيمة غير مكتشَفة عند فشل مزدوج | MEDIUM | `app/admin/dashboard/menu/actions.ts:148, 247, 293, 340` | مفتوح | `console.error` في كل كتلة cleanup. |
 | Q-12 | coercion للوضع موجود في `state` route لكن غائب في `loadMenu` → صف legacy `rush/profit` يعرض فئة افتراضية فارغة | MEDIUM | `lib/menu.ts:126` مقابل `app/api/admin/state/route.ts:71` | مفتوح | `coerceMode(raw)` مشتركة في `lib/closing.ts` تُستدعى في الموضعين. |
-| Q-13 | `closing_mode_discount as Discount\|null` بلا فحص عضوية → قيمة DB مثل `15` تُعرض كشارة `-15%` لم يضبطها المالك | MEDIUM | `lib/menu.ts:172` | مفتوح | `[5,10,20].includes(x) ? x as Discount : null` قبل الاستخدام. |
-| Q-14 | `getCart`: `JSON.parse(raw) as Cart` بلا تحقّق بنية → `updatedAt` غير معرّف يتخطّى فحص TTL | MEDIUM | `lib/cart.ts:19` | مفتوح | تحقّق `typeof updatedAt==='number'` و`Array.isArray(items)`، وإلا أعِد سلة فارغة. |
-| Q-15 | استجابة الـ poll `as MenuPayload` بلا shape-guard على العميل | MEDIUM | `app/r/[slug]/menu-view.tsx:74` · `cart/cart-view.tsx:65` | مفتوح | تحقّق `typeof json?.restaurant?.id==='string'` قبل `setData`. |
+| Q-13 | `closing_mode_discount as Discount\|null` بلا فحص عضوية → قيمة DB مثل `15` تُعرض كشارة `-15%` لم يضبطها المالك | MEDIUM | `lib/menu.ts:172` | ✅ مُصلَح | `[5,10,20].includes(x) ? x as Discount : null` قبل الاستخدام. |
+| Q-14 | `getCart`: `JSON.parse(raw) as Cart` بلا تحقّق بنية → `updatedAt` غير معرّف يتخطّى فحص TTL | MEDIUM | `lib/cart.ts:19` | ✅ مُصلَح | تحقّق `typeof updatedAt==='number'` و`Array.isArray(items)`، وإلا أعِد سلة فارغة. |
+| Q-15 | استجابة الـ poll `as MenuPayload` بلا shape-guard على العميل | MEDIUM | `app/r/[slug]/menu-view.tsx:74` · `cart/cart-view.tsx:65` | ✅ مُصلَح | تحقّق `typeof json?.restaurant?.id==='string'` قبل `setData`. |
 | Q-16 | `!` على متغيّرَي بيئة Supabase في proxy (Edge) → 500 معتم لكل مسارات المالك عند الغياب | MEDIUM | `proxy.ts:28-29` | مفتوح | حارس بدء يتحقّق من المتغيّرات، أو إزالة `!`. |
-| Q-17 | `body.kind as Kind` cast قبل حارس `KINDS.includes` | MEDIUM | `app/api/track/route.ts:24` | مفتوح | `typeof body.kind==='string' && KINDS.includes(body.kind as Kind)`. |
+| Q-17 | `body.kind as Kind` cast قبل حارس `KINDS.includes` | MEDIUM | `app/api/track/route.ts:24` | ✅ مُصلَح | `typeof body.kind==='string' && KINDS.includes(body.kind as Kind)`. |
 | Q-18 | `firstParentId` memo على `tree` التفاعلي ينزاح بعد إعادة ترتيب poll → ظهور/اختفاء اختيارات الشيف دون تدخّل | MEDIUM | `app/r/[slug]/menu-view.tsx:95-100` | مفتوح | احسبه من `initialData` الثابت (memo بلا deps / ref). |
 | Q-19 | poll الأدمن (10s) بلا حارس `document.hidden` → يطلق في الخلفية ويستنزف البطارية (menu-view يحرس) | MEDIUM | `app/admin/dashboard/modes/modes-view.tsx:77-94` | مفتوح | أضف نفس حارس الرؤية + مستمع `visibilitychange`. |
 | Q-20 | `offset` (تصحيح انحراف الساعة) يُحسب في جسم الـ render بلا memo → إعادة حساب غير متّسقة | MEDIUM | `app/admin/dashboard/modes/modes-view.tsx:73-74` | مفتوح | `useMemo(() => …, [state.server_now])`. |
