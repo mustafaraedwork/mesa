@@ -121,7 +121,9 @@
       "Bash(node --env-file=.env.local .scratch/design-admin-check.mjs)",
       "Bash(git checkout *)",
       "Bash(node *)",
-      "PowerShell(Get-NetTCPConnection *)"
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(git --no-pager log --oneline master..HEAD)",
+      "Bash(echo \"TSC_EXIT=$?\")"
     ]
   }
 }

@@ -35,3 +35,11 @@ ALTER TABLE restaurants
     active_mode <> 'closing'
     OR (closing_mode_discount IS NOT NULL AND closing_mode_ends_at IS NOT NULL)
   );
+
+
+
+
+
+
+
+

@@ -5,43 +5,50 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Fonts — Vazirmatn primary (Arabic + Kurdish Sorani + Latin),
+     Noto Sans Arabic fallback for Kurdish, IBM Plex Mono for numerals. */
+  --font-sans: var(--ff-vazir), var(--ff-noto), system-ui, sans-serif;
+  --font-latin: var(--ff-vazir), system-ui, sans-serif;
+  --font-mono: var(--ff-mono), ui-monospace, monospace;
+  --font-heading: var(--font-sans);
+
+  /* Surfaces & text */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-latin: var(--font-latin);
-  --font-mono: var(--font-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-border: var(--border);
   --color-border-lite: var(--border-lite);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand (overridable per-restaurant via inline CSS vars on the diner root) */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-lite: var(--muted-lite);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-text: var(--accent-text);
+
+  /* Semantic state — independent of brand, never re-skinned */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* Warm extras (kept for back-compat; map onto the new system) */
   --color-gold: var(--gold);
   --color-gold-deep: var(--gold-deep);
   --color-burgundy-deep: var(--burgundy-deep);
@@ -49,12 +56,54 @@
   --color-ink-2: var(--ink-2);
   --color-olive: var(--olive);
   --color-amber: var(--amber);
-  --color-info: var(--info);
+
+  /* Chart tokens reference the semantic/brand sources (no silent drift) */
+  --color-chart-1: var(--primary);
+  --color-chart-2: var(--gold);
+  --color-chart-3: var(--olive);
+  --color-chart-4: var(--amber);
+  --color-chart-5: var(--info);
+
+  /* Sidebar (owner/admin shells) */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Typography scale — fluid (clamp). No real text below 12px. */
+  --text-caption: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+  --text-caption--line-height: 1.5;
+  --text-body: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);
+  --text-body--line-height: 1.7;
+  --text-lead: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
+  --text-lead--line-height: 1.6;
+  --text-h3: clamp(1.1875rem, 1.05rem + 0.5vw, 1.375rem);
+  --text-h3--line-height: 1.35;
+  --text-h2: clamp(1.375rem, 1.15rem + 0.9vw, 1.75rem);
+  --text-h2--line-height: 1.25;
+  --text-h1: clamp(1.75rem, 1.3rem + 1.8vw, 2.5rem);
+  --text-h1--line-height: 1.2;
+  --text-display: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+  --text-display--line-height: 1.1;
+
+  /* Spacing scale (generates p-gutter, px-section, gap-stack, …) */
+  --spacing-gutter: 1rem;
+  --spacing-card: 0.875rem;
+  --spacing-stack: 0.75rem;
+  --spacing-section: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+
+  /* Shadows — warm tint, scales with elevation */
   --shadow-subtle: 0 1px 3px rgba(60, 40, 20, 0.06);
   --shadow-card: 0 2px 10px rgba(60, 40, 20, 0.08);
   --shadow-lifted: 0 8px 24px rgba(60, 40, 20, 0.12);
   --shadow-modal: 0 12px 40px rgba(60, 40, 20, 0.18);
-  --shadow-cta: 0 4px 14px rgba(139, 26, 26, 0.25);
+  --shadow-cta: 0 4px 14px color-mix(in oklab, var(--primary) 30%, transparent);
+
+  /* Radii */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -62,97 +111,82 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-duration-fast: 150ms;
+  --animate-duration-normal: 250ms;
+  --animate-duration-slow: 400ms;
 }
 
-/* Mesa OS design system — warm editorial palette. See Design-System.html. */
+/* Mesa OS design system — warm editorial palette, OKLCH.
+   Brand colors (primary/accent/surfaces) are per-restaurant overridable.
+   Semantic state colors (success/warning/destructive/info) are fixed. */
 :root {
   --radius: 0.75rem;
 
-  --background: #faf7f2;
-  --foreground: #1a1a1a;
+  /* Warm neutrals */
+  --background: oklch(0.98 0.008 75);   /* sand-50  ≈ #faf7f2 */
+  --foreground: oklch(0.22 0.01 60);    /* ink-900  ≈ #1a1a1a */
   --card: #ffffff;
-  --card-foreground: #1a1a1a;
+  --card-foreground: oklch(0.22 0.01 60);
   --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #8b1a1a;
+  --popover-foreground: oklch(0.22 0.01 60);
+  --border: oklch(0.92 0.015 75);       /* sand-200 ≈ #e8dfd1 */
+  --border-lite: oklch(0.95 0.012 75);  /* sand-100 light */
+  --border-strong: oklch(0.86 0.018 75);/* sand-300 — AA-visible field edges */
+  --input: oklch(0.86 0.018 75);        /* darker so resting inputs are visible */
+
+  /* Brand — burgundy (default; per-restaurant override replaces --primary) */
+  --primary: oklch(0.45 0.155 25);      /* ≈ #8b1a1a */
+  --primary-hover: oklch(0.37 0.15 25);
   --primary-foreground: #ffffff;
-  --secondary: #f3eee4;
-  --secondary-foreground: #1a1a1a;
-  --muted: #f3eee4;
-  --muted-foreground: #6b5e52;
-  --accent: #f3eee4;
-  --accent-foreground: #1a1a1a;
-  --destructive: #991b1b;
-  --border: #e8dfd1;
-  --input: #e8dfd1;
-  --ring: #8b1a1a;
+  --ring: var(--primary);
 
-  /* Mesa extras */
-  --burgundy-deep: #6b1414;
-  --gold: #c9a961;
-  --gold-deep: #9a7b2e;
-  --cream-deep: #f3eee4;
-  --border-lite: #f0e8da;
-  --ink-2: #2b2622;
-  --muted-lite: #9b8e82;
-  --olive: #6b7f3f;
-  --amber: #d97706;
-  --info: #1f4068;
+  --secondary: oklch(0.96 0.012 75);
+  --secondary-foreground: oklch(0.22 0.01 60);
+  --muted: oklch(0.96 0.012 75);
+  --muted-foreground: oklch(0.48 0.02 60);  /* darkened → ≥4.5:1 on cream/white */
+  --muted-lite: oklch(0.58 0.02 60);
+  --accent: oklch(0.74 0.10 85);            /* gold-500 (decorative fills) */
+  --accent-foreground: oklch(0.22 0.01 60);
+  --accent-text: oklch(0.55 0.09 85);       /* gold text that passes AA */
 
-  --chart-1: #8b1a1a;
-  --chart-2: #c9a961;
-  --chart-3: #6b7f3f;
-  --chart-4: #d97706;
-  --chart-5: #1f4068;
+  /* Semantic state */
+  --success: oklch(0.52 0.12 150);
+  --success-foreground: #ffffff;
+  --warning: oklch(0.62 0.15 70);
+  --warning-foreground: oklch(0.22 0.01 60);
+  --destructive: oklch(0.50 0.19 27);       /* pure red — distinct from burgundy */
+  --destructive-foreground: #ffffff;
+  --info: oklch(0.50 0.13 245);
+  --info-foreground: #ffffff;
+
+  /* Warm extras (back-compat names, remapped to readable values) */
+  --burgundy-deep: oklch(0.34 0.13 25);
+  --gold: oklch(0.74 0.10 85);
+  --gold-deep: oklch(0.55 0.09 85);
+  --cream-deep: oklch(0.96 0.012 75);
+  --ink-2: oklch(0.30 0.01 60);
+  --olive: oklch(0.52 0.10 150);            /* aligned with success */
+  --amber: oklch(0.62 0.15 70);             /* aligned with warning */
+
+  /* Sidebar */
   --sidebar: #ffffff;
-  --sidebar-foreground: #1a1a1a;
-  --sidebar-primary: #8b1a1a;
+  --sidebar-foreground: oklch(0.22 0.01 60);
+  --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f3eee4;
-  --sidebar-accent-foreground: #1a1a1a;
-  --sidebar-border: #e8dfd1;
-  --sidebar-ring: #8b1a1a;
-}
-
-/* Dark mode is not used by the app (the <html> element never gets `.dark`).
-   Kept inert so shadcn's `dark:` utilities still compile. */
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-accent: oklch(0.96 0.012 75);
+  --sidebar-accent-foreground: oklch(0.22 0.01 60);
+  --sidebar-border: oklch(0.92 0.015 75);
+  --sidebar-ring: var(--primary);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+    outline-color: var(--ring); /* solid focus outline — was outline-ring/50 (≈2:1, invisible) */
     /* Design system rule: no italic anywhere. */
     font-style: normal;
   }
@@ -162,8 +196,28 @@
   html {
     @apply font-sans;
   }
+  /* Arabic/Kurdish read better with generous line-height by default. */
+  p {
+    line-height: 1.7;
+  }
+}
+
+/* Honor reduced-motion globally (WCAG 2.3.3 / 2.2 polish). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Hide scrollbars on horizontally-scrollable rails (chip bars). */
-.no-scrollbar { scrollbar-width: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
