@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MenuPro — معاينة نظام التصميم (الجزء ب)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   MenuPro — Design Tokens (الجزء ب من DESIGN-PLAN.md)
+   ملف معاينة مستقل. لا علاقة له بكود التطبيق.
+   ============================================================ */
+:root {
+  /* === Primitives — OKLCH === */
+  --burgundy-50:  oklch(0.96 0.012 25);
+  --burgundy-100: oklch(0.90 0.03  25);
+  --burgundy-300: oklch(0.62 0.12  25);
+  --burgundy-500: oklch(0.45 0.155 25);
+  --burgundy-700: oklch(0.37 0.15  25);
+  --burgundy-900: oklch(0.28 0.10  25);
+
+  --gold-300: oklch(0.85 0.07 85);
+  --gold-500: oklch(0.74 0.10 85);
+  --gold-700: oklch(0.58 0.10 85);
+
+  --sand-50:  oklch(0.98 0.008 75);
+  --sand-100: oklch(0.96 0.012 75);
+  --sand-200: oklch(0.92 0.015 75);
+  --sand-300: oklch(0.86 0.018 75);
+  --ink-900:  oklch(0.22 0.01 60);
+  --ink-600:  oklch(0.50 0.02 60);
+
+  --green-600: oklch(0.55 0.13 150);
+  --amber-600: oklch(0.62 0.15 70);
+  --red-600:   oklch(0.52 0.20 27);
+  --blue-600:  oklch(0.50 0.13 245);
+
+  /* === Semantic tokens === */
+  --color-background:        var(--sand-50);
+  --color-foreground:        var(--ink-900);
+  --color-muted-foreground:  var(--ink-600);
+  --color-card:              #ffffff;
+  --color-border:            var(--sand-200);
+  --color-border-strong:     var(--sand-300);
+
+  --color-primary:           var(--burgundy-500);
+  --color-primary-hover:     var(--burgundy-700);
+  --color-primary-foreground:#ffffff;
+  --color-accent:            var(--gold-500);
+  --color-accent-text:       var(--gold-700);
+
+  --color-success:     var(--green-600); --color-success-foreground:#fff;
+  --color-warning:     var(--amber-600); --color-warning-foreground:var(--ink-900);
+  --color-destructive: var(--red-600);   --color-destructive-foreground:#fff;
+  --color-info:        var(--blue-600);  --color-info-foreground:#fff;
+
+  --color-ring: var(--color-primary);
+
+  /* === Typography scale === */
+  --text-caption: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+  --text-body:    clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);
+  --text-lead:    clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
+  --text-h3:      clamp(1.1875rem, 1.05rem + 0.5vw, 1.375rem);
+  --text-h2:      clamp(1.375rem, 1.15rem + 0.9vw, 1.75rem);
+  --text-h1:      clamp(1.75rem, 1.3rem + 1.8vw, 2.5rem);
+  --text-display: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+  --leading-tight: 1.2; --leading-snug: 1.4; --leading-relaxed: 1.7;
+
+  --font-sans: "Vazirmatn", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* === Spacing === */
+  --space-gutter: 1rem; --space-card: 0.875rem; --space-stack: 0.75rem;
+  --space-section: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+
+  /* === Radii === */
+  --radius: 0.75rem;
+  --radius-sm:  calc(var(--radius) * 0.6);
+  --radius-md:  calc(var(--radius) * 0.8);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-full: 999px;
+
+  /* === Shadows === */
+  --shadow-subtle: 0 1px 3px rgba(60,40,20,0.06);
+  --shadow-card:   0 2px 10px rgba(60,40,20,0.08);
+  --shadow-lifted: 0 8px 24px rgba(60,40,20,0.12);
+  --shadow-modal:  0 12px 40px rgba(60,40,20,0.18);
+
+  /* === Motion === */
+  --duration-fast: 150ms; --duration-normal: 250ms; --duration-slow: 400ms;
+  --ease-out-expo: cubic-bezier(0.16,1,0.3,1);
+  --ease-spring:   cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms!important; transition-duration:.01ms!important; }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: var(--text-body);
+  line-height: var(--leading-relaxed);
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: 1180px; margin-inline: auto; padding: 2rem var(--space-gutter) 5rem; }
+
+/* ---- Doc chrome ---- */
+.doc-title { font-size: var(--text-display); font-weight: 800; line-height: var(--leading-tight); letter-spacing: -0.01em; }
+.doc-sub { color: var(--color-muted-foreground); font-size: var(--text-lead); margin-top: .5rem; }
+.section { margin-top: var(--space-section); }
+.section > h2 {
+  font-size: var(--text-h2); font-weight: 700; margin-bottom: .25rem;
+  display: flex; align-items: center; gap: .6rem;
+}
+.section > h2::before { content:""; width: 6px; height: 1.4em; border-radius: var(--radius-full); background: var(--color-primary); display:inline-block; }
+.section > p.hint { color: var(--color-muted-foreground); font-size: var(--text-caption); margin-bottom: 1.1rem; }
+
+.grid { display: grid; gap: var(--space-stack); }
+.cols-auto { grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); }
+
+/* ---- Swatches ---- */
+.swatch { border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-subtle); border: 1px solid var(--color-border); background: var(--color-card); }
+.swatch .chip { height: 64px; }
+.swatch .meta { padding: .5rem .65rem; }
+.swatch .name { font-size: var(--text-caption); font-weight: 600; }
+.swatch .val { font-size: .7rem; color: var(--color-muted-foreground); font-family: var(--font-mono); }
+
+/* ---- Type scale rows ---- */
+.type-row { display:flex; align-items: baseline; gap: 1rem; padding: .5rem 0; border-bottom: 1px dashed var(--color-border); }
+.type-row .tag { font-family: var(--font-mono); font-size: .7rem; color: var(--color-muted-foreground); min-width: 78px; }
+
+/* ---- Spacing / radius / shadow demos ---- */
+.box-demo { display:flex; flex-wrap: wrap; gap: 1.25rem; align-items: flex-end; }
+.spc { background: var(--color-primary); border-radius: var(--radius-sm); opacity: .85; }
+.spc-label { text-align:center; font-family: var(--font-mono); font-size:.7rem; color: var(--color-muted-foreground); margin-top:.35rem; }
+.radii-demo, .shadow-demo { display:flex; flex-wrap: wrap; gap: 1.25rem; }
+.radii-box { width: 92px; height: 64px; background: var(--color-card); border: 1.5px solid var(--color-primary); display:grid; place-items:center; font-family: var(--font-mono); font-size:.7rem; color: var(--color-primary); }
+.shadow-box { width: 120px; height: 72px; background: var(--color-card); border-radius: var(--radius-lg); display:grid; place-items:center; font-family: var(--font-mono); font-size:.7rem; color: var(--color-muted-foreground); }
+
+/* =========================================================
+   مكوّنات حقيقية (تتبع الـ tokens)
+   ========================================================= */
+
+/* زر +للسلة و أزرار */
+.btn {
+  font-family: inherit; font-weight: 600; font-size: var(--text-body);
+  border: none; cursor: pointer; border-radius: var(--radius-lg);
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  transition: background var(--duration-fast) var(--ease-out-expo), transform var(--duration-fast) var(--ease-out-expo);
+}
+.btn:active { transform: scale(0.97); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-card), 0 0 0 4px var(--color-ring); }
+.btn-primary { background: var(--color-primary); color: var(--color-primary-foreground); height: 44px; padding-inline: 1.1rem; box-shadow: var(--shadow-card); }
+.btn-primary:hover { background: var(--color-primary-hover); }
+.btn-outline { background: transparent; color: var(--color-primary); border: 1.5px solid var(--color-border-strong); height: 44px; padding-inline: 1.1rem; }
+.btn-destructive { background: var(--color-destructive); color: var(--color-destructive-foreground); height: 44px; padding-inline: 1.1rem; }
+/* زر دائري +للسلة بحجم لمس 44px */
+.btn-add {
+  width: 44px; height: 44px; border-radius: var(--radius-full);
+  background: var(--color-primary); color: var(--color-primary-foreground);
+  font-size: 1.4rem; line-height: 1; box-shadow: var(--shadow-card);
+}
+.btn-add:hover { background: var(--color-primary-hover); }
+
+/* بطاقة منتج */
+.product-card {
+  background: var(--color-card); border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl); overflow: hidden; box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column; position: relative;
+  transition: box-shadow var(--duration-normal) var(--ease-out-expo), transform var(--duration-normal) var(--ease-out-expo);
+}
+.product-card:hover { box-shadow: var(--shadow-lifted); transform: translateY(-2px); }
+.product-card .img {
+  aspect-ratio: 1/1; background:
+    radial-gradient(circle at 30% 30%, var(--sand-100), var(--sand-200));
+  display:grid; place-items:center; color: var(--color-muted-foreground);
+}
+.product-card .img svg { width: 34px; height: 34px; opacity: .55; }
+.product-card .body { padding: var(--space-card); display:flex; flex-direction:column; gap: .4rem; }
+.product-card .pname { font-size: var(--text-body); font-weight: 600; line-height: var(--leading-snug); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.product-card .prow { display:flex; align-items:center; justify-content: space-between; margin-top: .2rem; }
+
+/* PriceTag */
+.price { font-family: var(--font-mono); font-weight: 600; font-size: var(--text-body); color: var(--color-foreground); }
+.price-was { font-family: var(--font-mono); font-size: var(--text-caption); color: var(--color-muted-foreground); text-decoration: line-through; }
+.price-now { color: var(--color-primary); }
+.price-stack { display:flex; flex-direction:column; line-height: 1.15; }
+
+/* شارة خصم — دلالية ثابتة (لا تتبع البراند) */
+.badge-discount {
+  position: absolute; inset-inline-start: .6rem; inset-block-start: .6rem;
+  background: var(--color-destructive); color: var(--color-destructive-foreground);
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--text-caption);
+  padding: .15rem .45rem; border-radius: var(--radius-full); box-shadow: var(--shadow-subtle);
+}
+/* شارة حالة عامة */
+.badge { display:inline-flex; align-items:center; gap:.3rem; font-size: var(--text-caption); font-weight:600; padding:.2rem .6rem; border-radius: var(--radius-full); }
+.badge-success { background: color-mix(in oklab, var(--color-success) 15%, white); color: var(--color-success); }
+.badge-warning { background: color-mix(in oklab, var(--color-warning) 22%, white); color: oklch(0.45 0.12 70); }
+.badge-info    { background: color-mix(in oklab, var(--color-info) 15%, white); color: var(--color-info); }
+
+/* إجمالي السلة (شريط داكن + accent ذهبي) */
+.cart-bar {
+  background: var(--color-foreground); color: #fff; border-radius: var(--radius-xl);
+  padding: .8rem 1.1rem; display:flex; align-items:center; justify-content: space-between;
+  box-shadow: var(--shadow-lifted);
+}
+.cart-bar .total { font-family: var(--font-mono); font-weight: 700; font-size: var(--text-lead); color: var(--color-accent); }
+.cart-bar .go { background: var(--color-primary); color:#fff; border:none; height: 40px; padding-inline: 1rem; border-radius: var(--radius-lg); font-family: inherit; font-weight:600; cursor:pointer; }
+
+/* حوار */
+.dialog-scrim { background: rgba(20,14,10,.45); border-radius: var(--radius-2xl); padding: 1.5rem; }
+.dialog {
+  background: var(--color-card); border-radius: var(--radius-2xl); box-shadow: var(--shadow-modal);
+  max-width: 360px; margin-inline:auto; position: relative; overflow: hidden;
+  animation: dlg var(--duration-normal) var(--ease-out-expo);
+}
+@keyframes dlg { from { opacity:0; transform: scale(.96) translateY(6px);} to {opacity:1; transform:none;} }
+.dialog .dhead { padding: 1.1rem var(--space-card) .4rem; }
+.dialog .dtitle { font-size: var(--text-h3); font-weight: 700; }
+.dialog .dbody { padding: .4rem var(--space-card) 0; color: var(--color-muted-foreground); font-size: var(--text-body); }
+.dialog .dfoot { padding: 1.1rem var(--space-card); display:flex; gap:.6rem; justify-content:flex-end; }
+.dialog .dclose { position:absolute; inset-block-start: .6rem; inset-inline-end: .6rem; width:36px;height:36px;border-radius:var(--radius-full); border:none; background: var(--sand-100); cursor:pointer; font-size:1.1rem; color: var(--color-muted-foreground); }
+
+/* =========================================================
+   نسخ الزبون: phone frames + brand injection
+   ========================================================= */
+.frames { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1.5rem; }
+.phone {
+  border: 1px solid var(--color-border); border-radius: var(--radius-3xl);
+  overflow: hidden; box-shadow: var(--shadow-lifted); background: var(--color-card);
+}
+/* داخل الإطار: المتغيّرات تأتي من inline style لكل براند */
+.diner {
+  background: var(--brand-bg);
+  color: var(--brand-text);
+  --color-primary: var(--brand-primary);
+  --color-primary-hover: var(--brand-primary-hover);
+  --color-card: var(--brand-card);
+  --color-foreground: var(--brand-text);
+  min-height: 100%;
+}
+.diner-head {
+  display:flex; align-items:center; justify-content: space-between;
+  padding: .85rem var(--space-gutter); background: var(--brand-primary); color:#fff;
+}
+.diner-head .brand { display:flex; align-items:center; gap:.55rem; font-weight:700; }
+.diner-head .logo { width:30px;height:30px;border-radius:var(--radius-full); background: rgba(255,255,255,.22); display:grid;place-items:center; font-size:.8rem; }
+.diner-head .acts { display:flex; gap:.5rem; }
+.diner-head .ico { width:38px;height:38px;border-radius:var(--radius-full); background: rgba(255,255,255,.16); display:grid;place-items:center; }
+.chips { display:flex; gap:.5rem; overflow:auto; padding: .8rem var(--space-gutter); }
+.chip-pill {
+  flex: 0 0 auto; min-height: 40px; display:flex; align-items:center; padding: 0 .9rem;
+  border-radius: var(--radius-full); background: var(--brand-card); border: 1.5px solid var(--color-border-strong);
+  font-size: var(--text-caption); font-weight:600; color: var(--brand-text); cursor:pointer;
+}
+.chip-pill[aria-selected="true"] {
+  background: var(--brand-primary); color:#fff; border-color: var(--brand-primary);
+  box-shadow: var(--shadow-card);
+}
+.menu-grid { display:grid; grid-template-columns: 1fr 1fr; gap: var(--space-stack); padding: .2rem var(--space-gutter) 1rem; }
+.diner .product-card { background: var(--brand-card); border-color: color-mix(in oklab, var(--brand-text) 12%, transparent); }
+.diner .product-card .pname { color: var(--brand-text); }
+.diner .price { color: var(--brand-text); }
+.diner .price-now { color: var(--brand-primary); }
+.diner .btn-add { background: var(--brand-primary); }
+.diner-cart { padding: 0 var(--space-gutter) 1rem; }
+.brand-label { font-size: var(--text-caption); font-weight:600; color: var(--color-muted-foreground); margin: 0 0 .5rem; font-family: var(--font-mono); }
+
+.callout { background: color-mix(in oklab, var(--color-info) 8%, white); border: 1px solid color-mix(in oklab, var(--color-info) 25%, white); border-radius: var(--radius-lg); padding: .8rem 1rem; font-size: var(--text-caption); color: oklch(0.4 0.1 245); }
+.two { display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 720px){ .two { grid-template-columns: 1fr; } }
+.note { font-size: var(--text-caption); color: var(--color-muted-foreground); }
+.legend { display:flex; flex-wrap:wrap; gap:1rem; margin-top:.5rem; }
+.legend span { display:inline-flex; align-items:center; gap:.4rem; font-size: var(--text-caption); }
+.legend i { width:14px;height:14px;border-radius:4px; display:inline-block; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1 class="doc-title">نظام تصميم MenuPro</h1>
+    <p class="doc-sub">معاينة حيّة للجزء ب من <code>DESIGN-PLAN.md</code> — خط Vazirmatn · ألوان OKLCH · حقن براند آمن. <span class="note">(ملف مستقل، لا يمسّ كود التطبيق)</span></p>
+  </header>
+
+  <!-- ============ 1. لوحة الألوان ============ -->
+  <section class="section">
+    <h2>١ · لوحة الألوان (Primitives — OKLCH)</h2>
+    <p class="hint">سلالم البراند والمحايدات الدافئة، مولّدة بـ OKLCH لاتّساق إدراكي ومشتقّات برمجية.</p>
+    <div class="grid cols-auto">
+      <div class="swatch"><div class="chip" style="background:var(--burgundy-100)"></div><div class="meta"><div class="name">burgundy-100</div><div class="val">0.90 0.03 25</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--burgundy-300)"></div><div class="meta"><div class="name">burgundy-300</div><div class="val">0.62 0.12 25</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--burgundy-500)"></div><div class="meta"><div class="name">burgundy-500 ★</div><div class="val">0.45 0.155 25</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--burgundy-700)"></div><div class="meta"><div class="name">burgundy-700</div><div class="val">0.37 0.15 25</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--gold-500)"></div><div class="meta"><div class="name">gold-500</div><div class="val">0.74 0.10 85</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--gold-700)"></div><div class="meta"><div class="name">gold-700 (نص)</div><div class="val">0.58 0.10 85</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--sand-50)"></div><div class="meta"><div class="name">sand-50 (خلفية)</div><div class="val">0.98 0.008 75</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--sand-200)"></div><div class="meta"><div class="name">sand-200 (حدّ)</div><div class="val">0.92 0.015 75</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--ink-900)"></div><div class="meta"><div class="name">ink-900 (نص)</div><div class="val">0.22 0.01 60</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--ink-600)"></div><div class="meta"><div class="name">ink-600 (ثانوي)</div><div class="val">0.50 0.02 60</div></div></div>
+    </div>
+
+    <h3 style="margin:1.4rem 0 .6rem;font-size:var(--text-h3);font-weight:700;">رموز الحالة الدلالية — مستقلّة عن البراند</h3>
+    <p class="hint">الأخضر/الأحمر/الكهرماني/الأزرق ثابتة دائماً مهما كان لون المطعم — حتى لا تتعطّل دلالة النجاح/الخطأ.</p>
+    <div class="grid cols-auto">
+      <div class="swatch"><div class="chip" style="background:var(--color-success)"></div><div class="meta"><div class="name">success</div><div class="val">green-600</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--color-warning)"></div><div class="meta"><div class="name">warning</div><div class="val">amber-600</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--color-destructive)"></div><div class="meta"><div class="name">destructive</div><div class="val">red-600 (≠ النبيذي)</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--color-info)"></div><div class="meta"><div class="name">info</div><div class="val">blue-600</div></div></div>
+    </div>
+  </section>
+
+  <!-- ============ 2. الطباعة ============ -->
+  <section class="section">
+    <h2>٢ · مقياس الطباعة — Vazirmatn</h2>
+    <p class="hint">مقاسات سائلة (clamp). الكردي السوراني مدعوم: <span style="font-weight:600">ڕۆژباش، چۆنیت؟ گەرمە. ژیان جوانە.</span> — تأكّد من رسم كل الحروف بجمال.</p>
+    <div>
+      <div class="type-row"><span class="tag">display</span><span style="font-size:var(--text-display);font-weight:800;line-height:var(--leading-tight)">مساء الخير — تذوّق الليلة</span></div>
+      <div class="type-row"><span class="tag">h1</span><span style="font-size:var(--text-h1);font-weight:700">قائمة الطعام الرئيسية</span></div>
+      <div class="type-row"><span class="tag">h2</span><span style="font-size:var(--text-h2);font-weight:700">اختيارات الشيف الليلة</span></div>
+      <div class="type-row"><span class="tag">h3</span><span style="font-size:var(--text-h3);font-weight:600">المقبّلات والسلطات</span></div>
+      <div class="type-row"><span class="tag">lead</span><span style="font-size:var(--text-lead)">برغر لحم بقري مشوي مع جبنة الشيدر والصلصة الخاصّة.</span></div>
+      <div class="type-row"><span class="tag">body</span><span style="font-size:var(--text-body)">نصّ الجسم الافتراضي — يجب أن يكون مريحاً للقراءة على الهاتف بارتفاع سطر ١٫٧ للعربية.</span></div>
+      <div class="type-row"><span class="tag">caption</span><span style="font-size:var(--text-caption);color:var(--color-muted-foreground)">وصف ثانوي صغير — ١٢–١٣px، لا أقلّ.</span></div>
+      <div class="type-row"><span class="tag">mono</span><span style="font-family:var(--font-mono);font-size:var(--text-lead);font-weight:600">12,000 IQD · 23:59:01</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 3. المسافات + Radii + Shadows ============ -->
+  <section class="section two">
+    <div>
+      <h2>٣ · المسافات</h2>
+      <p class="hint">سُلّم موحّد — لا قيم مفردة.</p>
+      <div class="box-demo">
+        <div><div class="spc" style="width:8px;height:8px"></div><div class="spc-label">stack/4</div></div>
+        <div><div class="spc" style="width:12px;height:12px"></div><div class="spc-label">stack</div></div>
+        <div><div class="spc" style="width:14px;height:14px"></div><div class="spc-label">card</div></div>
+        <div><div class="spc" style="width:16px;height:16px"></div><div class="spc-label">gutter</div></div>
+        <div><div class="spc" style="width:40px;height:40px"></div><div class="spc-label">section</div></div>
+      </div>
+      <h2 style="margin-top:1.6rem">الزوايا (Radii)</h2>
+      <div class="radii-demo">
+        <div class="radii-box" style="border-radius:var(--radius-sm)">sm</div>
+        <div class="radii-box" style="border-radius:var(--radius-lg)">lg</div>
+        <div class="radii-box" style="border-radius:var(--radius-xl)">xl</div>
+        <div class="radii-box" style="border-radius:var(--radius-2xl)">2xl</div>
+        <div class="radii-box" style="border-radius:var(--radius-full);width:64px">full</div>
+      </div>
+    </div>
+    <div>
+      <h2>الظلال</h2>
+      <p class="hint">مسحة دافئة (بنّية شفّافة) — ترتفع مع الارتفاع.</p>
+      <div class="shadow-demo">
+        <div class="shadow-box" style="box-shadow:var(--shadow-subtle)">subtle</div>
+        <div class="shadow-box" style="box-shadow:var(--shadow-card)">card</div>
+        <div class="shadow-box" style="box-shadow:var(--shadow-lifted)">lifted</div>
+        <div class="shadow-box" style="box-shadow:var(--shadow-modal)">modal</div>
+      </div>
+      <h2 style="margin-top:1.6rem">الحركة</h2>
+      <p class="hint">fast 150ms · normal 250ms · slow 400ms — منحنى <code>ease-out-expo</code>. مقيّدة بـ <code>prefers-reduced-motion</code>.</p>
+      <button class="btn btn-primary" style="margin-top:.4rem">مرّر فوقي — انتقال هادئ</button>
+    </div>
+  </section>
+
+  <!-- ============ 4. مكوّنات حقيقية ============ -->
+  <section class="section">
+    <h2>٤ · مكوّنات حقيقية</h2>
+    <p class="hint">أزرار بحجم لمس ٤٤px، شارة خصم دلالية صلبة، إجمالي سلة، حوار.</p>
+    <div class="two">
+      <div>
+        <p class="brand-label">أزرار (height ≥ 44px · focus مرئي صلب)</p>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1.2rem">
+          <button class="btn btn-primary">أضف للطلب</button>
+          <button class="btn btn-outline">تعديل</button>
+          <button class="btn btn-destructive">حذف</button>
+          <button class="btn btn-add" aria-label="أضف للسلة">+</button>
+        </div>
+        <p class="brand-label">شارات حالة</p>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.2rem">
+          <span class="badge badge-success">نشط</span>
+          <span class="badge badge-warning">أصناف غير متاحة</span>
+          <span class="badge badge-info">وضع الإغلاق</span>
+        </div>
+        <p class="brand-label">إجمالي السلة</p>
+        <div class="cart-bar">
+          <span>٣ أصناف</span>
+          <span class="total">27,500 IQD</span>
+          <button class="go">إتمام ←</button>
+        </div>
+      </div>
+      <div>
+        <p class="brand-label">حوار (إغلاق منطقي end · focus trap · حركة هادئة)</p>
+        <div class="dialog-scrim">
+          <div class="dialog" role="alertdialog" aria-labelledby="dt" aria-describedby="db">
+            <button class="dclose" aria-label="إغلاق">✕</button>
+            <div class="dhead"><h3 class="dtitle" id="dt">حذف الصنف؟</h3></div>
+            <div class="dbody" id="db">سيُحذف «برغر لحم» نهائياً ولن يظهر للزبائن. لا يمكن التراجع.</div>
+            <div class="dfoot">
+              <button class="btn btn-outline">إلغاء</button>
+              <button class="btn btn-destructive">حذف نهائي</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. واجهة الزبون — حقن براند × 3 ============ -->
+  <section class="section">
+    <h2>٥ · واجهة الزبون — إثبات حقن البراند (RTL عربي)</h2>
+    <p class="hint">نفس المكوّنات، ثلاثة ألوان مطاعم مختلفة. لاحظ: زر «+» ورأس الصفحة والشِب النشط والسعر المخفَّض <b>تتبع البراند</b>، بينما <b>شارة الخصم تبقى حمراء دلالية</b> — لا تصادم.</p>
+    <div class="legend">
+      <span><i style="background:var(--burgundy-500)"></i> نبيذي (افتراضي)</span>
+      <span><i style="background:oklch(0.5 0.13 245)"></i> أزرق</span>
+      <span><i style="background:oklch(0.55 0.13 160)"></i> أخضر زيتي</span>
+    </div>
+    <div class="frames" style="margin-top:1rem">
+
+      <!-- براند 1: نبيذي -->
+      <div class="phone">
+        <div class="diner" dir="rtl" style="
+          --brand-primary: oklch(0.45 0.155 25);
+          --brand-primary-hover: oklch(0.37 0.15 25);
+          --brand-bg: oklch(0.98 0.008 75);
+          --brand-card: #ffffff;
+          --brand-text: oklch(0.22 0.01 60);">
+          <div class="diner-head">
+            <div class="brand"><span class="logo">ﻡ</span><span>مطعم الأصيل</span></div>
+            <div class="acts"><span class="ico">☰</span><span class="ico">🛍</span></div>
+          </div>
+          <div class="chips">
+            <button class="chip-pill" aria-selected="true">الكلّ</button>
+            <button class="chip-pill">مقبّلات</button>
+            <button class="chip-pill">رئيسية</button>
+            <button class="chip-pill">حلويات</button>
+          </div>
+          <div class="menu-grid">
+            <div class="product-card">
+              <span class="badge-discount">-20٪</span>
+              <div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11h18M5 11V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4M6 11v8M18 11v8"/></svg></div>
+              <div class="body">
+                <span class="pname">برغر لحم بقري مشوي مع جبنة شيدر</span>
+                <div class="prow">
+                  <div class="price-stack"><span class="price price-now">9,600</span><span class="price-was">12,000</span></div>
+                  <button class="btn-add" aria-label="أضف">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="product-card">
+              <div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M8 13c1 1.5 2.5 2 4 2s3-.5 4-2"/></svg></div>
+              <div class="body">
+                <span class="pname">سلطة الموسم الطازجة</span>
+                <div class="prow"><span class="price">7,000</span><button class="btn-add" aria-label="أضف">+</button></div>
+              </div>
+            </div>
+          </div>
+          <div class="diner-cart"><div class="cart-bar"><span>صنفان</span><span class="total">16,600</span><button class="go">السلة</button></div></div>
+        </div>
+      </div>
+
+      <!-- براند 2: أزرق -->
+      <div class="phone">
+        <div class="diner" dir="rtl" style="
+          --brand-primary: oklch(0.5 0.13 245);
+          --brand-primary-hover: oklch(0.42 0.13 245);
+          --brand-bg: oklch(0.98 0.006 240);
+          --brand-card: #ffffff;
+          --brand-text: oklch(0.24 0.02 250);">
+          <div class="diner-head">
+            <div class="brand"><span class="logo">ﺏ</span><span>بحر الخليج</span></div>
+            <div class="acts"><span class="ico">☰</span><span class="ico">🛍</span></div>
+          </div>
+          <div class="chips">
+            <button class="chip-pill" aria-selected="true">الكلّ</button>
+            <button class="chip-pill">أسماك</button>
+            <button class="chip-pill">مشاوي</button>
+            <button class="chip-pill">مشروبات</button>
+          </div>
+          <div class="menu-grid">
+            <div class="product-card">
+              <span class="badge-discount">-15٪</span>
+              <div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12s3-6 10-6 10 6 10 6-3 6-10 6S2 12 2 12z"/><circle cx="9" cy="12" r="1.2"/></svg></div>
+              <div class="body">
+                <span class="pname">سمك مشوي بالأعشاب والليمون</span>
+                <div class="prow">
+                  <div class="price-stack"><span class="price price-now">14,450</span><span class="price-was">17,000</span></div>
+                  <button class="btn-add" aria-label="أضف">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="product-card">
+              <div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2v6a6 6 0 0 0 12 0V2M9 22h6M12 14v8"/></svg></div>
+              <div class="body">
+                <span class="pname">عصير ليمون بالنعناع</span>
+                <div class="prow"><span class="price">4,000</span><button class="btn-add" aria-label="أضف">+</button></div>
+              </div>
+            </div>
+          </div>
+          <div class="diner-cart"><div class="cart-bar"><span>صنفان</span><span class="total">18,450</span><button class="go">السلة</button></div></div>
+        </div>
+      </div>
+
+      <!-- براند 3: أخضر زيتي -->
+      <div class="phone">
+        <div class="diner" dir="rtl" style="
+          --brand-primary: oklch(0.55 0.13 160);
+          --brand-primary-hover: oklch(0.46 0.13 160);
+          --brand-bg: oklch(0.98 0.01 140);
+          --brand-card: #ffffff;
+          --brand-text: oklch(0.24 0.02 150);">
+          <div class="diner-head">
+            <div class="brand"><span class="logo">ﺯ</span><span>زيتون</span></div>
+            <div class="acts"><span class="ico">☰</span><span class="ico">🛍</span></div>
+          </div>
+          <div class="chips">
+            <button class="chip-pill" aria-selected="true">الكلّ</button>
+            <button class="chip-pill">نباتي</button>
+            <button class="chip-pill">معجّنات</button>
+            <button class="chip-pill">قهوة</button>
+          </div>
+          <div class="menu-grid">
+            <div class="product-card">
+              <span class="badge-discount">-10٪</span>
+              <div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7 7 7 13 12 22 17 13 17 7 12 2z"/></svg></div>
+              <div class="body">
+                <span class="pname">طبق متبّلات نباتية مشكّلة</span>
+                <div class="prow">
+                  <div class="price-stack"><span class="price price-now">8,100</span><span class="price-was">9,000</span></div>
+                  <button class="btn-add" aria-label="أضف">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="product-card">
+              <div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h13a3 3 0 0 1 0 6h-1M4 8v7a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4"/></svg></div>
+              <div class="body">
+                <span class="pname">قهوة مختصّة</span>
+                <div class="prow"><span class="price">3,500</span><button class="btn-add" aria-label="أضف">+</button></div>
+              </div>
+            </div>
+          </div>
+          <div class="diner-cart"><div class="cart-bar"><span>صنفان</span><span class="total">11,600</span><button class="go">السلة</button></div></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 6. واجهة الزبون — LTR ============ -->
+  <section class="section">
+    <h2>٦ · النسخة LTR (إنجليزي) — تحقّق الانعكاس</h2>
+    <p class="hint">نفس المكوّنات بـ <code>dir="ltr"</code>: الشعار في اليسار، شارة الخصم وزر «+» ينعكسان منطقياً عبر <code>inset-inline</code> / <code>flex</code> دون كود اتجاهي ثابت.</p>
+    <div class="frames">
+      <div class="phone" style="max-width:320px">
+        <div class="diner" dir="ltr" lang="en" style="
+          --brand-primary: oklch(0.45 0.155 25);
+          --brand-primary-hover: oklch(0.37 0.15 25);
+          --brand-bg: oklch(0.98 0.008 75);
+          --brand-card: #ffffff;
+          --brand-text: oklch(0.22 0.01 60);">
+          <div class="diner-head">
+            <div class="brand"><span class="logo">A</span><span>Al-Aseel</span></div>
+            <div class="acts"><span class="ico">☰</span><span class="ico">🛍</span></div>
+          </div>
+          <div class="chips">
+            <button class="chip-pill" aria-selected="true">All</button>
+            <button class="chip-pill">Starters</button>
+            <button class="chip-pill">Mains</button>
+            <button class="chip-pill">Desserts</button>
+          </div>
+          <div class="menu-grid">
+            <div class="product-card">
+              <span class="badge-discount">-20%</span>
+              <div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11h18M5 11V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4M6 11v8M18 11v8"/></svg></div>
+              <div class="body">
+                <span class="pname">Grilled beef burger with cheddar</span>
+                <div class="prow">
+                  <div class="price-stack"><span class="price price-now">9,600</span><span class="price-was">12,000</span></div>
+                  <button class="btn-add" aria-label="Add">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="product-card">
+              <div class="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M8 13c1 1.5 2.5 2 4 2s3-.5 4-2"/></svg></div>
+              <div class="body">
+                <span class="pname">Fresh seasonal salad</span>
+                <div class="prow"><span class="price">7,000</span><button class="btn-add" aria-label="Add">+</button></div>
+              </div>
+            </div>
+          </div>
+          <div class="diner-cart"><div class="cart-bar"><span>2 items</span><span class="total">16,600</span><button class="go">Cart →</button></div></div>
+        </div>
+      </div>
+      <div style="align-self:center">
+        <div class="callout">
+          <b>ما يثبته هذا القسم:</b><br>
+          • العناصر التابعة للبراند (الرأس، الشِب النشط، زر +، السعر المخفَّض) تتلوّن من <code>--brand-primary</code> المحقون.<br>
+          • شارة الخصم تبقى <b>حمراء دلالية</b> في كل البراندات — الدلالة لا تنكسر.<br>
+          • الاتجاه ينعكس بـ <code>inset-inline-start/end</code> دون قيم <code>left/right</code> ثابتة.<br>
+          • الخلفية/البطاقة/النص محقونة أيضاً، مع حواجز تباين في تبويب التصميم تمنع التركيبات غير المقروءة.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="section note" style="border-top:1px solid var(--color-border);padding-top:1rem">
+    معاينة مولّدة من DESIGN-PLAN.md · لا تعكس كود التطبيق الحالي · للقرار البصري فقط.
+  </footer>
+
+</div>
+</body>
+</html>
