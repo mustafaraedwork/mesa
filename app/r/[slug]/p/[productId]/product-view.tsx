@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, Clock, Plus } from 'lucide-react';
 import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
 import { isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
 import { track } from '@/lib/track';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
-import { formatPrice, FloatingCart } from '../../menu-view';
+import { FloatingCart } from '../../menu-view';
+import { DiscountBadge, MenuImage, PriceTag, formatAmount, nameLangProps, useSyncHtmlLang } from '../../_ui';
 
 const LANG_KEY = 'mesa-lang';
 
@@ -22,6 +24,8 @@ export function ProductView({
   const [lang, setLang] = useState<Lang>('ar');
   const [cartCount, setCartCount] = useState(0);
   const router = useRouter();
+
+  useSyncHtmlLang(lang);
 
   // Step back through history so the diner returns to wherever they came from
   // (menu scroll position, chosen category) instead of a fresh menu load.
@@ -58,62 +62,67 @@ export function ProductView({
   const unavailable = !product.is_available;
   const hasDiscount = product.discount_percent !== null && product.original_price !== null;
 
+  const brand: CSSProperties = {
+    ['--primary' as string]: restaurant.primary_color,
+    ['--ring' as string]: restaurant.primary_color,
+    background: restaurant.background_color,
+    color: restaurant.text_color,
+  };
+
   return (
-    <main
-      dir={dir}
-      className="min-h-screen pb-28"
-      style={{ background: restaurant.background_color, color: restaurant.text_color }}
-    >
+    <main dir={dir} className="min-h-screen pb-28" style={brand}>
       <header
-        className="shadow-card sticky top-0 z-20 flex items-center gap-3 px-4 py-3"
+        className="shadow-card sticky top-0 z-20 flex items-center gap-2 px-gutter py-3"
         style={{ background: restaurant.primary_color, color: '#fff' }}
       >
-        <button type="button" onClick={goBack} className="text-sm hover:underline">
-          ← {t('back_to_menu', lang)}
+        <button
+          type="button"
+          onClick={goBack}
+          className="-ms-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-medium hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" aria-hidden />
+          {t('back_to_menu', lang)}
         </button>
         <h1 className="flex-1 truncate text-base font-semibold">{restaurant.display_name}</h1>
       </header>
 
-      <div className="mx-auto max-w-2xl px-4 py-5">
+      <div className="mx-auto max-w-2xl px-gutter py-5">
         <div
-          className="shadow-card overflow-hidden rounded-xl"
+          className="shadow-card overflow-hidden rounded-2xl"
           style={{ background: restaurant.card_color }}
         >
-          <div className="bg-cream-deep relative aspect-square w-full">
-            {product.image_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.image_url} alt="" className="h-full w-full object-cover" />
-            )}
-            {hasDiscount && (
-              <span className="bg-amber absolute start-3 top-3 rounded-full px-2 py-1 text-xs font-bold text-white shadow">
-                -{product.discount_percent}%
-              </span>
-            )}
+          <div className="relative aspect-square w-full">
+            <MenuImage
+              src={product.image_url}
+              alt={name}
+              sizes="(max-width: 768px) 100vw, 640px"
+              priority
+              className="h-full w-full"
+            />
+            {hasDiscount && <DiscountBadge percent={product.discount_percent!} className="!start-3 !top-3" />}
           </div>
 
-          <div className="space-y-3 p-4">
-            <h2 className="text-xl font-bold">{name}</h2>
+          <div className="space-y-3 p-card">
+            <h2 className="text-h2 font-bold" {...nameLangProps(lang)}>{name}</h2>
 
-            <div className="flex items-baseline gap-2">
-              {hasDiscount && (
-                <span className="text-muted-foreground text-sm line-through">
-                  {formatPrice(product.original_price!, restaurant.currency)}
-                </span>
-              )}
-              <span
-                className="text-lg font-bold"
-                style={{ color: restaurant.primary_color }}
-              >
-                {formatPrice(product.price, restaurant.currency)}
+            <PriceTag
+              price={formatAmount(product.price)}
+              original={hasDiscount ? formatAmount(product.original_price!) : null}
+              currency={restaurant.currency}
+              layout="inline"
+            />
+
+            <div className="text-muted-foreground flex items-center gap-1.5 text-body">
+              <Clock className="h-4 w-4" aria-hidden />
+              <span>
+                {product.prep_time_minutes} {t('prep_unit', lang)}
               </span>
-            </div>
-
-            <div className="text-muted-foreground text-sm">
-              ⏱ {product.prep_time_minutes} {t('prep_unit', lang)}
             </div>
 
             {unavailable && (
-              <p className="text-destructive text-sm font-medium">{t('unavailable', lang)}</p>
+              <p className="text-destructive text-body font-medium" role="status">
+                {t('unavailable', lang)}
+              </p>
             )}
 
             <button
@@ -123,10 +132,11 @@ export function ProductView({
                 addToCart(slug, product.id);
                 track('product_add', { slug, productId: product.id });
               }}
-              className="shadow-lifted w-full rounded-lg py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="shadow-card flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold text-white transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
               style={{ background: restaurant.primary_color }}
             >
-              + {t('add', lang)}
+              <Plus className="h-5 w-5" aria-hidden />
+              {t('add', lang)}
             </button>
           </div>
         </div>

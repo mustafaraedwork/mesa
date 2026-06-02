@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, Megaphone, Minus, Plus, Trash2, X } from 'lucide-react';
 import {
   clearCart,
   getCart,
@@ -13,6 +14,7 @@ import { isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
 import { formatPrice } from '../menu-view';
+import { MenuImage, PriceTag, formatAmount, nameLangProps, useSyncHtmlLang } from '../_ui';
 
 const LANG_KEY = 'mesa-lang';
 const SUGGESTION_COUNT = 4;
@@ -31,6 +33,8 @@ export function CartView({
   const [lang, setLang] = useState<Lang>('ar');
   const [readModal, setReadModal] = useState(false);
   const router = useRouter();
+
+  useSyncHtmlLang(lang);
 
   // Step back one entry instead of forcing a fresh menu load, preserving the
   // diner's place. Deep-linked entries with no history fall back to the menu.
@@ -156,25 +160,46 @@ export function CartView({
     return picked.slice(0, SUGGESTION_COUNT);
   }, [data.categories, resolved, productIndex]);
 
+  const brand: CSSProperties = {
+    ['--primary' as string]: r.primary_color,
+    ['--ring' as string]: r.primary_color,
+    background: r.background_color,
+    color: r.text_color,
+  };
+
   return (
-    <main
-      dir={dir}
-      className="min-h-screen pb-32"
-      style={{ background: r.background_color, color: r.text_color }}
-    >
+    <main dir={dir} className="min-h-screen pb-32" style={brand}>
       <header
-        className="shadow-card sticky top-0 z-20 flex items-center gap-3 px-4 py-3"
+        className="shadow-card sticky top-0 z-20 flex items-center gap-2 px-gutter py-3"
         style={{ background: r.primary_color, color: '#fff' }}
       >
-        <button type="button" onClick={goBack} className="text-sm hover:underline">
-          ← {t('back_to_menu', lang)}
+        <button
+          type="button"
+          onClick={goBack}
+          className="-ms-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-medium hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" aria-hidden />
+          {t('back_to_menu', lang)}
         </button>
         <h1 className="flex-1 truncate text-base font-semibold">{t('cart_button', lang)}</h1>
       </header>
 
-      <div className="mx-auto max-w-3xl space-y-6 px-4 py-4">
+      <div className="mx-auto max-w-3xl space-y-6 px-gutter py-4">
         {resolved.length === 0 ? (
-          <p className="text-muted-foreground shadow-card rounded-xl p-6 text-center text-sm" style={{ background: r.card_color }}>{t('cart_empty', lang)}</p>
+          <div
+            className="text-muted-foreground shadow-card flex flex-col items-center gap-3 rounded-2xl p-10 text-center"
+            style={{ background: r.card_color }}
+          >
+            <Megaphone className="h-8 w-8 opacity-25" aria-hidden />
+            <p className="text-body">{t('cart_empty', lang)}</p>
+            <button
+              type="button"
+              onClick={goBack}
+              className="text-primary text-body font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+            >
+              {t('back_to_menu', lang)}
+            </button>
+          </div>
         ) : (
           <>
             <ul className="divide-y rounded-xl shadow-card" style={{ background: r.card_color }}>
@@ -227,10 +252,11 @@ export function CartView({
         <button
           type="button"
           onClick={() => setReadModal(true)}
-          className="shadow-lifted fixed bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-full px-6 py-3 text-sm font-semibold text-white"
+          className="shadow-lifted fixed bottom-4 left-1/2 z-30 flex min-h-12 -translate-x-1/2 items-center gap-2 rounded-full px-6 text-sm font-semibold text-white transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
           style={{ background: r.primary_color }}
         >
-          📣 {t('read_to_waiter', lang)}
+          <Megaphone className="h-5 w-5" aria-hidden />
+          {t('read_to_waiter', lang)}
         </button>
       )}
 
@@ -274,58 +300,53 @@ function CartRow({
   const hasDiscount = product.discount_percent !== null && product.original_price !== null;
   return (
     <li className="flex items-center gap-3 p-3">
-      {product.image_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={product.image_url}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="h-14 w-14 shrink-0 rounded object-cover"
-        />
-      ) : (
-        <div className="bg-cream-deep h-14 w-14 shrink-0 rounded" aria-hidden />
-      )}
+      <MenuImage
+        src={product.image_url}
+        alt={name}
+        sizes="56px"
+        className="h-14 w-14 shrink-0"
+        rounded="rounded-lg"
+      />
       <div className="min-w-0 flex-1">
-        <div className="truncate font-medium">{name}</div>
-        <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          {hasDiscount && (
-            <span className="line-through">
-              {formatPrice(product.original_price!, currency)}
-            </span>
-          )}
-          <span>{formatPrice(product.price, currency)}</span>
-        </div>
+        <div className="truncate font-medium" {...nameLangProps(lang)}>{name}</div>
+        <PriceTag
+          price={formatAmount(product.price)}
+          original={hasDiscount ? formatAmount(product.original_price!) : null}
+          currency={currency}
+          layout="inline"
+        />
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <div className="flex items-center gap-1">
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <div className="border-border-strong flex items-center gap-0.5 rounded-full border">
           <button
             type="button"
             onClick={onDecrease}
-            className="bg-muted/60 h-7 w-7 rounded text-base"
+            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
             aria-label={t('qty_decrease', lang)}
           >
-            {t('qty_decrease', lang)}
+            <Minus className="h-4 w-4" aria-hidden />
           </button>
-          <span className="w-6 text-center text-sm font-medium">{quantity}</span>
+          <span className="w-7 text-center text-sm font-semibold tabular-nums">{quantity}</span>
           <button
             type="button"
             onClick={onIncrease}
-            className="bg-muted/60 h-7 w-7 rounded text-base"
+            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
             aria-label={t('qty_increase', lang)}
           >
-            {t('qty_increase', lang)}
+            <Plus className="h-4 w-4" aria-hidden />
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold" style={{ color: primary }}>
+          <span className="text-sm font-bold tabular-nums" style={{ color: primary }}>
             {formatPrice(lineTotal, currency)}
           </span>
           <button
             type="button"
             onClick={onRemove}
-            className="text-muted-foreground hover:text-destructive text-xs"
+            className="text-muted-foreground hover:text-destructive flex h-8 items-center gap-1 text-caption focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+            aria-label={`${t('remove', lang)} — ${name}`}
           >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden />
             {t('remove', lang)}
           </button>
         </div>
@@ -354,26 +375,18 @@ function SuggestionCard({
     <button
       type="button"
       onClick={onAdd}
-      className="border-border-lite shadow-card hover:shadow-lifted flex flex-col items-stretch overflow-hidden rounded-xl border text-start transition-shadow"
+      className="border-border-lite shadow-card hover:shadow-lifted flex flex-col items-stretch overflow-hidden rounded-2xl border text-start transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
       style={{ background: card }}
     >
-      <div className="relative aspect-square">
-        {product.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.image_url}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="bg-cream-deep h-full w-full" aria-hidden />
-        )}
-      </div>
+      <MenuImage
+        src={product.image_url}
+        alt={name}
+        sizes="(max-width: 640px) 50vw, 160px"
+        className="aspect-square w-full"
+      />
       <div className="space-y-1 p-2">
-        <div className="line-clamp-2 text-xs font-medium">{name}</div>
-        <div className="text-xs font-bold" style={{ color: primary }}>
+        <div className="line-clamp-2 text-caption font-medium" {...nameLangProps(lang)}>{name}</div>
+        <div className="font-mono text-caption font-bold tabular-nums" style={{ color: primary }}>
           {formatPrice(product.price, currency)}
         </div>
       </div>
@@ -398,11 +411,29 @@ function ReadToWaiterModal({
   onClose: () => void;
   onClear: () => void;
 }) {
-  // Q-23: dismiss on Escape for keyboard/AT users (the hand-rolled modal has no
-  // Radix to do this for it).
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Dismiss on Escape + move focus in and trap Tab inside (WCAG 2.1.1 / 4.1.2).
   useEffect(() => {
+    const node = ref.current;
+    const focusables = node?.querySelectorAll<HTMLElement>('button, [href], [tabindex]:not([tabindex="-1"])');
+    focusables?.[0]?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && focusables && focusables.length > 0) {
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -410,12 +441,14 @@ function ReadToWaiterModal({
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
       className="fixed inset-0 z-40 flex items-stretch justify-center bg-black/50 p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="read-waiter-title"
         className="bg-background flex max-h-[100dvh] w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90vh] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -423,9 +456,17 @@ function ReadToWaiterModal({
           className="flex items-center justify-between gap-3 px-5 py-4"
           style={{ background: primary, color: '#fff' }}
         >
-          <h2 className="text-lg font-bold">📣 {t('read_to_waiter', lang)}</h2>
-          <button type="button" onClick={onClose} className="text-2xl leading-none">
-            ×
+          <h2 id="read-waiter-title" className="flex items-center gap-2 text-lg font-bold">
+            <Megaphone className="h-5 w-5" aria-hidden />
+            {t('read_to_waiter', lang)}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('back_to_menu', lang)}
+            className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            <X className="h-5 w-5" aria-hidden />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -451,18 +492,19 @@ function ReadToWaiterModal({
             <span style={{ color: primary }}>{formatPrice(total, currency)}</span>
           </div>
         </div>
-        <div className="flex justify-between gap-3 border-t px-5 py-3">
+        <div className="flex items-center justify-between gap-3 border-t px-5 py-3">
           <button
             type="button"
             onClick={onClear}
-            className="text-destructive text-sm hover:underline"
+            className="text-destructive flex min-h-11 items-center gap-1.5 text-sm font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
           >
-            🗑 {t('remove', lang)}
+            <Trash2 className="h-4 w-4" aria-hidden />
+            {t('remove', lang)}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="shadow-card rounded-md px-4 py-2 text-sm font-medium text-white"
+            className="shadow-card flex min-h-11 items-center rounded-lg px-5 text-sm font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
             style={{ background: primary }}
           >
             {t('back_to_menu', lang)}

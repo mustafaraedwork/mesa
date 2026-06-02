@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import { ChevronDown, ArrowRight } from 'lucide-react';
 import { LANGS, isRtl, t, type Lang } from '@/lib/i18n';
+import { useSyncHtmlLang } from './_ui';
 
 const LANG_KEY = 'mesa-lang';
 
@@ -28,6 +30,9 @@ export function WelcomeScreen({
   onStart: () => void;
 }) {
   const [langOpen, setLangOpen] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useSyncHtmlLang(lang);
 
   // Auto-open the language picker only on the first ever visit. Once the diner
   // picks a language it's cached in localStorage, so on later visits the popup
@@ -39,11 +44,29 @@ export function WelcomeScreen({
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Q-23: dismiss the language popup on Escape.
+  // Dismiss on Escape + move focus into the dialog and trap Tab inside it
+  // while open (WCAG 2.1.1 / 4.1.2).
   useEffect(() => {
     if (!langOpen) return;
+    const node = dialogRef.current;
+    const focusables = node?.querySelectorAll<HTMLElement>('button, [href], [tabindex]:not([tabindex="-1"])');
+    focusables?.[0]?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLangOpen(false);
+      if (e.key === 'Escape') {
+        setLangOpen(false);
+        return;
+      }
+      if (e.key === 'Tab' && focusables && focusables.length > 0) {
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -68,36 +91,40 @@ export function WelcomeScreen({
         <button
           type="button"
           onClick={() => setLangOpen(true)}
-          className="flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium"
-          style={{ borderColor: `${primary}33`, color: primary }}
+          className="flex min-h-11 items-center gap-1 rounded-full border px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{ borderColor: `${primary}55`, color: primary, outlineColor: primary }}
         >
           {langLabel}
-          <ChevronDown className="h-3.5 w-3.5" />
+          <ChevronDown className="h-4 w-4" />
         </button>
       </div>
 
       {/* Middle — emblem block */}
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full">
+        <div className="mb-6 flex h-24 w-24 items-center justify-center">
           {restaurant.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={restaurant.logo_url}
-              alt={restaurant.display_name}
-              className="h-20 w-20 rounded-full object-contain"
-            />
+            <span className="relative block h-24 w-24 overflow-hidden rounded-full">
+              <Image
+                src={restaurant.logo_url}
+                alt={restaurant.display_name}
+                fill
+                sizes="96px"
+                priority
+                className="object-contain"
+              />
+            </span>
           ) : (
-            <span className="text-3xl font-bold" style={{ color: primary }}>
+            <span className="text-display font-bold" style={{ color: primary }}>
               {restaurant.display_name.slice(0, 1) || '·'}
             </span>
           )}
         </div>
 
-        <h1 className="text-4xl font-bold tracking-tight" style={{ color: primary }}>
+        <h1 className="text-display font-bold" style={{ color: primary }}>
           {restaurant.display_name}
         </h1>
-        <p className="text-gold mt-3 text-lg font-medium">{t(greetingKey, lang)}</p>
-        <p className="text-muted-foreground mt-4 max-w-xs text-sm leading-7">
+        <p className="text-accent-text mt-3 text-lead font-medium">{t(greetingKey, lang)}</p>
+        <p className="text-muted-foreground mt-4 max-w-xs text-body">
           {t('welcome_tagline', lang)}
         </p>
       </div>
@@ -107,27 +134,32 @@ export function WelcomeScreen({
         <button
           type="button"
           onClick={onStart}
-          className="shadow-lifted w-full max-w-sm rounded-xl py-4 text-base font-semibold text-white"
-          style={{ background: primary }}
+          className="shadow-lifted flex w-full max-w-sm items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{ background: primary, outlineColor: primary }}
         >
-          {t('open_menu', lang)} ←
+          {t('open_menu', lang)}
+          <ArrowRight className="h-5 w-5 rtl:-scale-x-100" aria-hidden />
         </button>
-        <p className="text-muted-lite text-[10px] tracking-[0.2em]">POWERED BY MESA OS</p>
+        <p className="text-muted-lite text-caption tracking-[0.18em]">POWERED BY MESA OS</p>
       </div>
 
       {/* Language popup */}
       {langOpen && (
         <div
-          role="dialog"
-          aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8"
           onClick={() => setLangOpen(false)}
         >
           <div
-            className="bg-card border-foreground shadow-modal w-full max-w-xs space-y-3 rounded-xl border-2 p-6"
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="welcome-lang-title"
+            className="bg-card shadow-modal w-full max-w-xs space-y-3 rounded-2xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-center text-base font-semibold">{t('choose_lang', lang)}</h2>
+            <h2 id="welcome-lang-title" className="text-center text-lead font-semibold">
+              {t('choose_lang', lang)}
+            </h2>
             <div className="space-y-2">
               {LANGS.map((l) => (
                 <button
@@ -138,10 +170,10 @@ export function WelcomeScreen({
                     setLangOpen(false);
                   }}
                   className={
-                    'w-full rounded-lg border py-3 text-sm font-medium transition-colors ' +
+                    'min-h-12 w-full rounded-xl border text-body font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] ' +
                     (l.code === lang
                       ? 'border-primary bg-primary/5'
-                      : 'border-border hover:bg-muted')
+                      : 'border-border-strong hover:bg-muted')
                   }
                 >
                   {l.label}

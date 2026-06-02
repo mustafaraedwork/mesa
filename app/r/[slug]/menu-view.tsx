@@ -1,24 +1,47 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ChevronDown, Plus, ShoppingBag } from 'lucide-react';
 import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
 import { LANGS, isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import { track } from '@/lib/track';
 import { WelcomeScreen } from './welcome-screen';
+import {
+  DiscountBadge,
+  MenuImage,
+  PriceTag,
+  formatAmount,
+  nameLangProps,
+  useSyncHtmlLang,
+} from './_ui';
 import type { MenuCategory, MenuPayload, MenuProduct } from '@/lib/menu';
 
 const LANG_KEY = 'mesa-lang';
 const POLL_MS = 30_000;
+
+/** Per-restaurant brand colors injected as CSS variables on the diner root, so
+ *  Tailwind brand utilities (bg-primary, text-primary, ring, shadow-cta) follow
+ *  the tenant. Semantic state tokens (destructive/success/…) stay fixed. */
+function brandVars(colors: BrandColors): CSSProperties {
+  return {
+    ['--primary' as string]: colors.primary,
+    ['--ring' as string]: colors.primary,
+    ['--background' as string]: colors.bg,
+    ['--card' as string]: colors.card,
+    ['--foreground' as string]: colors.text,
+    background: colors.bg,
+    color: colors.text,
+  };
+}
 
 // Survives client navigations within a page load (server never writes it, so
 // it stays false in SSR — no hydration mismatch). Once the diner opens the
 // menu, returning here via the back button skips the welcome screen instead of
 // landing them back on it. A fresh page load / QR scan resets it.
 let menuOpenedThisLoad = false;
-const DAY_NAMES = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
 type CategoryNode = MenuCategory & { children: MenuCategory[] };
 type BrandColors = {
@@ -42,16 +65,8 @@ export function MenuView({
   const [started, setStarted] = useState(() => menuOpenedThisLoad);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
-  // Editorial date eyebrow — read the client clock once on mount (cosmetic).
-  // Q-21: known limitation — crossing midnight without reloading keeps the
-  // mount-time day/time; acceptable for a decorative greeting and avoids a
-  // non-pure Date() read on every render.
-  const [dateEyebrow] = useState(() => {
-    const d = new Date();
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `${DAY_NAMES[d.getDay()]} · ${hh}:${mm}`;
-  });
+  // Mirror the document to the chosen language (WCAG 3.1.2 / 1.3.2).
+  useSyncHtmlLang(lang);
 
   /* eslint-disable react-hooks/set-state-in-effect --
      Both effects sync from client-only stores on mount (localStorage / cart). */
@@ -203,15 +218,10 @@ export function MenuView({
   }
 
   return (
-    <main
-      dir={dir}
-      className="min-h-screen pb-28"
-      style={{ background: colors.bg, color: colors.text }}
-    >
-      {/* Header */}
+    <main dir={dir} className="min-h-screen pb-28" style={brandVars(colors)}>
+      {/* Header — logical direction: brand at the start, actions at the end */}
       <header
-        dir="ltr"
-        className="sticky top-0 z-20 flex items-center justify-between px-4 py-3"
+        className="sticky top-0 z-20 flex items-center justify-between px-gutter py-3"
         style={{ background: colors.header }}
       >
         <BrandMark logoUrl={r.logo_url} displayName={r.display_name} primary={colors.primary} />
@@ -227,15 +237,14 @@ export function MenuView({
             href={`/r/${slug}/cart`}
             aria-label={t('cart_button', lang)}
             className={
-              'bg-card border-border-lite shadow-card flex h-10 items-center rounded-full border ' +
-              (cartCount > 0 ? 'gap-1.5 px-3' : 'w-10 justify-center')
+              'bg-card border-border-lite shadow-card flex h-11 items-center rounded-full border transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] ' +
+              (cartCount > 0 ? 'gap-1.5 px-3.5' : 'w-11 justify-center')
             }
           >
-            <ShoppingBag className="text-ink-2 h-5 w-5" />
+            <ShoppingBag className="h-5 w-5" />
             {cartCount > 0 && (
               <span
-                className="text-xs font-bold tabular-nums leading-none"
-                style={{ color: colors.primary }}
+                className="text-sm font-bold tabular-nums leading-none text-primary"
               >
                 {cartCount}
               </span>
@@ -246,12 +255,9 @@ export function MenuView({
 
       {/* Editorial intro — hidden in Off mode for a plain menu */}
       {!isOff && (
-        <div className="px-5 pt-5 pb-2 text-start">
-          <p className="text-muted-foreground font-latin mb-1.5 text-[10px] tracking-[0.2em]">
-            {dateEyebrow}
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight">{t('greeting_evening', lang)}،</h1>
-          <h2 className="text-ink-2 mt-1 text-xl font-medium">{t('chef_tonight', lang)}</h2>
+        <div className="px-gutter pt-5 pb-1 text-start">
+          <h1 className="text-h2 font-bold">{t('greeting_evening', lang)}</h1>
+          <p className="mt-1 text-body opacity-70">{t('chef_tonight', lang)}</p>
         </div>
       )}
 
@@ -291,13 +297,13 @@ export function MenuView({
       {/* Chef's Picks — only alongside the first/default section, not every one */}
       {chefPicks.length > 0 && chefPicksCategory && parentId === firstParentId && (
         <section className="pt-6">
-          <div className="mb-3 px-5 text-start">
-            <h3 className="text-2xl font-bold">{pickName(chefPicksCategory, lang)}</h3>
-            <p className="text-muted-foreground font-latin mt-0.5 text-[10px] tracking-widest">
-              CHEF&apos;S SELECTION · TONIGHT
-            </p>
+          <div className="mb-3 flex items-center gap-2 px-gutter text-start">
+            <span className="h-5 w-1 rounded-full bg-primary" aria-hidden />
+            <h2 className="text-h3 font-bold" {...nameLangProps(lang)}>
+              {pickName(chefPicksCategory, lang)}
+            </h2>
           </div>
-          <div className="no-scrollbar overflow-x-auto px-5 pb-1">
+          <div className="no-scrollbar overflow-x-auto px-gutter pb-1">
             <div className="flex w-max gap-3">
               {chefPicks.map((p) => (
                 <div key={`pick-${p.id}`} className="w-44 shrink-0">
@@ -317,12 +323,16 @@ export function MenuView({
         </section>
       )}
 
-      {/* Filtered items — no heading, just the grid */}
-      <section className="px-5 pt-6 pb-32">
+      {/* Filtered items */}
+      <section
+        className="px-gutter pt-6 pb-32"
+        aria-label={selectedParent ? pickName(selectedParent, lang) : t('cart_button', lang)}
+      >
         {filteredProducts.length === 0 ? (
-          <p className="text-muted-foreground py-10 text-center text-sm">
-            {t('no_menu', lang)}
-          </p>
+          <div className="flex flex-col items-center gap-2 py-14 text-center">
+            <ShoppingBag className="h-8 w-8 opacity-25" aria-hidden />
+            <p className="text-muted-foreground text-body">{t('no_menu', lang)}</p>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filteredProducts.map((p) => (
@@ -416,10 +426,10 @@ function LanguageDropdown({
         aria-expanded={open}
         aria-controls="lang-listbox"
         onClick={() => onOpenChange(!open)}
-        className="bg-card border-border-lite shadow-card text-ink-2 flex h-9 items-center gap-1 rounded-full border px-3 text-xs font-medium"
+        className="bg-card border-border-lite shadow-card flex h-11 items-center gap-1 rounded-full border px-3.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
       >
         <span>{current}</span>
-        <ChevronDown className="text-muted-foreground h-3.5 w-3.5" />
+        <ChevronDown className="text-muted-foreground h-4 w-4" />
       </button>
 
       {open && (
@@ -427,7 +437,7 @@ function LanguageDropdown({
           role="listbox"
           id="lang-listbox"
           aria-label="اختر اللغة"
-          className="bg-card border-border-lite shadow-modal absolute right-0 top-11 z-30 min-w-28 overflow-hidden rounded-xl border py-1"
+          className="bg-card border-border-lite shadow-modal absolute end-0 top-12 z-30 min-w-32 overflow-hidden rounded-xl border py-1"
         >
           {LANGS.map((l) => (
             <div
@@ -443,7 +453,7 @@ function LanguageDropdown({
                 }
               }}
               className={
-                'block w-full cursor-pointer px-3 py-2 text-start text-xs transition-colors ' +
+                'flex min-h-11 w-full cursor-pointer items-center px-3.5 text-start text-sm transition-colors ' +
                 (l.code === lang
                   ? 'bg-muted text-foreground font-semibold'
                   : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground')
@@ -469,19 +479,25 @@ function BrandMark({
 }) {
   if (logoUrl) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={logoUrl}
-        alt=""
-        className="bg-card h-11 w-11 rounded-full border object-contain p-1"
+      <span
+        className="bg-card relative block h-11 w-11 overflow-hidden rounded-full border p-1"
         style={{ borderColor: `${primary}66` }}
-      />
+      >
+        <Image
+          src={logoUrl}
+          alt={displayName}
+          fill
+          sizes="44px"
+          className="object-contain p-1"
+        />
+      </span>
     );
   }
   return (
     <div
       className="bg-card flex h-11 w-11 items-center justify-center rounded-full border text-lg font-bold"
       style={{ borderColor: `${primary}66`, color: primary }}
+      aria-label={displayName}
     >
       {displayName.slice(0, 1) || '·'}
     </div>
@@ -490,8 +506,8 @@ function BrandMark({
 
 function ChipBar({ children, dense = false }: { children: ReactNode; dense?: boolean }) {
   return (
-    <div className={'no-scrollbar overflow-x-auto px-5 ' + (dense ? 'pb-3' : 'pt-4 pb-3')}>
-      <div className="flex w-max gap-2">{children}</div>
+    <div className={'no-scrollbar overflow-x-auto px-gutter ' + (dense ? 'pb-3' : 'pt-4 pb-3')}>
+      <div className="flex w-max gap-2" role="tablist">{children}</div>
     </div>
   );
 }
@@ -509,14 +525,18 @@ function Chip({
   variant?: 'parent' | 'sub';
   children: ReactNode;
 }) {
-  const base = 'shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors';
+  // ≥40px touch height; active state carries border + ring (not color alone — WCAG 1.4.1).
+  const base =
+    'inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]';
   if (active) {
     return (
       <button
         type="button"
+        role="tab"
+        aria-selected="true"
         onClick={onClick}
-        className={base + ' text-white'}
-        style={{ background: primary }}
+        className={base + ' border-transparent text-white shadow-card'}
+        style={{ background: primary, borderColor: primary }}
       >
         {children}
       </button>
@@ -524,10 +544,16 @@ function Chip({
   }
   const inactive =
     variant === 'sub'
-      ? 'bg-card border-border-lite text-muted-foreground border'
-      : 'bg-card border-border text-ink-2 border';
+      ? 'bg-card border-border-strong text-muted-foreground'
+      : 'bg-card border-border-strong text-foreground';
   return (
-    <button type="button" onClick={onClick} className={base + ' ' + inactive}>
+    <button
+      type="button"
+      role="tab"
+      aria-selected="false"
+      onClick={onClick}
+      className={base + ' ' + inactive}
+    >
       {children}
     </button>
   );
@@ -553,61 +579,46 @@ function ProductCard({
   const name = pickName(product, lang);
   const unavailable = !product.is_available;
   const hasDiscount = product.discount_percent !== null && product.original_price !== null;
-  const firstLetter = name.trim().charAt(0) || '·';
 
   return (
     <div
       className={
-        'border-border-lite shadow-card flex flex-col overflow-hidden rounded-xl border ' +
+        'border-border-lite shadow-card flex flex-col overflow-hidden rounded-2xl border transition-shadow hover:shadow-lifted ' +
         (unavailable ? 'opacity-60 grayscale' : '')
       }
       style={{ background: card }}
     >
-      <Link href={`/r/${slug}/p/${product.id}`} className="relative block">
-        <div className="bg-cream-deep flex aspect-square w-full items-center justify-center">
-          {product.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={product.image_url}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="text-muted-foreground text-3xl font-bold">{firstLetter}</span>
-          )}
-        </div>
-        {hasDiscount && (
-          <span className="bg-amber absolute start-2 top-2 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
-            -{product.discount_percent}%
-          </span>
-        )}
+      <Link
+        href={`/r/${slug}/p/${product.id}`}
+        className="relative block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+      >
+        <MenuImage
+          src={product.image_url}
+          alt={name}
+          sizes="(max-width: 768px) 50vw, 200px"
+          className="aspect-square w-full"
+        />
+        {hasDiscount && <DiscountBadge percent={product.discount_percent!} />}
       </Link>
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <h4 className="truncate text-sm font-medium" title={name}>
+      <div className="flex flex-1 flex-col gap-2 p-card">
+        <h3 className="line-clamp-2 text-body font-medium leading-snug" title={name} {...nameLangProps(lang)}>
           {name}
-        </h4>
+        </h3>
         <div className="mt-auto flex items-end justify-between gap-2">
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-bold tabular-nums" style={{ color: primary }}>
-              {formatPrice(product.price, currency)}
-            </span>
-            {hasDiscount && (
-              <span className="text-muted-foreground text-[10px] line-through tabular-nums">
-                {formatPrice(product.original_price!, currency)}
-              </span>
-            )}
-          </div>
+          <PriceTag
+            price={formatAmount(product.price)}
+            original={hasDiscount ? formatAmount(product.original_price!) : null}
+            currency={currency}
+          />
           <button
             type="button"
             disabled={unavailable}
             onClick={() => onAdd(product.id)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-card transition-transform active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
             style={{ background: primary }}
-            aria-label={t('add', lang)}
+            aria-label={`${t('add', lang)} — ${name}`}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -658,12 +669,12 @@ export function FloatingCart({
   return (
     <Link
       href={`/r/${slug}/cart`}
-      className="shadow-lifted fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white"
+      className="shadow-lifted fixed bottom-4 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full px-5 text-sm font-semibold text-white transition-transform active:scale-95"
       style={{ background: primary }}
     >
-      <span>🛒</span>
+      <ShoppingBag className="h-5 w-5" />
       <span>{t('cart_button', lang)}</span>
-      <span className="bg-white/20 rounded-full px-2 py-0.5 text-xs">{count}</span>
+      <span className="bg-white/20 rounded-full px-2 py-0.5 text-xs tabular-nums">{count}</span>
     </Link>
   );
 }
