@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Check, ChevronDown, Plus, Search, ShoppingBag, Tag, UtensilsCrossed } from 'lucide-react';
+import { Check, ChevronDown, Plus, Search, ShoppingBag, Star, Tag, UtensilsCrossed } from 'lucide-react';
 import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ import { WelcomeScreen } from './welcome-screen';
 import {
   DiscountBadge,
   MenuImage,
+  OfflineBanner,
   PriceTag,
   formatAmount,
   formatTimeBaghdad,
@@ -259,7 +260,19 @@ export function MenuView({
   }
 
   return (
-    <main dir={dir} className="min-h-screen pb-28" style={brandVars(colors)}>
+    <main
+      dir={dir}
+      className="min-h-screen animate-in pb-28 duration-300 fade-in-0 slide-in-from-bottom-2 [animation-timing-function:var(--ease-out-expo)]"
+      style={brandVars(colors)}
+    >
+      {/* M18: keyboard skip past the header/chips to the items */}
+      <a
+        href="#menu-content"
+        className="bg-card sr-only rounded-lg focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:px-3 focus:py-2 focus:shadow-modal focus:outline-2 focus:outline-[--ring]"
+      >
+        {t('skip_to_content', lang)}
+      </a>
+      <OfflineBanner lang={lang} />
       {/* Header — logical direction: brand at the start, actions at the end */}
       <header
         className="sticky top-0 z-20 flex items-center justify-between px-gutter py-3"
@@ -317,7 +330,7 @@ export function MenuView({
           </div>
 
           {q ? (
-            <section className="px-gutter pt-4 pb-32" aria-label={t('search_placeholder', lang)}>
+            <section id="menu-content" className="px-gutter pt-4 pb-32" aria-label={t('search_placeholder', lang)}>
               {searchResults.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-14 text-center">
                   <Search className="h-8 w-8 opacity-25" aria-hidden />
@@ -357,7 +370,7 @@ export function MenuView({
 
       {/* Parent category chips */}
       {tree.length > 0 && (
-        <ChipBar>
+        <ChipBar sticky>
           {tree.map((cat) => (
             <Chip
               key={cat.id}
@@ -388,11 +401,12 @@ export function MenuView({
         </ChipBar>
       )}
 
-      {/* Chef's Picks — only alongside the first/default section, not every one */}
+      {/* Chef's Picks — a distinct, brand-tinted feature band (M7), not a
+          re-render of the regular grid. Only alongside the first section. */}
       {chefPicks.length > 0 && chefPicksCategory && parentId === firstParentId && (
-        <section className="pt-6">
+        <section className="bg-primary/5 mt-6 py-4">
           <div className="mb-3 flex items-center gap-2 px-gutter text-start">
-            <span className="h-5 w-1 rounded-full bg-primary" aria-hidden />
+            <Star className="text-primary size-5 shrink-0" aria-hidden />
             <h2 className="text-h3 font-bold" {...nameLangProps(resolveName(chefPicksCategory, lang).lang)}>
               {resolveName(chefPicksCategory, lang).text}
             </h2>
@@ -400,7 +414,7 @@ export function MenuView({
           <div className="no-scrollbar overflow-x-auto px-gutter pb-1">
             <div className="flex w-max gap-3">
               {chefPicks.map((p) => (
-                <div key={`pick-${p.id}`} className="w-44 shrink-0">
+                <div key={`pick-${p.id}`} className="w-48 shrink-0">
                   <ProductCard
                     slug={slug}
                     product={p}
@@ -409,6 +423,7 @@ export function MenuView({
                     card={colors.card}
                     currency={r.currency}
                     onAdd={onAdd}
+                    chefBadge={r.active_mode !== 'closing'}
                   />
                 </div>
               ))}
@@ -419,6 +434,7 @@ export function MenuView({
 
       {/* Filtered items */}
       <section
+        id="menu-content"
         className="px-gutter pt-6 pb-32"
         aria-label={selectedParent ? pickName(selectedParent, lang) : t('cart_button', lang)}
       >
@@ -430,7 +446,7 @@ export function MenuView({
         ) : (
           <div
             key={`${parentId}-${subId}`}
-            className="grid animate-in grid-cols-2 gap-3 fade-in-0 duration-200"
+            className="grid animate-in grid-cols-2 gap-3 fade-in-0 slide-in-from-bottom-2 duration-200 [animation-timing-function:var(--ease-out-expo)]"
           >
             {filteredProducts.map((p) => (
               <ProductCard
@@ -588,9 +604,25 @@ function BrandMark({
   );
 }
 
-function ChipBar({ children, dense = false }: { children: ReactNode; dense?: boolean }) {
+function ChipBar({
+  children,
+  dense = false,
+  sticky = false,
+}: {
+  children: ReactNode;
+  dense?: boolean;
+  sticky?: boolean;
+}) {
+  // M3: the parent chip rail pins just under the header so a diner scrolling a
+  // long category never loses the way to switch sections.
   return (
-    <div className={'no-scrollbar overflow-x-auto px-gutter ' + (dense ? 'pb-3' : 'pt-4 pb-3')}>
+    <div
+      className={
+        'no-scrollbar overflow-x-auto px-gutter ' +
+        (dense ? 'pb-3' : 'pt-4 pb-3') +
+        (sticky ? ' sticky top-[3.75rem] z-10 bg-[var(--background)]' : '')
+      }
+    >
       <div className="flex w-max gap-2">{children}</div>
     </div>
   );
@@ -666,6 +698,7 @@ function ProductCard({
   card,
   currency,
   onAdd,
+  chefBadge = false,
 }: {
   slug: string;
   product: MenuProduct;
@@ -674,6 +707,7 @@ function ProductCard({
   card: string;
   currency: string;
   onAdd: (productId: string) => void;
+  chefBadge?: boolean;
 }) {
   const resolved = resolveName(product, lang);
   const name = resolved.text;
@@ -709,6 +743,17 @@ function ProductCard({
           className="aspect-square w-full"
         />
         {hasDiscount && <DiscountBadge percent={product.discount_percent!} />}
+        {chefBadge && (
+          <span className="bg-accent/90 text-accent-foreground shadow-subtle absolute start-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-semibold">
+            <Star className="size-3" aria-hidden />
+            {t('chef_pick', lang)}
+          </span>
+        )}
+        {unavailable && (
+          <span className="bg-foreground/75 text-background absolute inset-x-0 top-1/2 mx-auto w-fit -translate-y-1/2 rounded-full px-3 py-1 text-caption font-semibold">
+            {t('unavailable', lang)}
+          </span>
+        )}
       </Link>
       <div className="flex flex-1 flex-col gap-2 p-card">
         <h3 className="line-clamp-2 text-body font-medium leading-snug" title={name} {...nameLangProps(resolved.lang)}>

@@ -3,10 +3,10 @@
 // Shared diner-surface UI primitives (Phase 1 redesign).
 // Keep these presentational + dependency-light: menu/product/cart all import them.
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
-import { UtensilsCrossed } from 'lucide-react';
-import { currencyLabel, isRtl, type Lang } from '@/lib/i18n';
+import { UtensilsCrossed, WifiOff } from 'lucide-react';
+import { bcp47, currencyLabel, isRtl, t, type Lang } from '@/lib/i18n';
 
 /**
  * Return focus to whatever was focused before a dialog/popup opened, once it
@@ -39,7 +39,7 @@ export function useSyncHtmlLang(lang: Lang) {
     const el = document.documentElement;
     const prevLang = el.lang;
     const prevDir = el.dir;
-    el.lang = lang;
+    el.lang = bcp47(lang);
     el.dir = isRtl(lang) ? 'rtl' : 'ltr';
     return () => {
       el.lang = prevLang;
@@ -66,9 +66,41 @@ export function formatTimeBaghdad(iso: string, lang: Lang): string {
   }
 }
 
-/** Span props that declare a localized string's language for screen readers. */
+/** Span props that declare a localized string's language for screen readers.
+ *  Uses the BCP-47 tag (Kurdish `ku` → `ckb`) so AT/shaping is correct (M16). */
 export function nameLangProps(lang: Lang) {
-  return { lang, dir: isRtl(lang) ? ('rtl' as const) : ('ltr' as const) };
+  return { lang: bcp47(lang), dir: isRtl(lang) ? ('rtl' as const) : ('ltr' as const) };
+}
+
+/** Reactive online/offline flag (M9) — concurrent-safe via useSyncExternalStore. */
+export function useOnlineStatus(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      window.addEventListener('online', cb);
+      window.addEventListener('offline', cb);
+      return () => {
+        window.removeEventListener('online', cb);
+        window.removeEventListener('offline', cb);
+      };
+    },
+    () => navigator.onLine,
+    () => true,
+  );
+}
+
+/** Thin banner shown while offline, telling the diner the menu may be stale (M9). */
+export function OfflineBanner({ lang }: { lang: Lang }) {
+  const online = useOnlineStatus();
+  if (online) return null;
+  return (
+    <div
+      role="status"
+      className="bg-warning/15 text-warning-text flex items-center justify-center gap-2 px-gutter py-1.5 text-center text-caption font-medium"
+    >
+      <WifiOff className="size-3.5 shrink-0" aria-hidden />
+      {t('offline_banner', lang)}
+    </div>
+  );
 }
 
 /**
@@ -91,6 +123,8 @@ export function MenuImage({
   priority?: boolean;
   rounded?: string;
 }) {
+  // M11: fade the photo in on decode instead of a hard grey-box → image pop.
+  const [loaded, setLoaded] = useState(false);
   return (
     <div className={`relative overflow-hidden bg-black/[0.04] ${rounded} ${className}`}>
       {src ? (
@@ -101,7 +135,11 @@ export function MenuImage({
           sizes={sizes}
           priority={priority}
           loading={priority ? undefined : 'lazy'}
-          className="object-cover"
+          onLoad={() => setLoaded(true)}
+          className={
+            'object-cover transition-opacity duration-500 [transition-timing-function:var(--ease-out-expo)] ' +
+            (loaded ? 'opacity-100' : 'opacity-0')
+          }
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">

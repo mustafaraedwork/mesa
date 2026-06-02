@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, Plus, Tag } from 'lucide-react';
-import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
+import { ArrowLeft, Clock, Minus, Plus, Tag } from 'lucide-react';
+import { getCart, setQuantity, subscribe, totalQuantity } from '@/lib/cart';
 import { isRtl, parseLang, resolveName, t, type Lang } from '@/lib/i18n';
 import { readableTextOn } from '@/lib/contrast';
 import { track } from '@/lib/track';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
 import { FloatingCart } from '../../menu-view';
-import { DiscountBadge, MenuImage, PriceTag, formatAmount, formatTimeBaghdad, nameLangProps, useSyncHtmlLang } from '../../_ui';
+import { DiscountBadge, MenuImage, OfflineBanner, PriceTag, formatAmount, formatTimeBaghdad, nameLangProps, useSyncHtmlLang } from '../../_ui';
 
 const LANG_KEY = 'mesa-lang';
 
@@ -24,6 +24,7 @@ export function ProductView({
 }) {
   const [lang, setLang] = useState<Lang>('ar');
   const [cartCount, setCartCount] = useState(0);
+  const [qty, setQty] = useState(1); // M4: choose quantity before adding
   const router = useRouter();
 
   useSyncHtmlLang(lang);
@@ -34,6 +35,13 @@ export function ProductView({
   function goBack() {
     if (window.history.length > 1) router.back();
     else router.push(`/r/${slug}`);
+  }
+
+  // M4: add the chosen quantity (on top of whatever is already in the cart).
+  function handleAdd() {
+    const existing = getCart(slug).items.find((i) => i.product_id === product.id)?.quantity ?? 0;
+    setQuantity(slug, product.id, existing + qty);
+    track('product_add', { slug, productId: product.id });
   }
 
   /* eslint-disable react-hooks/set-state-in-effect --
@@ -74,6 +82,13 @@ export function ProductView({
 
   return (
     <main dir={dir} className="min-h-screen pb-28" style={brand}>
+      <a
+        href="#product-content"
+        className="bg-card sr-only rounded-lg focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:px-3 focus:py-2 focus:shadow-modal focus:outline-2 focus:outline-[--ring]"
+      >
+        {t('skip_to_content', lang)}
+      </a>
+      <OfflineBanner lang={lang} />
       <header
         className="shadow-card sticky top-0 z-20 flex items-center gap-2 px-gutter py-3"
         style={{ background: restaurant.primary_color, color: 'var(--primary-foreground)' }}
@@ -86,10 +101,11 @@ export function ProductView({
           <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" aria-hidden />
           {t('back_to_menu', lang)}
         </button>
-        <h1 className="flex-1 truncate text-base font-semibold">{restaurant.display_name}</h1>
+        {/* M17: venue name is a back-nav label, not the page's primary heading. */}
+        <p className="flex-1 truncate text-base font-semibold">{restaurant.display_name}</p>
       </header>
 
-      <div className="mx-auto max-w-2xl px-gutter py-5">
+      <div id="product-content" className="mx-auto max-w-2xl px-gutter py-5">
         <div
           className="shadow-card overflow-hidden rounded-2xl"
           style={{ background: restaurant.card_color }}
@@ -106,7 +122,7 @@ export function ProductView({
           </div>
 
           <div className="space-y-3 p-card">
-            <h2 className="text-h2 font-bold" {...nameLangProps(resolved.lang)}>{name}</h2>
+            <h1 className="text-h2 font-bold" {...nameLangProps(resolved.lang)}>{name}</h1>
 
             <PriceTag
               price={formatAmount(product.price)}
@@ -141,18 +157,42 @@ export function ProductView({
               </p>
             )}
 
+            {/* M4: quantity stepper before adding */}
+            {!unavailable && (
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <span className="text-sm font-medium">{t('quantity', lang)}</span>
+                <div className="border-border-strong flex items-center gap-0.5 rounded-full border">
+                  <button
+                    type="button"
+                    onClick={() => setQty((n) => Math.max(1, n - 1))}
+                    aria-label={t('qty_decrease', lang)}
+                    className="flex h-11 w-11 items-center justify-center rounded-full transition-transform hover:bg-muted active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+                  >
+                    <Minus className="h-4 w-4" aria-hidden />
+                  </button>
+                  <span className="w-8 text-center text-base font-semibold tabular-nums" aria-live="polite">{qty}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQty((n) => n + 1)}
+                    aria-label={t('qty_increase', lang)}
+                    className="flex h-11 w-11 items-center justify-center rounded-full transition-transform hover:bg-muted active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button
               type="button"
               disabled={unavailable}
-              onClick={() => {
-                addToCart(slug, product.id);
-                track('product_add', { slug, productId: product.id });
-              }}
+              onClick={handleAdd}
               className="shadow-card flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
               style={{ background: restaurant.primary_color, color: 'var(--primary-foreground)' }}
             >
               <Plus className="h-5 w-5" aria-hidden />
               {t('add', lang)}
+              {!unavailable && qty > 1 && <span className="tabular-nums"> · {qty}</span>}
             </button>
           </div>
         </div>

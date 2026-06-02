@@ -84,9 +84,15 @@ export function WelcomeScreen({
   return (
     <main
       dir={isRtl(lang) ? 'rtl' : 'ltr'}
-      className="flex min-h-screen flex-col px-6 py-6"
+      className="relative flex min-h-screen flex-col overflow-hidden px-6 py-6"
       style={{ background: restaurant.background_color }}
     >
+      {/* M6: soft brand-tinted atmosphere so the entry doesn't read as a blank void */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: `radial-gradient(120% 70% at 50% 22%, ${primary}1f, transparent 60%)` }}
+      />
       {/* Top — language pill */}
       <div className="flex justify-end">
         <button
@@ -101,8 +107,14 @@ export function WelcomeScreen({
       </div>
 
       {/* Middle — emblem block */}
-      <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <div className="mb-6 flex h-24 w-24 items-center justify-center">
+      <div className="relative flex flex-1 flex-col items-center justify-center text-center">
+        <div
+          className="mb-6 flex h-28 w-28 items-center justify-center rounded-full"
+          style={{
+            background: `${primary}12`,
+            boxShadow: `0 0 0 1px ${primary}22, 0 16px 44px ${primary}1a`,
+          }}
+        >
           {restaurant.logo_url ? (
             <span className="relative block h-24 w-24 overflow-hidden rounded-full">
               <Image

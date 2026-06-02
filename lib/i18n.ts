@@ -102,6 +102,11 @@ const STRINGS = {
     added_to_cart: 'أُضيف إلى السلة',
     offer_ends_at: 'عرض الإغلاق — ينتهي',
     menu_coming_soon: 'المنيو قيد التحضير',
+    offline_banner: 'أنت غير متصل — نعرض نسخة محفوظة من المنيو',
+    skip_to_content: 'تخطَّ إلى المحتوى',
+    chef_pick: 'اختيار الشيف',
+    pieces: 'قطعة',
+    quantity: 'الكمية',
   },
   en: {
     cart_button: 'My order',
@@ -141,6 +146,11 @@ const STRINGS = {
     added_to_cart: 'Added to cart',
     offer_ends_at: 'Closing offer — ends',
     menu_coming_soon: 'Menu coming soon',
+    offline_banner: "You're offline — showing a saved menu",
+    skip_to_content: 'Skip to content',
+    chef_pick: "Chef's pick",
+    pieces: 'pcs',
+    quantity: 'Quantity',
   },
   ku: {
     cart_button: 'فەرمایشم',
@@ -180,6 +190,11 @@ const STRINGS = {
     added_to_cart: 'زیادکرا بۆ سەبەتە',
     offer_ends_at: 'تەنزیلاتی داخستن — کۆتایی',
     menu_coming_soon: 'مینۆ بەم زووانە',
+    offline_banner: 'پەیوەندیت نییە — وێنەیەکی پاشەکەوتکراوی مینۆ',
+    skip_to_content: 'بازدان بۆ ناوەڕۆک',
+    chef_pick: 'هەڵبژاردنی شێف',
+    pieces: 'دانە',
+    quantity: 'بڕ',
   },
 } as const;
 
