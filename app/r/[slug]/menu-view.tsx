@@ -626,7 +626,7 @@ function CartBar({
   return (
     <Link
       href={`/r/${slug}/cart`}
-      className="bg-foreground shadow-lifted fixed inset-x-4 bottom-4 z-30 flex h-14 animate-in items-center justify-between rounded-2xl px-5 duration-300 fade-in-0 slide-in-from-bottom-4 ease-[--ease-out-expo]"
+      className="bg-foreground shadow-lifted fixed inset-x-4 bottom-4 z-30 flex h-14 animate-in items-center justify-between rounded-2xl px-5 duration-300 fade-in-0 slide-in-from-bottom-4 [animation-timing-function:var(--ease-out-expo)]"
     >
       <span className="text-background text-sm font-medium">
         {t('view_cart', lang)} · <span className="tabular-nums">{count}</span>

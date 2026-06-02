@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -53,9 +53,13 @@ export function SortableList<T extends { id: string }>({
   const dndId = useId();
 
   // Keep a ref of the live order so the announcement callbacks (created once)
-  // can report 1-based positions without going stale (W5).
+  // can report 1-based positions without going stale (W5). Synced in an effect
+  // — never mutated during render (react-hooks/refs); the callbacks only read it
+  // at drag time, after effects have committed.
   const orderRef = useRef(order);
-  orderRef.current = order;
+  useEffect(() => {
+    orderRef.current = order;
+  }, [order]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
