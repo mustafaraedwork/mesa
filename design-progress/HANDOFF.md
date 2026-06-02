@@ -1,98 +1,108 @@
 # MenuPro Redesign — Session Handoff
 
-**Date:** 2026-06-02 · **Branch:** `feat/design-redesign` (created from `fix/security-findings` HEAD `045461b`, which includes all security fixes H-1..H-5, M-1..M-8).
+**Updated:** 2026-06-02 · **Branch:** `feat/design-redesign` (from `fix/security-findings` HEAD `045461b`, includes security fixes H-1..H-5, M-1..M-8).
 **Plan being executed:** `DESIGN-PLAN.md` §ب (phased roadmap). **Visual direction reference:** `design-preview.html`.
 **Rule:** visual/UI only — no backend/auth/service-role/migration logic changes.
 
 ---
 
-## ✅ Done so far (committed)
+## ✅ Done so far
 
 | Commit | Phase | Summary |
 |---|---|---|
 | `abb63c5` | baseline | DESIGN-PLAN.md + design-preview.html |
-| `d88e15c` | **Phase 0** | Token system + primitives |
+| `d88e15c` | **Phase 0** | Token system + primitives (button/input/dialog) |
 | `f849298` | **Phase 1** | Diner surface redesign |
+| **working tree (uncommitted)** | **Phase 2** | **Admin panel redesign — this session.** Ready to commit (see "Commit" below). |
 
 ### Phase 0 — tokens & primitives (`d88e15c`)
-- `app/globals.css`: rewritten. OKLCH palette; **semantic state tokens** (`--success/--warning/--destructive/--info` + `*-foreground`) **independent of brand**; `--destructive` now **pure red** (was burgundy, indistinct from primary); `--muted-foreground`/borders darkened to pass WCAG AA; **fluid type scale** (`--text-caption..--text-display`), **spacing scale** (`--spacing-gutter/card/stack/section`), **motion tokens**; **solid focus outline** (was `outline-ring/50` ≈2:1 invisible); `prefers-reduced-motion` honored globally; `--primary` is brand-overridable.
-- `app/layout.tsx`: **Vazirmatn** (Arabic+Kurdish Sorani+Latin) + **Noto Sans Arabic** fallback + IBM Plex Mono. Dropped Tajawal/Inter. Variables: `--ff-vazir/--ff-noto/--ff-mono`.
-- `components/ui/button.tsx`: sizes **≥44px** (default `h-11`, sm `h-9`, lg `h-12`, icon `size-11`); solid high-contrast focus ring with offset; **destructive = solid red fill**; shadow toned to `shadow-card`.
-- `components/ui/input.tsx`: `h-11`; visible `border-border-strong`; fixed focus ring.
-- `components/ui/dialog.tsx`: close button `end-2` (RTL-safe, was `right-2`).
+OKLCH palette; semantic state tokens independent of brand; fluid type scale; spacing/motion tokens; solid focus outline; reduced-motion honored. Button ≥44px + focus ring + solid-red destructive; Input visible border; Dialog `end-2` close (RTL). Vazirmatn + Noto Sans Arabic + IBM Plex Mono.
 
 ### Phase 1 — diner surface (`f849298`)
-- **`app/r/[slug]/_ui.tsx` (NEW):** `MenuImage` (next/image fill + designed no-photo fallback), `DiscountBadge` (semantic red, fixed — never re-skinned), `PriceTag` (mono, `dir`-safe), `useSyncHtmlLang` (sets `<html lang/dir>` on language switch — WCAG 3.1.2), `nameLangProps`, `formatAmount`.
-- **`menu-view.tsx`:** **two-palette collision SOLVED** — `brandVars()` injects `--primary/--ring/--background/--card/--foreground` from the restaurant onto `<main>`, so chips/prices/add-buttons follow the tenant while semantic colors stay fixed. Header now **logical-direction** (removed `dir="ltr"` — logo at start, actions at end; mirrors RTL/LTR correctly). Removed the `WEDNESDAY · 14:22` clock eyebrow. Chips: dual-signal active state + `aria-selected` + ≥40px. ProductCard: `next/image` + `line-clamp-2` name + 44px add button + lang attrs. Logo via next/image.
-- **`welcome-screen.tsx`:** brand vars, next/image logo, **mirrored CTA arrow** (ArrowRight + `rtl:-scale-x-100`), gold→`accent-text` (AA), language popup now has **focus trap + `aria-labelledby`**, 44–48px targets.
-- **`product-view.tsx`:** brand vars, next/image hero (priority), mirrored back arrow (ArrowLeft + `rtl:-scale-x-100`), `Clock`/`Plus` lucide (was ⏱/+), PriceTag inline, 48px add button.
-- **`cart-view.tsx`:** brand vars, next/image thumbs, **qty steppers = Minus/Plus icons in 40px hit areas** (was localized word in 28px box), PriceTag, designed empty state, `Trash2`/`Megaphone`/`X` lucide (was 🗑/📣/×), ReadToWaiter modal now **focus trap + `aria-labelledby` + named close**.
-- **`closed-screen.tsx`:** lucide `Coffee` (was 🚫).
-- **`next.config.ts`:** `images.remotePatterns` for R2 (`**.r2.dev`, `**.r2.cloudflarestorage.com`, + host from `R2_PUBLIC_URL`); `imageSizes` capped. **Dev-only CSP `'unsafe-eval'`** — see gotcha #1.
+`app/r/[slug]/_ui.tsx` (MenuImage/DiscountBadge/PriceTag/useSyncHtmlLang/nameLangProps). Two-palette collision solved (`brandVars()` injection). Logical-direction header, `next/image`, lucide icons, 44px targets, focus-trapped dialogs, mirrored arrows. `next.config.ts` R2 remotePatterns + dev-only CSP `'unsafe-eval'`.
+
+### Phase 2 — admin panel (THIS SESSION — working tree)
+**New primitives (`components/ui/`):**
+- `badge.tsx` — semantic variants (success/warning/destructive/info/primary/neutral/outline/solid) using new `--*-text` AA-safe shades. Replaces hand-rolled status pills (K6/C8).
+- `checkbox.tsx`, `switch.tsx`, `select.tsx` — on `@base-ui/react`, brand-styled; replace OS-native `<input type=checkbox>`/`<select>` (K2). Switch thumb mirrors under RTL.
+- `dropdown-menu.tsx` — `@base-ui/react/menu`; powers the `⋮` overflow + the complementary "add" picker (H2).
+- `field.tsx` — shared Field; `group` prop renders `role=group` (not `<label>`) for control *sets* so the heading doesn't bind to the first chip/checkbox or nest labels (K6).
+- `toast.tsx` — `@base-ui/react/toast`: `ToastProvider` + `useToast()`. Wired into the dashboard layout. Replaces inline `<p>` feedback (A4); drives mode-switch + availability confirmations (A3/F1).
+
+**Tokens (`globals.css`):** added `--success-text/--warning-text/--destructive-text/--info-text` (deepened, clear AA on light tints) + `--spacing-safe-b: env(safe-area-inset-bottom)`.
+
+**`lib/contrast.ts` (NEW):** WCAG contrast utilities (`contrastRatio`, `readableTextOn`) for the design tab's live guards.
+
+**Screens:**
+- **`menu/menu-view.tsx`** — "button soup" → one primary action (`+ منتج`) + `⋮` overflow (H2); FAB for "+ سكشن" (M4); availability is now a **Switch** with optimistic state + success/error **toast** (was a silent swallow — F1) + `aria-label` carrying the product name (W9); `next/image` thumbs + designed icon fallback; per-span `lang/dir` on en/ku names (W2); designed empty state; root=`h3`/sub=`h4` headings (W8).
+- **`menu/sortable-list.tsx`** — drag handle ≥24px (`h-9 w-7`) + lift shadow/ring while dragging (A2); Arabic keyboard **live-region announcements** of position (W5); stable `id={useId()}` per DndContext to kill the dnd-kit SSR hydration mismatch.
+- **`menu/confirm-dialog.tsx`** — rebuilt on **AlertDialog** (role=alertdialog, no stray close-X) — unifies destructive confirmations (K3).
+- **`menu/product-dialog.tsx` / `category-dialog.tsx` / `complementary-section.tsx`** — shared `Field`, `Select` (suggestions_type), `Checkbox` (custom suggestions via hidden inputs so the server action is unchanged), `DropdownMenu` (add-complement), lang attrs, styled file picker.
+- **`modes/modes-view.tsx`** (the hero, F2) — three distinct semantic colors (Normal=success / Closing=primary / Off=warning, was Normal==Off==muted); lucide icons (no ⭐/✕); per-mode **mini-preview** of "what the diner sees" (`mode-preview.tsx`, NEW); Off restructured into a proper card; mode-switch **toast** "applies within ~30s" (A3); active state via `Badge` + ring.
+- **`modes/closing-dialog.tsx`** (F6/W10) — duration **preset chips** (replace the raw range), `<output>` summary, product **search** + per-category count Badge, branded `Checkbox`, emphasized price-transition; `Field group` on chip sets.
+- **`modes/chef-picks-dialog.tsx`** — search + branded `Checkbox` + count Badge.
+- **`design/design-view.tsx`** (C5/F7) — **live WCAG contrast guards** (text/bg, text/card, primary/card with pass/fail Badges), curated **palette presets**, `Select` currency, `Switch` for show-unavailable, lucide icons in preview, header text auto-readable (`readableTextOn`).
+- **`analytics/page.tsx`** (F3) — 7-day **bar chart** (today highlighted) + product **magnitude bars** grouped **with-image / without-image** showing average opens (answers "do photos help?"). Replaced the 7 number-boxes + ✓/✗.
+- **`bottom-nav.tsx`** (M2) — `pb-[var(--spacing-safe-b)]`, lucide icons, active top-indicator.
+- **`loading.tsx` ×5** — per-destination skeletons (menu/modes/analytics/design) + neutral parent fallback (F4).
+- **`layout.tsx`** — wraps dashboard in `ToastProvider`; header uses lucide LogOut + tokens.
+- **Owner (`accounts-table.tsx`, `owner/dashboard/page.tsx`)** — status pills → `Badge` (C8). (Full owner redesign is Phase 3.)
 
 ---
 
-## 🧪 Verification status (last run)
-- `npx tsc --noEmit` → **clean** (after both phases).
+## 🧪 Verification status (last run, clean warm server)
+- `npx tsc --noEmit` → **clean**.
 - `npx next build` → **OK** (compiles, all routes).
-- `node scripts/run-smoke.mjs` → **11/13 pass**. The 2 "fails" are **dev-environment flakes, not regressions**:
-  - `smoke-desync` — all functional asserts pass; fails only the `<1000ms` perf threshold on a cold-compiled route (got 1106ms; **passes warm: 792ms**).
-  - `smoke-pwa` — "page loaded online" passes, then **hangs/races on SW activation under `next dev`+Turbopack**. SW (`public/sw.js`) + manifest were **not touched**; `next/image` is SW-safe (SW caches by `req.destination === 'image'`, which covers `/_next/image`). Production build (the real PWA gate) passes.
-
-### Screenshots captured (mobile 390×844, slug `origins`, brand orange `#d05a0b`)
-- `design-progress/phase-0/` and `design-progress/phase-1/`: `01-welcome`, `02-menu-rtl`, `03-menu-ltr`, `04-product`, `05-cart`, `06-admin-login`, `07-owner-login`.
-- Phase-1 confirmed visually: RTL/LTR header mirroring correct, brand color consistent across chips/prices/buttons (two-palette fixed), real food photos via next/image, 44px targets, redesigned language popup + empty cart.
+- `node scripts/run-smoke.mjs` → **12/13 pass**. Only `smoke-pwa` is the **documented dev flake** (passes "page loaded online", then hangs on SW activation under `next dev`+Turbopack; SW/manifest untouched; prod build passes). **Critically, both admin validators pass:** `smoke-no-native-confirms` (logs into the redesigned modes screen, drives the T2/T3 AlertDialogs, **zero console errors**) and `smoke-modes` (modes/chef-picks/off + suggestions/complementary/reorder data paths). `smoke-desync` now passes warm.
+- **Console probe** across all 4 admin pages → **zero warnings/errors** (after the dnd-kit `useId` fix).
+- **Screenshots:** `design-progress/phase-2/` — `01-menu`, `02-menu-product-dialog`, `03-modes`, `04-closing-dialog`, `05-chef-picks-dialog`, `06-analytics`, `07-design` (mobile 390×844, seeded ephemeral tenant via `shoot-admin.mjs`, emerald brand). Visually confirmed: distinct mode colors + mini-previews, Switch availability, contrast guards, bar chart + image grouping, chip-based duration, branded checkboxes.
 
 ---
 
 ## ⚠️ Gotchas / decisions (READ before resuming)
-1. **`next build` clobbers the running `next dev`'s `.next`.** After every `next build`, the dev server serves broken chunks (500 / `text/plain` MIME) until restarted. **Always restart `npm run dev` after a build** before running smokes/screenshots.
-2. **Dev CSP needed `'unsafe-eval'`.** The strict prod CSP (M-1 security work, no `unsafe-eval`) breaks **Next dev mode** (React needs eval in dev). Added `IS_DEV` branch in `next.config.ts` so dev works while **production CSP stays strict & unchanged**. This is dev tooling, not a prod security change — flagged for review.
-3. **`d88e15c` accidentally bundled two pre-existing working-tree edits** (not authored this session): `.claude/settings.local.json` and `supabase/migrations/0010_schema_constraints.sql` (+8 lines). They were `M` at session start (the user's own uncommitted work). Swept in by `git add -A`. **Going forward use explicit `git add <paths>`, not `-A`.** Surface to user.
-4. Smoke tests that need the dev server have **35s polling waits** → suite takes ~3–4 min. Run in background + Monitor for the `pass:` line.
-5. Admin/owner **interiors require auth** (tenant bcrypt session / Supabase owner JWT) — only the public login pages were live-screenshotted. Avoided minting service-role sessions for screenshots (per the "Mustafa runs admin SQL himself" rule). Admin verification leans on `smoke-modes` / `smoke-analytics` / `smoke-no-native-confirms` + build.
+1. **`next build` clobbers the running `next dev`'s `.next`** → the dev server then serves 500s/broken chunks until restarted. **This bit us this session:** `TaskStop` killed the wrapper but the node process survived on :3000 with a clobbered `.next`, so a fresh `npm run dev` landed on :3001 and the smoke suite hit the stale :3000 → 6 false failures. **Fix:** after any build, kill the node process holding :3000 (`Get-NetTCPConnection -LocalPort 3000` → `Stop-Process`), then start one clean dev, **warm the routes with curl** (Turbopack compiles per-route on first hit; cold compiles exceed the smoke 30s waits), then run smokes.
+2. **dnd-kit SSR hydration** — nested DndContexts diverge on `aria-describedby="DndDescribedBy-N"` (global counter). Fixed with `id={useId()}` on each `DndContext` in `sortable-list.tsx`. Keep it.
+3. **`@base-ui/react` Select is generic** — `Select.Root.Props` needs type args; the `select.tsx` wrapper is generic `<Value, Multiple>`. Pass `items={record}` to the Root so `Select.Value` renders the chosen label; render `SelectItem`s for the list. `name=` on the Root submits a hidden input (used for `suggestions_type`).
+4. **`Field group`** — use `group` whenever the field wraps a *set* of controls (chip toggles, checkbox lists). Plain `<Field>` is a `<label>`; wrapping a button group makes the heading click the first button and nests labels.
+5. **Toast position** — viewport sits above the bottom-nav (`bottom-[calc(var(--spacing-safe-b)+4.75rem)]`). `useToast()` only works inside `ToastProvider` (in the dashboard layout). Owner pages don't have it yet (Phase 3).
+6. **Admin screenshots need auth** — `design-progress/shoot-admin.mjs` seeds an ephemeral tenant + `tenant_sessions` cookie (same pattern as `smoke-no-native-confirms.mjs`) and deletes it after. Run with `node --env-file=.env.local`.
+7. **`.claude/settings.local.json`** is `M` in the working tree but is **not** part of this redesign — do not stage it (use explicit `git add <paths>`).
 
 ---
 
 ## ▶️ How to resume
 ```
-# 1. confirm branch
 git checkout feat/design-redesign
-# 2. start dev (restart it after ANY next build)
-npm run dev          # http://localhost:3000
-# 3. screenshots (public diner + logins)
-node design-progress/shoot.mjs design-progress/phase-N
-# helper: list active slugs → node design-progress/_get-slug.mjs   (best slug: origins, 23 products)
-# 4. gate after each phase
-npx tsc --noEmit ; npx next build ; (restart dev) ; node scripts/run-smoke.mjs
+npm run dev                       # if you just built, FIRST kill the node on :3000 (see gotcha #1)
+# warm routes so smokes don't hit cold-compile timeouts:
+curl -s -o /dev/null http://localhost:3000/r/origins ; for r in menu modes analytics design; do curl -s -o /dev/null http://localhost:3000/admin/dashboard/$r; done
+# gate:
+npx tsc --noEmit ; npx next build ; (kill :3000 node, restart dev, warm) ; node scripts/run-smoke.mjs
+# admin screenshots: node --env-file=.env.local design-progress/shoot-admin.mjs design-progress/phase-N
+# diner/public screenshots: node design-progress/shoot.mjs design-progress/phase-N
+```
+
+## 💾 Commit (Phase 2 is uncommitted)
+Stage explicitly (exclude `.claude/settings.local.json`):
+```
+git add components/ui app/admin app/owner app/globals.css lib/contrast.ts design-progress/phase-2 design-progress/shoot-admin.mjs design-progress/HANDOFF.md PROGRESS.md
+git commit -m "feat(design-phase-2): admin panel — primitives, modes hero, analytics, design guards"
 ```
 
 ---
 
 ## ⏭️ Remaining work (DESIGN-PLAN §ب roadmap)
 
-### Phase 2 — Admin (NOT STARTED; was mid-read of `modes-view.tsx` when paused)
-Audit refs in DESIGN-PLAN Part A: H2, K2, K3, K6, M1(admin), M2, F1, F2, F3, F6, F7, A2, A3, W5, W9, C5.
-- **New primitives:** `Badge` (semantic, replaces duplicated status pills in `accounts-table.tsx` + `dashboard/page.tsx`), `Checkbox`, `Select`, `Switch` (replace native `<select>`/`<input type=checkbox>` — 3 divergent selects + OS-blue checkboxes in `product-dialog.tsx:157`, `design-view.tsx:138`, `complementary-section.tsx:80`, and all checkbox sites). Optional `Toast` (replace inline `<p>` feedback; fixes silent toggle F1).
-- **`modes-view.tsx` (the hero screen, F2):** give Normal / Closing / **Off distinct semantic colors** (currently Normal == Off == `bg-muted`; `MODE_META` at line 43); replace emoji ⭐/✕ with lucide icons; add a per-mode "what the diner sees" mini-preview; toast/animated confirmation on switch (A3); the Off control is a `<Button>` holding a full explanatory sentence (line 250) — restructure. `closing-dialog.tsx`: native range slider → preset chips matching the discount chips (F6), add `aria-valuetext`/`<output>` (W10), search + per-category count.
-- **`admin/dashboard/menu/menu-view.tsx`:** "button soup" rows → one primary action + `⋮` overflow for secondary/destructive (H2); FAB for "+ سكشن" (M4); `sortable-list.tsx` drag handle ≥24px + lift shadow + keyboard position live-region (M1/A2/W5); availability toggle needs success/error feedback (silent failure F1) + `aria-label` with product name (W9).
-- **`analytics/page.tsx` (F3):** 7 number-boxes → bar/sparkline (unused `--chart-*` tokens exist); product table → magnitude bars + with-image/without-image grouping.
-- **`design-view.tsx` (C5/F7):** live contrast guards on the 5 color pickers + curated presets; `<input type=color>` polish.
-- **`bottom-nav.tsx` (M2):** add `pb-[env(safe-area-inset-bottom)]` (token `--spacing-safe-b` not yet added — add to globals if needed).
-- **Confirmations (K3):** unify on `AlertDialog` for destructive; `confirm-dialog.tsx` (custom Dialog) duplicates it with a stray close-X.
-- **Skeletons (F4):** `admin/dashboard/loading.tsx` doesn't match modes/design/analytics destinations.
-- Extract the 4–5× duplicated `Field` component (K6).
-
 ### Phase 3 — Owner (NOT STARTED)
-`accounts-table.tsx` + `table.tsx`: real data table (toolbar w/ count+search+primary action, sticky header, **mobile card layout** instead of 8-col overflow — H3/M3), `Badge` for status (C8), login page identity, add `loading.tsx` skeletons.
+`owner/dashboard/accounts/accounts-table.tsx` + `components/ui/table.tsx`: real data table — toolbar (count + search + primary action), sticky header, **mobile card layout** instead of the 8-col horizontal overflow (H3/M3). `Badge` for status is already applied (C8). Owner overview stat cards (H6 — "numbers in boxes"). Owner login identity. Add `ToastProvider` + `loading.tsx` skeletons to the owner shell. The Badge/Toast/Field/Table primitives are ready to reuse.
 
 ### Phase 4 — Motion & a11y polish (NOT STARTED)
-Purposeful motion (cart-bar enter, chip/section transitions, drag lift) on the motion tokens (A1/A2); heading hierarchy + landmarks audit (W8); translate the (now-removed) Chef's caption properly if re-added; final automated a11y + keyboard + screen-reader pass (run the `a11y-architect` agent). Note: the diner Chef's-Picks English caption was **removed** in Phase 1 (was untranslated `CHEF'S SELECTION · TONIGHT`).
+Purposeful motion on the motion tokens (cart-bar enter, chip/section transitions — A1/A2 beyond the drag lift already done). Full heading-hierarchy + landmarks audit (W8) across diner + admin. Final automated a11y + keyboard + screen-reader pass (run `a11y-architect`). `LanguageDropdown` listbox contract (W7). Diner Chef's-Picks caption (was removed in Phase 1 as untranslated).
 
 ### Known deferral (needs data-layer change — out of "UI-only" scope, confirm with user)
-- F5: distinguish "restaurant closed" from "transient DB error" — both currently render `ClosedScreen`. Requires `lib/menu.ts` change (backend), so left for explicit approval.
+- **F5:** distinguish "restaurant closed" from "transient DB/network error" — both render `ClosedScreen`. Requires `lib/menu.ts` (backend), so left for explicit approval.
 
 ---
 
-## Final report still owed to the user (per original request)
-A single report: per-phase changes + commit hashes, before/after note per screen, screenshot paths, final tsc/smoke/build results, anything not done + why, and decisions taken. Phases 0–1 material for it is above; fill in 2–4 as completed.
+## Final report owed to the user
+Per-phase changes + commit hashes, before/after per screen, screenshot paths, final tsc/smoke/build results, anything not done + why. Phases 0–2 material is above; fill in 3–4 as completed.

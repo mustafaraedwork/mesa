@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { getServiceClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/require-owner';
 
@@ -80,16 +81,9 @@ export default async function OwnerDashboardPage() {
                     /r/{r.slug}
                   </p>
                 </div>
-                <span
-                  className={
-                    'rounded px-2 py-0.5 text-xs ' +
-                    (r.is_active
-                      ? 'bg-olive/15 text-olive'
-                      : 'bg-muted text-muted-foreground')
-                  }
-                >
+                <Badge variant={r.is_active ? 'success' : 'neutral'}>
                   {r.is_active ? 'نشط' : 'معطّل'}
-                </span>
+                </Badge>
               </li>
             ))}
           </ul>

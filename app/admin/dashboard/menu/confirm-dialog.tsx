@@ -2,15 +2,19 @@
 
 import { useState, useTransition } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
+// Destructive confirmation, unified on AlertDialog (K3): proper `role=alertdialog`,
+// no stray close-X, focus pinned to the dialog. Replaces the old custom Dialog
+// variant so every "are you sure?" in the app shares one treatment.
 export function ConfirmDialog({
   title,
   description,
@@ -39,25 +43,26 @@ export function ConfirmDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>إلغاء</Button>
-          <Button
-            type="button"
+    <AlertDialog open onOpenChange={(v) => !v && !pending && onClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        {error && <p role="alert" className="text-destructive-text text-sm">{error}</p>}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending} onClick={onClose}>
+            إلغاء
+          </AlertDialogCancel>
+          <AlertDialogAction
             variant={destructive ? 'destructive' : 'default'}
             disabled={pending}
             onClick={onConfirm}
           >
             {pending ? '...' : confirmLabel}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

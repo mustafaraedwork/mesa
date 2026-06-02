@@ -1,4 +1,7 @@
+import { LogOut } from 'lucide-react';
 import { requireTenant } from '@/lib/auth/require-tenant';
+import { Button } from '@/components/ui/button';
+import { ToastProvider } from '@/components/ui/toast';
 import { signOutTenant } from '../actions';
 import { BottomNav } from './bottom-nav';
 
@@ -10,25 +13,25 @@ export default async function TenantDashboardLayout({
   const tenant = await requireTenant();
 
   return (
-    <div className="bg-muted/30 flex min-h-screen flex-col pb-20">
-      <header className="bg-card shadow-subtle sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3">
-        <div>
-          <h1 className="text-base font-semibold">{tenant.displayName}</h1>
-          {!tenant.isActive && (
-            <p className="text-destructive text-xs">الحساب معطّل من قِبَل المالك</p>
-          )}
-        </div>
-        <form action={signOutTenant}>
-          <button
-            type="submit"
-            className="text-muted-foreground hover:text-foreground text-sm"
-          >
-            خروج
-          </button>
-        </form>
-      </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 p-4">{children}</main>
-      <BottomNav />
-    </div>
+    <ToastProvider>
+      <div className="bg-muted/30 flex min-h-screen flex-col pb-[calc(var(--spacing-safe-b)+5rem)]">
+        <header className="bg-card shadow-subtle sticky top-0 z-20 flex items-center justify-between gap-3 border-b px-gutter py-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-lead font-semibold">{tenant.displayName}</h1>
+            {!tenant.isActive && (
+              <p className="text-destructive-text text-caption">الحساب معطّل من قِبَل المالك</p>
+            )}
+          </div>
+          <form action={signOutTenant}>
+            <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground">
+              <LogOut className="rtl:-scale-x-100" />
+              خروج
+            </Button>
+          </form>
+        </header>
+        <main className="mx-auto w-full max-w-3xl flex-1 p-gutter">{children}</main>
+        <BottomNav />
+      </div>
+    </ToastProvider>
   );
 }

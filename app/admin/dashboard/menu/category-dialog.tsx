@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Field } from '@/components/ui/field';
 import { createCategory, updateCategory } from './actions';
 import type { CategoryNode } from './menu-view';
 
@@ -54,17 +55,17 @@ export function CategoryDialog(props: Props) {
             <DialogDescription>الاسم بالعربي إجباري؛ EN/KU اختياري.</DialogDescription>
           </DialogHeader>
 
-          <Field label="الاسم بالعربي *">
+          <Field label="الاسم بالعربي" required>
             <Input value={name_ar} onChange={(e) => setNameAr(e.target.value)} required autoFocus />
           </Field>
           <Field label="English (optional)">
-            <Input dir="ltr" className="text-left" value={name_en} onChange={(e) => setNameEn(e.target.value)} />
+            <Input lang="en" dir="ltr" className="text-left" value={name_en} onChange={(e) => setNameEn(e.target.value)} />
           </Field>
           <Field label="کوردی (optional)">
-            <Input value={name_ku} onChange={(e) => setNameKu(e.target.value)} />
+            <Input lang="ckb" value={name_ku} onChange={(e) => setNameKu(e.target.value)} />
           </Field>
 
-          {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
+          {error && <p role="alert" className="text-destructive-text text-sm">{error}</p>}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={props.onClose}>إلغاء</Button>
@@ -75,15 +76,5 @@ export function CategoryDialog(props: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  // Q-25: wrap the control in the <label> for implicit label↔control association.
-  return (
-    <label className="block space-y-1">
-      <span className="block text-sm font-medium">{label}</span>
-      {children}
-    </label>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useTransition } from 'react';
+import { ImagePlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Field } from '@/components/ui/field';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { createProduct, updateProduct } from './actions';
 import type { Product } from './menu-view';
 
@@ -19,6 +23,11 @@ type ProductRef = { id: string; name_ar: string };
 type Props =
   | { mode: 'create'; categoryId: string; categoryName: string; allProducts: ProductRef[]; onClose: () => void; product?: never }
   | { mode: 'edit'; product: Product; categoryId: string; categoryName: string; allProducts: ProductRef[]; onClose: () => void };
+
+const SUGGESTION_ITEMS: Record<string, string> = {
+  default: 'تلقائي (حسب السكاشن)',
+  custom: 'اقتراحات مخصّصة',
+};
 
 export function ProductDialog(props: Props) {
   const editing = props.mode === 'edit';
@@ -29,10 +38,25 @@ export function ProductDialog(props: Props) {
   const [suggestionsType, setSuggestionsType] = useState<'default' | 'custom'>(
     initial?.suggestions_type ?? 'default',
   );
+  // Custom-suggestion ids held in state; emitted as hidden inputs so the server
+  // action keeps reading `formData.getAll('custom_suggestion_ids')` unchanged
+  // while the UI uses the branded Checkbox instead of an OS-blue native box.
+  const [customIds, setCustomIds] = useState<Set<string>>(
+    new Set(initial?.custom_suggestion_ids ?? []),
+  );
   const formRef = useRef<HTMLFormElement>(null);
 
   // Every other product — candidates for manual suggestions (not itself).
   const otherProducts = props.allProducts.filter((p) => p.id !== initial?.id);
+
+  function toggleCustom(id: string, checked: boolean) {
+    setCustomIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,20 +86,20 @@ export function ProductDialog(props: Props) {
             <DialogDescription>الاسم بالعربي والسعر إجباريان.</DialogDescription>
           </DialogHeader>
 
-          <Field label="الاسم بالعربي *">
+          <Field label="الاسم بالعربي" required>
             <Input name="name_ar" defaultValue={initial?.name_ar ?? ''} required autoFocus />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="English">
-              <Input name="name_en" dir="ltr" className="text-left" defaultValue={initial?.name_en ?? ''} />
+              <Input name="name_en" lang="en" dir="ltr" className="text-left" defaultValue={initial?.name_en ?? ''} />
             </Field>
             <Field label="کوردی">
-              <Input name="name_ku" defaultValue={initial?.name_ku ?? ''} />
+              <Input name="name_ku" lang="ckb" defaultValue={initial?.name_ku ?? ''} />
             </Field>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <Field label="السعر *">
+            <Field label="السعر" required>
               <Input
                 name="price"
                 type="number"
@@ -83,7 +107,7 @@ export function ProductDialog(props: Props) {
                 step="0.01"
                 min="0"
                 dir="ltr"
-                className="text-left"
+                className="text-left font-mono"
                 defaultValue={initial?.price ?? ''}
                 required
               />
@@ -96,7 +120,7 @@ export function ProductDialog(props: Props) {
                 min="0"
                 max="100"
                 dir="ltr"
-                className="text-left"
+                className="text-left font-mono"
                 defaultValue={initial?.profit_percentage ?? 0}
               />
             </Field>
@@ -108,7 +132,7 @@ export function ProductDialog(props: Props) {
                 min="1"
                 max="240"
                 dir="ltr"
-                className="text-left"
+                className="text-left font-mono"
                 defaultValue={initial?.prep_time_minutes ?? 5}
               />
             </Field>
@@ -119,7 +143,7 @@ export function ProductDialog(props: Props) {
               {editing && initial?.image_url && !removeImage && (
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={initial.image_url} alt="" className="h-16 w-16 rounded object-cover" />
+                  <img src={initial.image_url} alt="" className="size-16 rounded-lg object-cover" />
                   <Button
                     type="button"
                     variant="outline"
@@ -131,7 +155,7 @@ export function ProductDialog(props: Props) {
                 </div>
               )}
               {editing && removeImage && (
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-caption">
                   ستُزال الصورة الحالية عند الحفظ.{' '}
                   <button
                     type="button"
@@ -142,49 +166,59 @@ export function ProductDialog(props: Props) {
                   </button>
                 </p>
               )}
-              <Input name="image" type="file" accept="image/*" />
-              <p className="text-muted-foreground text-xs">
+              <label className="border-border-strong text-muted-foreground hover:bg-muted flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/60">
+                <ImagePlus className="size-4 shrink-0" aria-hidden />
+                <span>اختر صورة…</span>
+                <input name="image" type="file" accept="image/*" className="sr-only" />
+              </label>
+              <p className="text-muted-foreground text-caption">
                 ستُضغط الصورة تلقائياً إلى 800×800 WebP.
               </p>
             </div>
           </Field>
 
           <Field label="الاقتراحات في صفحة السلة">
-            <select
+            <Select
               name="suggestions_type"
               value={suggestionsType}
-              onChange={(e) => setSuggestionsType(e.target.value as 'default' | 'custom')}
-              className="w-full rounded-md border px-3 py-2 text-sm"
+              onValueChange={(v) => v && setSuggestionsType(v as 'default' | 'custom')}
+              items={SUGGESTION_ITEMS}
             >
-              <option value="default">تلقائي (حسب السكاشن)</option>
-              <option value="custom">اقتراحات مخصّصة</option>
-            </select>
+              <SelectTrigger />
+              <SelectContent>
+                <SelectItem value="default">تلقائي (حسب السكاشن)</SelectItem>
+                <SelectItem value="custom">اقتراحات مخصّصة</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
           {suggestionsType === 'custom' && (
-            <Field label="المنتجات المقترَحة عند طلب هذا المنتج">
+            <Field label="المنتجات المقترَحة عند طلب هذا المنتج" group>
               {otherProducts.length === 0 ? (
-                <p className="text-muted-foreground text-xs">أضف منتجات أخرى أولاً.</p>
+                <p className="text-muted-foreground text-caption">أضف منتجات أخرى أولاً.</p>
               ) : (
-                <ul className="max-h-48 space-y-1 overflow-y-auto rounded border p-2">
-                  {otherProducts.map((p) => (
-                    <li key={p.id}>
-                      <label className="hover:bg-muted flex cursor-pointer items-center gap-2 rounded px-1 py-0.5">
-                        <input
-                          type="checkbox"
-                          name="custom_suggestion_ids"
-                          value={p.id}
-                          defaultChecked={initial?.custom_suggestion_ids?.includes(p.id) ?? false}
-                        />
-                        <span>{p.name_ar}</span>
-                      </label>
-                    </li>
+                <>
+                  <ul className="border-border-lite max-h-48 space-y-0.5 overflow-y-auto rounded-lg border p-1.5">
+                    {otherProducts.map((p) => (
+                      <li key={p.id}>
+                        <label className="hover:bg-muted flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5">
+                          <Checkbox
+                            checked={customIds.has(p.id)}
+                            onCheckedChange={(c) => toggleCustom(p.id, c)}
+                          />
+                          <span className="text-sm">{p.name_ar}</span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                  {[...customIds].map((id) => (
+                    <input key={id} type="hidden" name="custom_suggestion_ids" value={id} />
                   ))}
-                </ul>
+                </>
               )}
             </Field>
           )}
 
-          {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
+          {error && <p role="alert" className="text-destructive-text text-sm">{error}</p>}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={props.onClose}>إلغاء</Button>
@@ -195,15 +229,5 @@ export function ProductDialog(props: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  // Q-25: wrap the control in the <label> for implicit label↔control association.
-  return (
-    <label className="block space-y-1">
-      <span className="block text-sm font-medium">{label}</span>
-      {children}
-    </label>
   );
 }

@@ -41,12 +41,16 @@
   /* Semantic state — independent of brand, never re-skinned */
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-text: var(--success-text);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-text: var(--warning-text);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-text: var(--destructive-text);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-info-text: var(--info-text);
 
   /* Warm extras (kept for back-compat; map onto the new system) */
   --color-gold: var(--gold);
@@ -95,6 +99,7 @@
   --spacing-card: 0.875rem;
   --spacing-stack: 0.75rem;
   --spacing-section: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+  --spacing-safe-b: env(safe-area-inset-bottom); /* PWA home-indicator gap — M2 */
 
   /* Shadows — warm tint, scales with elevation */
   --shadow-subtle: 0 1px 3px rgba(60, 40, 20, 0.06);
@@ -153,15 +158,20 @@
   --accent-foreground: oklch(0.22 0.01 60);
   --accent-text: oklch(0.55 0.09 85);       /* gold text that passes AA */
 
-  /* Semantic state */
+  /* Semantic state. `*-text` = deepened shade that clears AA (≥4.5:1) as text
+     on a light tint of the same hue — used by Badge/inline status labels. */
   --success: oklch(0.52 0.12 150);
   --success-foreground: #ffffff;
+  --success-text: oklch(0.44 0.11 150);
   --warning: oklch(0.62 0.15 70);
   --warning-foreground: oklch(0.22 0.01 60);
+  --warning-text: oklch(0.45 0.09 70);
   --destructive: oklch(0.50 0.19 27);       /* pure red — distinct from burgundy */
   --destructive-foreground: #ffffff;
+  --destructive-text: oklch(0.48 0.19 27);
   --info: oklch(0.50 0.13 245);
   --info-foreground: #ffffff;
+  --info-text: oklch(0.45 0.13 245);
 
   /* Warm extras (back-compat names, remapped to readable values) */
   --burgundy-deep: oklch(0.34 0.13 25);

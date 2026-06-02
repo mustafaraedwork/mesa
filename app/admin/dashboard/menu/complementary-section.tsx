@@ -2,6 +2,14 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Plus, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { addComplement, removeComplement } from './actions';
 
 type Cat = { id: string; name_ar: string; parent_id: string | null };
@@ -32,16 +40,16 @@ export function ComplementarySection({
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="text-lg font-semibold">الأصناف المكمّلة</h2>
+        <h2 className="text-h3 font-semibold">الأصناف المكمّلة</h2>
         <p className="text-muted-foreground text-sm">
           عند وجود صنف من سكشن في سلة الزبون، تُقترح عليه أصناف من السكاشن المكمّلة له.
         </p>
       </div>
 
-      {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
+      {error && <p role="alert" className="text-destructive-text text-sm">{error}</p>}
 
       {categories.length === 0 ? (
-        <p className="text-muted-foreground bg-card rounded-lg border p-6 text-center text-sm">
+        <p className="text-muted-foreground bg-card border-border-lite rounded-xl border p-6 text-center text-sm">
           أنشئ سكاشن أولاً من قسم المنيو.
         </p>
       ) : (
@@ -51,47 +59,56 @@ export function ComplementarySection({
             const usedIds = new Set(own.map((l) => l.complement_id));
             const options = categories.filter((c) => c.id !== cat.id && !usedIds.has(c.id));
             return (
-              <li key={cat.id} className="bg-card rounded-lg border p-3">
+              <li key={cat.id} className="bg-card border-border-lite shadow-subtle rounded-xl border p-3">
                 <p className="mb-2 font-medium">{cat.name_ar}</p>
                 <div className="flex flex-wrap items-center gap-2">
                   {own.length === 0 && (
-                    <span className="text-muted-foreground text-xs">لا سكاشن مكمّلة</span>
+                    <span className="text-muted-foreground text-caption">لا سكاشن مكمّلة</span>
                   )}
                   {own.map((l) => (
                     <span
                       key={l.id}
-                      className="bg-muted flex items-center gap-1 rounded px-2 py-0.5 text-sm"
+                      className="bg-muted text-foreground inline-flex items-center gap-1 rounded-full py-0.5 ps-3 pe-1 text-sm"
                     >
                       {nameOf.get(l.complement_id) ?? '—'}
                       <button
                         type="button"
                         disabled={pending}
-                        className="text-muted-foreground hover:text-destructive"
+                        className="text-muted-foreground hover:text-destructive-text hover:bg-destructive/10 flex size-6 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                         onClick={() => run(() => removeComplement(l.id))}
-                        aria-label="حذف الربط"
+                        aria-label={`حذف ربط ${nameOf.get(l.complement_id) ?? ''}`}
                       >
-                        ×
+                        <X className="size-3.5" aria-hidden />
                       </button>
                     </span>
                   ))}
-                  <select
-                    value=""
-                    disabled={pending || options.length === 0}
-                    className="rounded-md border px-2 py-1 text-sm"
-                    onChange={(e) => {
-                      const complement_id = e.target.value;
-                      if (complement_id) {
-                        run(() => addComplement({ category_id: cat.id, complement_id }));
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={pending || options.length === 0}
+                        />
                       }
-                    }}
-                  >
-                    <option value="">+ أضف صنفاً مكمّلاً</option>
-                    {options.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name_ar}
-                      </option>
-                    ))}
-                  </select>
+                    >
+                      <Plus />
+                      صنف مكمّل
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {options.map((c) => (
+                        <DropdownMenuItem
+                          key={c.id}
+                          onClick={() =>
+                            run(() => addComplement({ category_id: cat.id, complement_id: c.id }))
+                          }
+                        >
+                          {c.name_ar}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </li>
             );

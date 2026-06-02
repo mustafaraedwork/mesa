@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CreateAccountDialog } from './create-account-dialog';
 import { ChangePasswordDialog } from './change-password-dialog';
@@ -82,16 +83,9 @@ export function AccountsTable({ accounts }: { accounts: AccountRow[] }) {
                     </TableCell>
                     <TableCell dir="ltr" className="font-mono text-sm">{a.username}</TableCell>
                     <TableCell>
-                      <span
-                        className={
-                          'rounded px-2 py-0.5 text-xs ' +
-                          (a.is_active
-                            ? 'bg-olive/15 text-olive'
-                            : 'bg-muted text-muted-foreground')
-                        }
-                      >
+                      <Badge variant={a.is_active ? 'success' : 'neutral'}>
                         {a.is_active ? 'نشط' : 'معطّل'}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-center tabular-nums">{a.product_count}</TableCell>
                     <TableCell className="text-center tabular-nums">{a.category_count}</TableCell>
