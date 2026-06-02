@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Check, ChevronDown, Plus, Search, ShoppingBag, Star, Tag, UtensilsCrossed } from 'lucide-react';
+import { Check, ChevronDown, Plus, Search, Share2, ShoppingBag, Star, Tag, UtensilsCrossed } from 'lucide-react';
 import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
 import {
   DropdownMenu,
@@ -122,6 +122,11 @@ export function MenuView({
   // an empty grid.
   const [parentId, setParentId] = useState<string | null>(() => initialParent(tree));
   const [subId, setSubId] = useState<string | null>(() => initialSub(tree, initialParent(tree)));
+  // L10: the section grid remounts on nav (keyed) and replays its entrance. This
+  // holds which direction it enters from so the motion mirrors the navigation —
+  // computed in the chip handlers (lint-safe: no ref reads during render). First
+  // paint keeps the original upward reveal.
+  const [enterDir, setEnterDir] = useState('slide-in-from-bottom-2');
 
   // Chef's Picks rides along with the first (default) section only — it hides
   // once the diner navigates to any other section. Q-18: derive it from the
@@ -217,13 +222,34 @@ export function MenuView({
     setLang(next);
     window.localStorage.setItem(LANG_KEY, next);
   }
+  // Forward (a later section) enters from the trailing edge, back from the
+  // leading edge — flipped under RTL so "forward" always reads as inward motion.
+  function slideFor(forward: boolean) {
+    return forward !== isRtl(lang) ? 'slide-in-from-right-4' : 'slide-in-from-left-4';
+  }
   function pickParent(id: string) {
+    const curIdx = tree.findIndex((c) => c.id === parentId);
+    const nextIdx = tree.findIndex((c) => c.id === id);
+    setEnterDir(slideFor(nextIdx >= curIdx));
     setParentId(id);
     const p = tree.find((c) => c.id === id);
     setSubId(p ? defaultSubFor(p) : null);
   }
   function pickSub(id: string) {
+    const subs = selectedParent?.children ?? [];
+    const curIdx = subs.findIndex((c) => c.id === subId);
+    const nextIdx = subs.findIndex((c) => c.id === id);
+    setEnterDir(slideFor(nextIdx >= curIdx));
     setSubId(id);
+  }
+  // L4: share the menu link with the rest of the table (Web Share + clipboard fallback).
+  function shareMenu() {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: r.display_name, url }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(url).catch(() => {});
+    }
   }
   function onAdd(productId: string) {
     addToCart(slug, productId);
@@ -281,6 +307,14 @@ export function MenuView({
         <BrandMark logoUrl={r.logo_url} displayName={r.display_name} primary={colors.primary} />
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={shareMenu}
+            aria-label={t('share_menu', lang)}
+            className="bg-card border-border-lite shadow-card flex h-11 w-11 items-center justify-center rounded-full border transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+          >
+            <Share2 className="h-5 w-5" aria-hidden />
+          </button>
           <LanguageDropdown lang={lang} onPickLang={pickLang} />
           <Link
             href={`/r/${slug}/cart`}
@@ -446,7 +480,10 @@ export function MenuView({
         ) : (
           <div
             key={`${parentId}-${subId}`}
-            className="grid animate-in grid-cols-2 gap-3 fade-in-0 slide-in-from-bottom-2 duration-200 [animation-timing-function:var(--ease-out-expo)]"
+            className={
+              'grid animate-in grid-cols-2 gap-3 fade-in-0 duration-200 [animation-timing-function:var(--ease-out-expo)] ' +
+              enterDir
+            }
           >
             {filteredProducts.map((p) => (
               <ProductCard
@@ -644,9 +681,18 @@ function Chip({
   // ≥40px touch height; active state carries border + ring (not color alone — WCAG 1.4.1).
   const base =
     'inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]';
+
+  // L9: when a chip becomes active, slide it into view inside its scrollable
+  // rail so the current section's chip is never stranded off-screen.
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (active) ref.current?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [active]);
+
   if (active) {
     return (
       <button
+        ref={ref}
         type="button"
         aria-pressed={true}
         onClick={onClick}
@@ -663,6 +709,7 @@ function Chip({
       : 'bg-card border-border-strong text-foreground';
   return (
     <button
+      ref={ref}
       type="button"
       aria-pressed={false}
       onClick={onClick}
@@ -740,9 +787,9 @@ function ProductCard({
           src={product.image_url}
           alt={name}
           sizes="(max-width: 768px) 50vw, 200px"
-          className="aspect-square w-full"
+          className="aspect-[4/3] w-full"
         />
-        {hasDiscount && <DiscountBadge percent={product.discount_percent!} />}
+        {hasDiscount && <DiscountBadge percent={product.discount_percent!} lang={lang} />}
         {chefBadge && (
           <span className="bg-accent/90 text-accent-foreground shadow-subtle absolute start-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-semibold">
             <Star className="size-3" aria-hidden />

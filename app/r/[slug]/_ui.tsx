@@ -150,16 +150,26 @@ export function MenuImage({
   );
 }
 
-/** Limited-time discount marker. Semantic (fixed red) — never re-skinned per brand. */
-export function DiscountBadge({ percent, className = '' }: { percent: number; className?: string }) {
+/** Limited-time discount marker. Semantic (fixed red) — never re-skinned per brand.
+ *  L6: a deterministic aria-label so the −% glyph is announced as "خصم N%". */
+export function DiscountBadge({
+  percent,
+  lang = 'ar',
+  className = '',
+}: {
+  percent: number;
+  lang?: Lang;
+  className?: string;
+}) {
   return (
     <span
+      aria-label={`${t('discount_off', lang)} ${percent}%`}
       className={
         'bg-destructive text-destructive-foreground shadow-subtle absolute start-2 top-2 rounded-full px-2 py-0.5 font-mono text-caption font-semibold tabular-nums ' +
         className
       }
     >
-      −{percent}%
+      <span aria-hidden>−{percent}%</span>
     </span>
   );
 }

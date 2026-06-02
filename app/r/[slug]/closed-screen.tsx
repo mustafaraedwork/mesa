@@ -7,6 +7,7 @@ import { Coffee } from 'lucide-react';
 export function ClosedScreen() {
   return (
     <main
+      lang="ar"
       dir="rtl"
       className="bg-background flex min-h-screen flex-col items-center justify-center px-6"
     >

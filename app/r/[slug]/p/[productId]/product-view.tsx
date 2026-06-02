@@ -102,7 +102,10 @@ export function ProductView({
           {t('back_to_menu', lang)}
         </button>
         {/* M17: venue name is a back-nav label, not the page's primary heading. */}
-        <p className="flex-1 truncate text-base font-semibold">{restaurant.display_name}</p>
+        <p className="flex-1 truncate text-base font-semibold">
+          {/* L14: isolate the venue name so a Latin name never transposes the RTL chrome around it. */}
+          <bdi>{restaurant.display_name}</bdi>
+        </p>
       </header>
 
       <div id="product-content" className="mx-auto max-w-2xl px-gutter py-5">
@@ -118,7 +121,9 @@ export function ProductView({
               priority
               className="h-full w-full"
             />
-            {hasDiscount && <DiscountBadge percent={product.discount_percent!} className="!start-3 !top-3" />}
+            {hasDiscount && (
+              <DiscountBadge percent={product.discount_percent!} lang={lang} className="!start-3 !top-3" />
+            )}
           </div>
 
           <div className="space-y-3 p-card">

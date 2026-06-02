@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Megaphone, Minus, Plus, Star, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Megaphone, Minus, Plus, ShoppingBag, Star, Trash2, X } from 'lucide-react';
 import {
   addToCart,
   clearCart,
@@ -34,6 +34,7 @@ export function CartView({
   const [cart, setCart] = useState<Cart>({ items: [], updatedAt: 0 });
   const [lang, setLang] = useState<Lang>('ar');
   const [readModal, setReadModal] = useState(false);
+  const [clearConfirm, setClearConfirm] = useState(false); // L2: two-step page-level clear
   const router = useRouter();
 
   useSyncHtmlLang(lang);
@@ -201,7 +202,7 @@ export function CartView({
             className="text-muted-foreground shadow-card flex flex-col items-center gap-3 rounded-2xl p-10 text-center"
             style={{ background: r.card_color }}
           >
-            <Megaphone className="h-8 w-8 opacity-25" aria-hidden />
+            <ShoppingBag className="h-8 w-8 opacity-25" aria-hidden />
             <p className="text-body">{t('cart_empty', lang)}</p>
             <button
               type="button"
@@ -233,6 +234,25 @@ export function CartView({
                 <span>{t('cart_total', lang)}</span>
                 <span dir="ltr" style={{ color: r.primary_color }}>{formatPrice(total, r.currency, lang)}</span>
               </div>
+            </div>
+
+            {/* L2: quick clear straight from the cart page — two-step so a stray tap
+                never wipes the order. Reverts to the calm label on any re-render away. */}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => (clearConfirm ? (clearCart(slug), setClearConfirm(false)) : setClearConfirm(true))}
+                onBlur={() => setClearConfirm(false)}
+                className={
+                  'inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] ' +
+                  (clearConfirm
+                    ? 'bg-destructive/10 text-destructive-text'
+                    : 'text-muted-foreground hover:text-destructive-text')
+                }
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+                {clearConfirm ? t('clear_cart_confirm', lang) : t('clear_cart', lang)}
+              </button>
             </div>
           </>
         )}
@@ -399,7 +419,7 @@ function SuggestionCard({
           sizes="(max-width: 640px) 50vw, 160px"
           className="aspect-square w-full"
         />
-        {hasDiscount && <DiscountBadge percent={product.discount_percent!} />}
+        {hasDiscount && <DiscountBadge percent={product.discount_percent!} lang={lang} />}
         {!hasDiscount && product.is_chef_pick && (
           <span className="bg-accent/90 text-accent-foreground shadow-subtle absolute start-2 top-2 flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold">
             <Star className="size-2.5" aria-hidden />

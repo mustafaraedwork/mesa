@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { ChevronDown, ArrowRight } from 'lucide-react';
-import { LANGS, isRtl, t, type Lang } from '@/lib/i18n';
+import { LANGS, bcp47, isRtl, t, type Lang } from '@/lib/i18n';
 import { useReturnFocus, useSyncHtmlLang } from './_ui';
 
 const LANG_KEY = 'mesa-lang';
@@ -189,7 +189,7 @@ export function WelcomeScreen({
                       : 'border-border-strong hover:bg-muted')
                   }
                 >
-                  {l.label}
+                  <bdi lang={bcp47(l.code)}>{l.label}</bdi>
                 </button>
               ))}
             </div>
