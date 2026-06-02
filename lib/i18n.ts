@@ -18,8 +18,42 @@ export function pickName(
   return item.name_ar;
 }
 
+/**
+ * Like `pickName`, but also returns the language the name actually resolved to.
+ * When a localized name is missing we fall back to Arabic — and the span must be
+ * tagged with `ar`/RTL, NOT the UI language, otherwise an Arabic fallback on the
+ * EN surface renders LTR and is mispronounced by screen readers (audit H10).
+ */
+export function resolveName(
+  item: { name_ar: string; name_en: string | null; name_ku: string | null },
+  lang: Lang,
+): { text: string; lang: Lang } {
+  if (lang === 'en' && item.name_en) return { text: item.name_en, lang: 'en' };
+  if (lang === 'ku' && item.name_ku) return { text: item.name_ku, lang: 'ku' };
+  return { text: item.name_ar, lang: 'ar' };
+}
+
 export function isRtl(lang: Lang): boolean {
   return lang === 'ar' || lang === 'ku';
+}
+
+/**
+ * BCP-47 tag for the html `lang`/span attribute. Our internal `ku` is Central
+ * Kurdish (Sorani) in Arabic script → `ckb` so AT/font-shaping is correct
+ * (audit M16). `ar`/`en` map to themselves.
+ */
+export function bcp47(lang: Lang): string {
+  return lang === 'ku' ? 'ckb' : lang;
+}
+
+/**
+ * Localized currency token + placement (audit H4). IQD shows the native «د.ع»
+ * in Arabic/Kurdish and the ISO code in English. The amount is always grouped
+ * with Western digits inside a dir=ltr span at the call site.
+ */
+export function currencyLabel(currency: string, lang: Lang): string {
+  if (currency === 'IQD') return lang === 'en' ? 'IQD' : 'د.ع';
+  return currency;
 }
 
 // Parse a stored/raw language value to a valid Lang, defaulting to Arabic
@@ -38,6 +72,10 @@ const STRINGS = {
     read_to_waiter: 'اطلب من الكابتن',
     read_to_waiter_help: 'اعرض الشاشة للنادل أو اقرأها بصوت واضح.',
     back_to_menu: 'العودة للمنيو',
+    close: 'إغلاق',
+    done: 'تم',
+    clear_cart: 'إفراغ الطلب',
+    clear_cart_confirm: 'تأكيد الإفراغ؟',
     unavailable: 'غير متوفر',
     no_menu: 'ما في منيو بعد.',
     closed_title: 'هذا المنيو غير متوفر حالياً',
@@ -68,6 +106,10 @@ const STRINGS = {
     read_to_waiter: 'Order from the captain',
     read_to_waiter_help: 'Show this to the waiter or read it aloud.',
     back_to_menu: 'Back to menu',
+    close: 'Close',
+    done: 'Done',
+    clear_cart: 'Clear order',
+    clear_cart_confirm: 'Confirm clear?',
     unavailable: 'Unavailable',
     no_menu: 'No menu items yet.',
     closed_title: 'This menu is not available right now',
@@ -98,6 +140,10 @@ const STRINGS = {
     read_to_waiter: 'داواکاری لە کاپتن',
     read_to_waiter_help: 'پیشانی گەرسۆنەکە بدە یان بەدەنگی بەرز بیخوێنەوە.',
     back_to_menu: 'گەڕانەوە بۆ منو',
+    close: 'داخستن',
+    done: 'تەواو',
+    clear_cart: 'سڕینەوەی فەرمایش',
+    clear_cart_confirm: 'دڵنیای؟',
     unavailable: 'بەردەست نییە',
     no_menu: 'هیچ خۆراکێک نییە.',
     closed_title: 'ئەم منوە لە ئێستادا بەردەست نییە',

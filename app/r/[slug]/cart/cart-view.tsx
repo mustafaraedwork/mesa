@@ -10,7 +10,8 @@ import {
   subscribe,
   type Cart,
 } from '@/lib/cart';
-import { isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
+import { isRtl, parseLang, resolveName, t, type Lang } from '@/lib/i18n';
+import { readableTextOn } from '@/lib/contrast';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
 import { formatPrice } from '../menu-view';
@@ -163,6 +164,7 @@ export function CartView({
 
   const brand: CSSProperties = {
     ['--primary' as string]: r.primary_color,
+    ['--primary-foreground' as string]: readableTextOn(r.primary_color),
     ['--ring' as string]: r.primary_color,
     background: r.background_color,
     color: r.text_color,
@@ -172,12 +174,12 @@ export function CartView({
     <main dir={dir} className="min-h-screen pb-32" style={brand}>
       <header
         className="shadow-card sticky top-0 z-20 flex items-center gap-2 px-gutter py-3"
-        style={{ background: r.primary_color, color: '#fff' }}
+        style={{ background: r.primary_color, color: 'var(--primary-foreground)' }}
       >
         <button
           type="button"
           onClick={goBack}
-          className="-ms-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-medium hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="-ms-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-medium hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
         >
           <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" aria-hidden />
           {t('back_to_menu', lang)}
@@ -297,7 +299,8 @@ function CartRow({
   onRemove: () => void;
 }) {
   const { product, quantity, lineTotal } = row;
-  const name = pickName(product, lang);
+  const resolved = resolveName(product, lang);
+  const name = resolved.text;
   const hasDiscount = product.discount_percent !== null && product.original_price !== null;
   return (
     <li className="flex items-center gap-3 p-3">
@@ -309,7 +312,7 @@ function CartRow({
         rounded="rounded-lg"
       />
       <div className="min-w-0 flex-1">
-        <div className="truncate font-medium" {...nameLangProps(lang)}>{name}</div>
+        <div className="truncate font-medium" {...nameLangProps(resolved.lang)}>{name}</div>
         <PriceTag
           price={formatAmount(product.price)}
           original={hasDiscount ? formatAmount(product.original_price!) : null}
@@ -371,7 +374,8 @@ function SuggestionCard({
   currency: string;
   onAdd: () => void;
 }) {
-  const name = pickName(product, lang);
+  const resolved = resolveName(product, lang);
+  const name = resolved.text;
   return (
     <button
       type="button"
@@ -386,7 +390,7 @@ function SuggestionCard({
         className="aspect-square w-full"
       />
       <div className="space-y-1 p-2">
-        <div className="line-clamp-2 text-caption font-medium" {...nameLangProps(lang)}>{name}</div>
+        <div className="line-clamp-2 text-caption font-medium" {...nameLangProps(resolved.lang)}>{name}</div>
         <div className="font-mono text-caption font-bold tabular-nums" style={{ color: primary }}>
           {formatPrice(product.price, currency)}
         </div>
@@ -413,6 +417,8 @@ function ReadToWaiterModal({
   onClear: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Two-step confirm so a stray tap can't wipe the whole order with no undo (H8).
+  const [confirmClear, setConfirmClear] = useState(false);
 
   // Dismiss on Escape + move focus in and trap Tab inside (WCAG 2.1.1 / 4.1.2).
   useEffect(() => {
@@ -455,7 +461,7 @@ function ReadToWaiterModal({
       >
         <div
           className="flex items-center justify-between gap-3 px-5 py-4"
-          style={{ background: primary, color: '#fff' }}
+          style={{ background: primary, color: 'var(--primary-foreground)' }}
         >
           <h2 id="read-waiter-title" className="flex items-center gap-2 text-lg font-bold">
             <Megaphone className="h-5 w-5" aria-hidden />
@@ -464,8 +470,8 @@ function ReadToWaiterModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label={t('back_to_menu', lang)}
-            className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            aria-label={t('close', lang)}
+            className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
@@ -473,20 +479,23 @@ function ReadToWaiterModal({
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <p className="text-muted-foreground mb-4 text-sm">{t('read_to_waiter_help', lang)}</p>
           <ul className="space-y-3">
-            {rows.map((row) => (
-              <li
-                key={row.product.id}
-                className="flex items-baseline justify-between gap-4 border-b pb-2"
-              >
-                <div className="text-2xl font-bold leading-snug">
-                  <span style={{ color: primary }}>×{row.quantity}</span>{' '}
-                  {pickName(row.product, lang)}
-                </div>
-                <div className="shrink-0 text-base text-muted-foreground">
-                  {formatPrice(row.lineTotal, currency)}
-                </div>
-              </li>
-            ))}
+            {rows.map((row) => {
+              const rn = resolveName(row.product, lang);
+              return (
+                <li
+                  key={row.product.id}
+                  className="flex items-baseline justify-between gap-4 border-b pb-2"
+                >
+                  <div className="text-2xl font-bold leading-snug">
+                    <span style={{ color: primary }}>×{row.quantity}</span>{' '}
+                    <span {...nameLangProps(rn.lang)}>{rn.text}</span>
+                  </div>
+                  <div className="text-foreground shrink-0 text-lg font-bold">
+                    {formatPrice(row.lineTotal, currency)}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
           <div className="mt-6 flex items-center justify-between border-t pt-4 text-xl font-bold">
             <span>{t('cart_total', lang)}</span>
@@ -496,19 +505,25 @@ function ReadToWaiterModal({
         <div className="flex items-center justify-between gap-3 border-t px-5 py-3">
           <button
             type="button"
-            onClick={onClear}
-            className="text-destructive flex min-h-11 items-center gap-1.5 text-sm font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+            onClick={() => (confirmClear ? onClear() : setConfirmClear(true))}
+            aria-label={confirmClear ? t('clear_cart_confirm', lang) : t('clear_cart', lang)}
+            className={
+              'flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive ' +
+              (confirmClear
+                ? 'bg-destructive/10 text-destructive-text font-semibold'
+                : 'text-destructive-text hover:bg-destructive/10')
+            }
           >
             <Trash2 className="h-4 w-4" aria-hidden />
-            {t('remove', lang)}
+            {confirmClear ? t('clear_cart_confirm', lang) : t('clear_cart', lang)}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="shadow-card flex min-h-11 items-center rounded-lg px-5 text-sm font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
-            style={{ background: primary }}
+            className="shadow-card flex min-h-11 items-center rounded-lg px-5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+            style={{ background: primary, color: 'var(--primary-foreground)' }}
           >
-            {t('back_to_menu', lang)}
+            {t('done', lang)}
           </button>
         </div>
       </div>

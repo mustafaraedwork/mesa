@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Clock, Plus } from 'lucide-react';
 import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
-import { isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
+import { isRtl, parseLang, resolveName, t, type Lang } from '@/lib/i18n';
+import { readableTextOn } from '@/lib/contrast';
 import { track } from '@/lib/track';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
 import { FloatingCart } from '../../menu-view';
@@ -57,13 +58,15 @@ export function ProductView({
     track('product_open', { slug, productId: product.id });
   }, [slug, product.id]);
 
-  const name = pickName(product, lang);
+  const resolved = resolveName(product, lang);
+  const name = resolved.text;
   const dir = isRtl(lang) ? 'rtl' : 'ltr';
   const unavailable = !product.is_available;
   const hasDiscount = product.discount_percent !== null && product.original_price !== null;
 
   const brand: CSSProperties = {
     ['--primary' as string]: restaurant.primary_color,
+    ['--primary-foreground' as string]: readableTextOn(restaurant.primary_color),
     ['--ring' as string]: restaurant.primary_color,
     background: restaurant.background_color,
     color: restaurant.text_color,
@@ -73,12 +76,12 @@ export function ProductView({
     <main dir={dir} className="min-h-screen pb-28" style={brand}>
       <header
         className="shadow-card sticky top-0 z-20 flex items-center gap-2 px-gutter py-3"
-        style={{ background: restaurant.primary_color, color: '#fff' }}
+        style={{ background: restaurant.primary_color, color: 'var(--primary-foreground)' }}
       >
         <button
           type="button"
           onClick={goBack}
-          className="-ms-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-medium hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="-ms-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-medium hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
         >
           <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" aria-hidden />
           {t('back_to_menu', lang)}
@@ -103,7 +106,7 @@ export function ProductView({
           </div>
 
           <div className="space-y-3 p-card">
-            <h2 className="text-h2 font-bold" {...nameLangProps(lang)}>{name}</h2>
+            <h2 className="text-h2 font-bold" {...nameLangProps(resolved.lang)}>{name}</h2>
 
             <PriceTag
               price={formatAmount(product.price)}
@@ -132,8 +135,8 @@ export function ProductView({
                 addToCart(slug, product.id);
                 track('product_add', { slug, productId: product.id });
               }}
-              className="shadow-card flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold text-white transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ background: restaurant.primary_color }}
+              className="shadow-card flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ background: restaurant.primary_color, color: 'var(--primary-foreground)' }}
             >
               <Plus className="h-5 w-5" aria-hidden />
               {t('add', lang)}

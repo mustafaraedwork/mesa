@@ -11,7 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LANGS, isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
+import { LANGS, isRtl, parseLang, pickName, resolveName, t, type Lang } from '@/lib/i18n';
+import { readableTextOn } from '@/lib/contrast';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import { track } from '@/lib/track';
 import { WelcomeScreen } from './welcome-screen';
@@ -34,6 +35,7 @@ const POLL_MS = 30_000;
 function brandVars(colors: BrandColors): CSSProperties {
   return {
     ['--primary' as string]: colors.primary,
+    ['--primary-foreground' as string]: readableTextOn(colors.primary),
     ['--ring' as string]: colors.primary,
     ['--background' as string]: colors.bg,
     ['--card' as string]: colors.card,
@@ -298,8 +300,8 @@ export function MenuView({
         <section className="pt-6">
           <div className="mb-3 flex items-center gap-2 px-gutter text-start">
             <span className="h-5 w-1 rounded-full bg-primary" aria-hidden />
-            <h2 className="text-h3 font-bold" {...nameLangProps(lang)}>
-              {pickName(chefPicksCategory, lang)}
+            <h2 className="text-h3 font-bold" {...nameLangProps(resolveName(chefPicksCategory, lang).lang)}>
+              {resolveName(chefPicksCategory, lang).text}
             </h2>
           </div>
           <div className="no-scrollbar overflow-x-auto px-gutter pb-1">
@@ -519,8 +521,8 @@ function Chip({
         type="button"
         aria-pressed={true}
         onClick={onClick}
-        className={base + ' border-transparent text-white shadow-card'}
-        style={{ background: primary, borderColor: primary }}
+        className={base + ' border-transparent shadow-card'}
+        style={{ background: primary, borderColor: primary, color: 'var(--primary-foreground)' }}
       >
         {children}
       </button>
@@ -559,7 +561,8 @@ function ProductCard({
   currency: string;
   onAdd: (productId: string) => void;
 }) {
-  const name = pickName(product, lang);
+  const resolved = resolveName(product, lang);
+  const name = resolved.text;
   const unavailable = !product.is_available;
   const hasDiscount = product.discount_percent !== null && product.original_price !== null;
 
@@ -584,7 +587,7 @@ function ProductCard({
         {hasDiscount && <DiscountBadge percent={product.discount_percent!} />}
       </Link>
       <div className="flex flex-1 flex-col gap-2 p-card">
-        <h3 className="line-clamp-2 text-body font-medium leading-snug" title={name} {...nameLangProps(lang)}>
+        <h3 className="line-clamp-2 text-body font-medium leading-snug" title={name} {...nameLangProps(resolved.lang)}>
           {name}
         </h3>
         <div className="mt-auto flex items-end justify-between gap-2">
@@ -597,8 +600,8 @@ function ProductCard({
             type="button"
             disabled={unavailable}
             onClick={() => onAdd(product.id)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-card transition-transform active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ background: primary }}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-card transition-transform active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ background: primary, color: 'var(--primary-foreground)' }}
             aria-label={`${t('add', lang)} — ${name}`}
           >
             <Plus className="h-5 w-5" />
@@ -652,12 +655,12 @@ export function FloatingCart({
   return (
     <Link
       href={`/r/${slug}/cart`}
-      className="shadow-lifted fixed bottom-4 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full px-5 text-sm font-semibold text-white transition-transform active:scale-95"
-      style={{ background: primary }}
+      className="shadow-lifted fixed bottom-4 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-transform active:scale-95"
+      style={{ background: primary, color: 'var(--primary-foreground)' }}
     >
       <ShoppingBag className="h-5 w-5" />
       <span>{t('cart_button', lang)}</span>
-      <span className="bg-white/20 rounded-full px-2 py-0.5 text-xs tabular-nums">{count}</span>
+      <span className="bg-current/20 rounded-full px-2 py-0.5 text-xs tabular-nums">{count}</span>
     </Link>
   );
 }
