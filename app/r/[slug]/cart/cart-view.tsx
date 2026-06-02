@@ -223,7 +223,7 @@ export function CartView({
             <div className="rounded-xl p-4 shadow-card" style={{ background: r.card_color }}>
               <div className="flex items-center justify-between text-base font-semibold">
                 <span>{t('cart_total', lang)}</span>
-                <span style={{ color: r.primary_color }}>{formatPrice(total, r.currency)}</span>
+                <span dir="ltr" style={{ color: r.primary_color }}>{formatPrice(total, r.currency, lang)}</span>
               </div>
             </div>
           </>
@@ -317,6 +317,7 @@ function CartRow({
           price={formatAmount(product.price)}
           original={hasDiscount ? formatAmount(product.original_price!) : null}
           currency={currency}
+          lang={lang}
           layout="inline"
         />
       </div>
@@ -341,8 +342,8 @@ function CartRow({
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold tabular-nums" style={{ color: primary }}>
-            {formatPrice(lineTotal, currency)}
+          <span dir="ltr" className="text-sm font-bold tabular-nums" style={{ color: primary }}>
+            {formatPrice(lineTotal, currency, lang)}
           </span>
           <button
             type="button"
@@ -391,8 +392,8 @@ function SuggestionCard({
       />
       <div className="space-y-1 p-2">
         <div className="line-clamp-2 text-caption font-medium" {...nameLangProps(resolved.lang)}>{name}</div>
-        <div className="font-mono text-caption font-bold tabular-nums" style={{ color: primary }}>
-          {formatPrice(product.price, currency)}
+        <div dir="ltr" className="font-mono text-caption font-bold tabular-nums" style={{ color: primary }}>
+          {formatPrice(product.price, currency, lang)}
         </div>
       </div>
     </button>
@@ -490,8 +491,8 @@ function ReadToWaiterModal({
                     <span style={{ color: primary }}>×{row.quantity}</span>{' '}
                     <span {...nameLangProps(rn.lang)}>{rn.text}</span>
                   </div>
-                  <div className="text-foreground shrink-0 text-lg font-bold">
-                    {formatPrice(row.lineTotal, currency)}
+                  <div dir="ltr" className="text-foreground shrink-0 text-lg font-bold">
+                    {formatPrice(row.lineTotal, currency, lang)}
                   </div>
                 </li>
               );
@@ -499,7 +500,7 @@ function ReadToWaiterModal({
           </ul>
           <div className="mt-6 flex items-center justify-between border-t pt-4 text-xl font-bold">
             <span>{t('cart_total', lang)}</span>
-            <span style={{ color: primary }}>{formatPrice(total, currency)}</span>
+            <span dir="ltr" style={{ color: primary }}>{formatPrice(total, currency, lang)}</span>
           </div>
         </div>
         <div className="flex items-center justify-between gap-3 border-t px-5 py-3">

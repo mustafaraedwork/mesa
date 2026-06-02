@@ -97,6 +97,11 @@ const STRINGS = {
     chef_tonight: 'اختيارات الشيف الليلة',
     cart_items: 'صنف في السلة',
     view_cart: 'عرض السلة',
+    search_placeholder: 'ابحث عن صنف…',
+    no_results: 'لا نتائج مطابقة',
+    added_to_cart: 'أُضيف إلى السلة',
+    offer_ends_at: 'عرض الإغلاق — ينتهي',
+    menu_coming_soon: 'المنيو قيد التحضير',
   },
   en: {
     cart_button: 'My order',
@@ -131,6 +136,11 @@ const STRINGS = {
     chef_tonight: "Chef's picks tonight",
     cart_items: 'item(s) in cart',
     view_cart: 'View cart',
+    search_placeholder: 'Search the menu…',
+    no_results: 'No matching items',
+    added_to_cart: 'Added to cart',
+    offer_ends_at: 'Closing offer — ends',
+    menu_coming_soon: 'Menu coming soon',
   },
   ku: {
     cart_button: 'فەرمایشم',
@@ -165,6 +175,11 @@ const STRINGS = {
     chef_tonight: 'هەڵبژاردنی شێف بۆ ئەمشەو',
     cart_items: 'بەش لە سەبەتە',
     view_cart: 'بینینی سەبەتە',
+    search_placeholder: 'گەڕان بۆ خۆراک…',
+    no_results: 'هیچ ئەنجامێک نییە',
+    added_to_cart: 'زیادکرا بۆ سەبەتە',
+    offer_ends_at: 'تەنزیلاتی داخستن — کۆتایی',
+    menu_coming_soon: 'مینۆ بەم زووانە',
   },
 } as const;
 

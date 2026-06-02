@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, Plus } from 'lucide-react';
+import { ArrowLeft, Clock, Plus, Tag } from 'lucide-react';
 import { addToCart, getCart, subscribe, totalQuantity } from '@/lib/cart';
 import { isRtl, parseLang, resolveName, t, type Lang } from '@/lib/i18n';
 import { readableTextOn } from '@/lib/contrast';
 import { track } from '@/lib/track';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
 import { FloatingCart } from '../../menu-view';
-import { DiscountBadge, MenuImage, PriceTag, formatAmount, nameLangProps, useSyncHtmlLang } from '../../_ui';
+import { DiscountBadge, MenuImage, PriceTag, formatAmount, formatTimeBaghdad, nameLangProps, useSyncHtmlLang } from '../../_ui';
 
 const LANG_KEY = 'mesa-lang';
 
@@ -112,8 +112,21 @@ export function ProductView({
               price={formatAmount(product.price)}
               original={hasDiscount ? formatAmount(product.original_price!) : null}
               currency={restaurant.currency}
+              lang={lang}
               layout="inline"
             />
+
+            {hasDiscount &&
+              restaurant.active_mode === 'closing' &&
+              restaurant.closing_mode_ends_at && (
+                <p className="text-destructive-text flex items-center gap-1.5 text-caption font-medium">
+                  <Tag className="size-3.5 shrink-0" aria-hidden />
+                  {t('offer_ends_at', lang)}{' '}
+                  <span dir="ltr" className="font-mono tabular-nums">
+                    {formatTimeBaghdad(restaurant.closing_mode_ends_at, lang)}
+                  </span>
+                </p>
+              )}
 
             <div className="text-muted-foreground flex items-center gap-1.5 text-body">
               <Clock className="h-4 w-4" aria-hidden />

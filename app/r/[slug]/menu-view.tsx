@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Check, ChevronDown, Plus, ShoppingBag } from 'lucide-react';
+import { Check, ChevronDown, Plus, Search, ShoppingBag, Tag, UtensilsCrossed } from 'lucide-react';
 import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LANGS, isRtl, parseLang, pickName, resolveName, t, type Lang } from '@/lib/i18n';
+import { LANGS, currencyLabel, isRtl, parseLang, pickName, resolveName, t, type Lang } from '@/lib/i18n';
 import { readableTextOn } from '@/lib/contrast';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import { track } from '@/lib/track';
@@ -21,6 +21,7 @@ import {
   MenuImage,
   PriceTag,
   formatAmount,
+  formatTimeBaghdad,
   nameLangProps,
   useSyncHtmlLang,
 } from './_ui';
@@ -169,6 +170,36 @@ export function MenuView({
     return total;
   }, [cart, productIndex]);
 
+  // H5: only greet + show chips when the menu actually has items.
+  const hasAnyProduct = useMemo(
+    () => data.categories.some((c) => c.id !== CLOSING_VIRTUAL_CATEGORY_ID && c.products.length > 0),
+    [data.categories],
+  );
+
+  // H2: instant menu search across every category (names in any language).
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const searchResults = useMemo<MenuProduct[]>(() => {
+    if (!q) return [];
+    const seen = new Set<string>();
+    const out: MenuProduct[] = [];
+    for (const cat of data.categories) {
+      if (cat.id === CLOSING_VIRTUAL_CATEGORY_ID) continue;
+      for (const p of cat.products) {
+        if (seen.has(p.id)) continue;
+        const hay = [p.name_ar, p.name_en, p.name_ku].filter(Boolean).join(' ').toLowerCase();
+        if (hay.includes(q)) {
+          seen.add(p.id);
+          out.push(p);
+        }
+      }
+    }
+    return out;
+  }, [data.categories, q]);
+
+  // H3: status message announced to screen readers after an add.
+  const [announce, setAnnounce] = useState('');
+
   const r = data.restaurant;
   const dir = isRtl(lang) ? 'rtl' : 'ltr';
   const colors: BrandColors = {
@@ -196,6 +227,10 @@ export function MenuView({
   function onAdd(productId: string) {
     addToCart(slug, productId);
     track('product_add', { slug, productId });
+    // H3: confirm the add for screen readers + a tiny haptic tick where supported.
+    const p = productIndex.get(productId);
+    if (p) setAnnounce(`${resolveName(p, lang).text} — ${t('added_to_cart', lang)}`);
+    if (typeof navigator !== 'undefined') navigator.vibrate?.(10);
   }
   function handleStart() {
     menuOpenedThisLoad = true;
@@ -245,7 +280,8 @@ export function MenuView({
             <ShoppingBag className="h-5 w-5" />
             {cartCount > 0 && (
               <span
-                className="text-sm font-bold tabular-nums leading-none text-primary"
+                key={cartCount}
+                className="animate-in zoom-in-50 text-sm font-bold tabular-nums leading-none text-primary duration-200 [animation-timing-function:var(--ease-spring)]"
               >
                 {cartCount}
               </span>
@@ -254,13 +290,70 @@ export function MenuView({
         </div>
       </header>
 
-      {/* Editorial intro — hidden in Off mode for a plain menu */}
-      {!isOff && (
-        <div className="px-gutter pt-5 pb-1 text-start">
-          <h1 className="text-h2 font-bold">{t('greeting_evening', lang)}</h1>
-          <p className="mt-1 text-body opacity-70">{t('chef_tonight', lang)}</p>
+      {/* H3: status region, pre-existing in the DOM so adds are announced. */}
+      <p role="status" aria-live="polite" className="sr-only">{announce}</p>
+
+      {!hasAnyProduct ? (
+        /* H5: an empty menu shows one honest state — no greeting, no chips. */
+        <div className="flex flex-col items-center gap-3 px-gutter py-20 text-center">
+          <UtensilsCrossed className="text-foreground/25 h-10 w-10" aria-hidden />
+          <p className="text-muted-foreground text-lead">{t('menu_coming_soon', lang)}</p>
         </div>
-      )}
+      ) : (
+        <>
+          {/* H2: instant search across the whole menu */}
+          <div className="px-gutter pt-4">
+            <div className="relative">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2" aria-hidden />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('search_placeholder', lang)}
+                aria-label={t('search_placeholder', lang)}
+                className="bg-card border-border-strong h-11 w-full rounded-full border ps-9 pe-4 text-sm outline-none focus-visible:border-[--ring] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--ring)_45%,transparent)]"
+              />
+            </div>
+          </div>
+
+          {q ? (
+            <section className="px-gutter pt-4 pb-32" aria-label={t('search_placeholder', lang)}>
+              {searchResults.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-14 text-center">
+                  <Search className="h-8 w-8 opacity-25" aria-hidden />
+                  <p className="text-muted-foreground text-body">{t('no_results', lang)}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {searchResults.map((p) => (
+                    <ProductCard
+                      key={p.id}
+                      slug={slug}
+                      product={p}
+                      lang={lang}
+                      primary={colors.primary}
+                      card={colors.card}
+                      currency={r.currency}
+                      onAdd={onAdd}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : (
+            <>
+              {/* Editorial intro — hidden in Off mode for a plain menu */}
+              {!isOff && (
+                <div className="px-gutter pt-5 pb-1 text-start">
+                  <h1 className="text-h2 font-bold">{t('greeting_evening', lang)}</h1>
+                  <p className="mt-1 text-body opacity-70">{t('chef_tonight', lang)}</p>
+                </div>
+              )}
+
+              {/* H7: calm closing-offer banner with the end time (no flashing timer) */}
+              {r.active_mode === 'closing' && r.closing_mode_ends_at && (
+                <ClosingBanner endsAt={r.closing_mode_ends_at} lang={lang} />
+              )}
 
       {/* Parent category chips */}
       {tree.length > 0 && (
@@ -354,6 +447,10 @@ export function MenuView({
           </div>
         )}
       </section>
+            </>
+          )}
+        </>
+      )}
 
       <CartBar
         slug={slug}
@@ -544,6 +641,23 @@ function Chip({
   );
 }
 
+// Calm closing-offer banner (H7). Formats the end time in Baghdad time; no
+// ticking — just "ends at HH:MM" so the discount reads as time-limited.
+function ClosingBanner({ endsAt, lang }: { endsAt: string; lang: Lang }) {
+  const timeStr = formatTimeBaghdad(endsAt, lang);
+  return (
+    <div className="px-gutter pt-3">
+      <div className="bg-destructive/10 text-destructive-text flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium">
+        <Tag className="size-4 shrink-0" aria-hidden />
+        <span>
+          {t('offer_ends_at', lang)}{' '}
+          {timeStr && <span dir="ltr" className="font-mono tabular-nums">{timeStr}</span>}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function ProductCard({
   slug,
   product,
@@ -565,6 +679,16 @@ function ProductCard({
   const name = resolved.text;
   const unavailable = !product.is_available;
   const hasDiscount = product.discount_percent !== null && product.original_price !== null;
+  // H3: flip the + to a ✓ for ~900ms so the tap visibly registers on the card.
+  const [justAdded, setJustAdded] = useState(false);
+  const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (addedTimer.current) clearTimeout(addedTimer.current); }, []);
+  function handleAdd() {
+    onAdd(product.id);
+    setJustAdded(true);
+    if (addedTimer.current) clearTimeout(addedTimer.current);
+    addedTimer.current = setTimeout(() => setJustAdded(false), 900);
+  }
 
   return (
     <div
@@ -595,16 +719,17 @@ function ProductCard({
             price={formatAmount(product.price)}
             original={hasDiscount ? formatAmount(product.original_price!) : null}
             currency={currency}
+            lang={lang}
           />
           <button
             type="button"
             disabled={unavailable}
-            onClick={() => onAdd(product.id)}
+            onClick={handleAdd}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-card transition-transform active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
             style={{ background: primary, color: 'var(--primary-foreground)' }}
             aria-label={`${t('add', lang)} — ${name}`}
           >
-            <Plus className="h-5 w-5" />
+            {justAdded ? <Check className="h-5 w-5" aria-hidden /> : <Plus className="h-5 w-5" aria-hidden />}
           </button>
         </div>
       </div>
@@ -634,7 +759,7 @@ function CartBar({
       <span className="text-background text-sm font-medium">
         {t('view_cart', lang)} · <span className="tabular-nums">{count}</span>
       </span>
-      <span className="text-gold font-bold tabular-nums">{formatPrice(total, currency)}</span>
+      <span dir="ltr" className="text-gold font-bold tabular-nums">{formatPrice(total, currency, lang)}</span>
     </Link>
   );
 }
@@ -665,6 +790,6 @@ export function FloatingCart({
   );
 }
 
-export function formatPrice(value: number, currency: string): string {
-  return `${value.toLocaleString('en-US')} ${currency}`;
+export function formatPrice(value: number, currency: string, lang: Lang): string {
+  return `${value.toLocaleString('en-US')} ${currencyLabel(currency, lang)}`;
 }

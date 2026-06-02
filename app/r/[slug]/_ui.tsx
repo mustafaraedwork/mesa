@@ -6,7 +6,7 @@
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { UtensilsCrossed } from 'lucide-react';
-import { isRtl, type Lang } from '@/lib/i18n';
+import { currencyLabel, isRtl, type Lang } from '@/lib/i18n';
 
 /**
  * Return focus to whatever was focused before a dialog/popup opened, once it
@@ -51,6 +51,19 @@ export function useSyncHtmlLang(lang: Lang) {
 /** Group a numeric amount with Western digits (e.g. 12000 → "12,000"). */
 export function formatAmount(value: number): string {
   return value.toLocaleString('en-US');
+}
+
+/** Closing-offer end time in Baghdad time (UTC+3), e.g. "10:45 م" / "10:45 PM" (H7). */
+export function formatTimeBaghdad(iso: string, lang: Lang): string {
+  try {
+    return new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : 'ar', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Baghdad',
+    }).format(new Date(iso));
+  } catch {
+    return '';
+  }
 }
 
 /** Span props that declare a localized string's language for screen readers. */
@@ -122,21 +135,26 @@ export function PriceTag({
   price,
   original,
   currency,
+  lang,
   layout = 'stack',
 }: {
   price: string;
   original?: string | null;
   currency: string;
+  lang: Lang;
   layout?: 'stack' | 'inline';
 }) {
+  // Localized currency token (د.ع in ar/ku, ISO in en) — H4. The whole money
+  // run stays in a dir=ltr span so digits + token never transpose under RTL.
+  const cur = currencyLabel(currency, lang);
   const now = (
-    <span dir="ltr" className="font-mono font-semibold tabular-nums text-primary">
-      {price} <span className="text-[0.85em] font-medium opacity-80">{currency}</span>
+    <span dir="ltr" className="font-mono font-semibold tabular-nums text-primary whitespace-nowrap">
+      {price} <span className="text-[0.85em] font-medium opacity-80">{cur}</span>
     </span>
   );
   const was = original ? (
-    <span dir="ltr" className="font-mono text-caption text-muted-foreground line-through tabular-nums">
-      {original} {currency}
+    <span dir="ltr" className="font-mono text-caption text-muted-foreground line-through tabular-nums whitespace-nowrap">
+      {original} {cur}
     </span>
   ) : null;
 
