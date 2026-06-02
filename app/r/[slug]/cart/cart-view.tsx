@@ -14,7 +14,7 @@ import { isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
 import { formatPrice } from '../menu-view';
-import { MenuImage, PriceTag, formatAmount, nameLangProps, useSyncHtmlLang } from '../_ui';
+import { MenuImage, PriceTag, formatAmount, nameLangProps, useReturnFocus, useSyncHtmlLang } from '../_ui';
 
 const LANG_KEY = 'mesa-lang';
 const SUGGESTION_COUNT = 4;
@@ -35,6 +35,7 @@ export function CartView({
   const router = useRouter();
 
   useSyncHtmlLang(lang);
+  useReturnFocus(readModal); // return focus to the "read to waiter" button on close (2.4.3)
 
   // Step back one entry instead of forcing a fresh menu load, preserving the
   // diner's place. Deep-linked entries with no history fall back to the menu.

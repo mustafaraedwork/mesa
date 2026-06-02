@@ -414,6 +414,7 @@ function ColorField({
           dir="ltr"
           className="text-left font-mono uppercase"
           maxLength={7}
+          aria-label={`${label} (HEX)`}
         />
       </div>
     </div>

@@ -417,6 +417,7 @@ function ModeCard({
     <Card
       data-mode={mode}
       data-active={active}
+      aria-current={active ? 'true' : undefined}
       className={cn('transition-shadow', active && `ring-2 ${meta.ring} shadow-lifted`)}
     >
       <CardContent className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
@@ -446,7 +447,10 @@ function ModeCard({
           <p className="text-muted-foreground text-center text-caption">ما يراه الزبون</p>
         </div>
       </CardContent>
-      {pending && <span className="sr-only" role="status">جارٍ التحديث…</span>}
+      {/* Live region pre-exists in the DOM so SR announces the change (4.1.3). */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {pending ? 'جارٍ التحديث…' : ''}
+      </span>
     </Card>
   );
 }

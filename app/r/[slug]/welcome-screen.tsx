@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { ChevronDown, ArrowRight } from 'lucide-react';
 import { LANGS, isRtl, t, type Lang } from '@/lib/i18n';
-import { useSyncHtmlLang } from './_ui';
+import { useReturnFocus, useSyncHtmlLang } from './_ui';
 
 const LANG_KEY = 'mesa-lang';
 
@@ -33,6 +33,7 @@ export function WelcomeScreen({
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useSyncHtmlLang(lang);
+  useReturnFocus(langOpen); // restore focus to the language pill on close (2.4.3)
 
   // Auto-open the language picker only on the first ever visit. Once the diner
   // picks a language it's cached in localStorage, so on later visits the popup

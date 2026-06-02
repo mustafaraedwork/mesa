@@ -164,9 +164,13 @@ export function ClosingDialog({
             </output>
           </Field>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <div
+            role="group"
+            aria-labelledby="closing-products-heading"
+            className="flex min-h-0 flex-1 flex-col gap-2"
+          >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">
+              <span id="closing-products-heading" className="text-sm font-medium">
                 المنتجات{' '}
                 <Badge variant={totalSelected > 0 ? 'primary' : 'neutral'}>{totalSelected} مختارة</Badge>
               </span>

@@ -3,8 +3,14 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronDown, Plus, ShoppingBag } from 'lucide-react';
+import { Check, ChevronDown, Plus, ShoppingBag } from 'lucide-react';
 import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { LANGS, isRtl, parseLang, pickName, t, type Lang } from '@/lib/i18n';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import { track } from '@/lib/track';
@@ -63,7 +69,6 @@ export function MenuView({
   const [lang, setLang] = useState<Lang>('ar');
   const [cart, setCart] = useState<Cart>({ items: [], updatedAt: 0 });
   const [started, setStarted] = useState(() => menuOpenedThisLoad);
-  const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   // Mirror the document to the chosen language (WCAG 3.1.2 / 1.3.2).
   useSyncHtmlLang(lang);
@@ -177,7 +182,6 @@ export function MenuView({
   function pickLang(next: Lang) {
     setLang(next);
     window.localStorage.setItem(LANG_KEY, next);
-    setLangMenuOpen(false);
   }
   function pickParent(id: string) {
     setParentId(id);
@@ -227,12 +231,7 @@ export function MenuView({
         <BrandMark logoUrl={r.logo_url} displayName={r.display_name} primary={colors.primary} />
 
         <div className="flex items-center gap-2">
-          <LanguageDropdown
-            lang={lang}
-            open={langMenuOpen}
-            onOpenChange={setLangMenuOpen}
-            onPickLang={pickLang}
-          />
+          <LanguageDropdown lang={lang} onPickLang={pickLang} />
           <Link
             href={`/r/${slug}/cart`}
             aria-label={t('cart_button', lang)}
@@ -334,7 +333,10 @@ export function MenuView({
             <p className="text-muted-foreground text-body">{t('no_menu', lang)}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div
+            key={`${parentId}-${subId}`}
+            className="grid animate-in grid-cols-2 gap-3 fade-in-0 duration-200"
+          >
             {filteredProducts.map((p) => (
               <ProductCard
                 key={p.id}
@@ -405,66 +407,49 @@ function defaultSubFor(parent: CategoryNode): string | null {
 
 // ── presentational ────────────────────────────────────────────────────
 
+// Language picker on the shared DropdownMenu (base-ui Menu) — correct keyboard
+// nav, focus management, and aria handling out of the box (fixes the hand-rolled
+// listbox that gave every option tabindex=0 with no roving focus — W7).
 function LanguageDropdown({
   lang,
-  open,
-  onOpenChange,
   onPickLang,
 }: {
   lang: Lang;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   onPickLang: (lang: Lang) => void;
 }) {
   const current = LANGS.find((l) => l.code === lang)?.label ?? 'عربي';
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls="lang-listbox"
-        onClick={() => onOpenChange(!open)}
-        className="bg-card border-border-lite shadow-card flex h-11 items-center gap-1 rounded-full border px-3.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <button
+            type="button"
+            aria-label={t('choose_lang', lang)}
+            className="bg-card border-border-lite shadow-card flex h-11 items-center gap-1 rounded-full border px-3.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+          />
+        }
       >
         <span>{current}</span>
         <ChevronDown className="text-muted-foreground h-4 w-4" />
-      </button>
-
-      {open && (
-        <div
-          role="listbox"
-          id="lang-listbox"
-          aria-label="اختر اللغة"
-          className="bg-card border-border-lite shadow-modal absolute end-0 top-12 z-30 min-w-32 overflow-hidden rounded-xl border py-1"
-        >
-          {LANGS.map((l) => (
-            <div
-              key={l.code}
-              role="option"
-              tabIndex={0}
-              aria-selected={l.code === lang}
-              onClick={() => onPickLang(l.code)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onPickLang(l.code);
-                }
-              }}
-              className={
-                'flex min-h-11 w-full cursor-pointer items-center px-3.5 text-start text-sm transition-colors ' +
-                (l.code === lang
-                  ? 'bg-muted text-foreground font-semibold'
-                  : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground')
-              }
-            >
+      </DropdownMenuTrigger>
+      <DropdownMenuContent aria-label={t('choose_lang', lang)} className="min-w-36">
+        {LANGS.map((l) => (
+          <DropdownMenuItem
+            key={l.code}
+            onClick={() => onPickLang(l.code)}
+            className={
+              'justify-between ' + (l.code === lang ? 'font-semibold [&_svg]:text-primary' : '')
+            }
+          >
+            <span lang={l.code === 'ku' ? 'ckb' : l.code} dir={isRtl(l.code) ? 'rtl' : 'ltr'}>
               {l.label}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+            </span>
+            {l.code === lang && <Check className="size-4" aria-hidden />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -507,7 +492,7 @@ function BrandMark({
 function ChipBar({ children, dense = false }: { children: ReactNode; dense?: boolean }) {
   return (
     <div className={'no-scrollbar overflow-x-auto px-gutter ' + (dense ? 'pb-3' : 'pt-4 pb-3')}>
-      <div className="flex w-max gap-2" role="tablist">{children}</div>
+      <div className="flex w-max gap-2">{children}</div>
     </div>
   );
 }
@@ -532,8 +517,7 @@ function Chip({
     return (
       <button
         type="button"
-        role="tab"
-        aria-selected="true"
+        aria-pressed={true}
         onClick={onClick}
         className={base + ' border-transparent text-white shadow-card'}
         style={{ background: primary, borderColor: primary }}
@@ -549,8 +533,7 @@ function Chip({
   return (
     <button
       type="button"
-      role="tab"
-      aria-selected="false"
+      aria-pressed={false}
       onClick={onClick}
       className={base + ' ' + inactive}
     >
@@ -643,7 +626,7 @@ function CartBar({
   return (
     <Link
       href={`/r/${slug}/cart`}
-      className="bg-foreground shadow-lifted fixed inset-x-4 bottom-4 z-30 flex h-14 items-center justify-between rounded-2xl px-5"
+      className="bg-foreground shadow-lifted fixed inset-x-4 bottom-4 z-30 flex h-14 animate-in items-center justify-between rounded-2xl px-5 duration-300 fade-in-0 slide-in-from-bottom-4 ease-[--ease-out-expo]"
     >
       <span className="text-background text-sm font-medium">
         {t('view_cart', lang)} · <span className="tabular-nums">{count}</span>

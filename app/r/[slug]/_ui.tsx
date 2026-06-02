@@ -3,10 +3,30 @@
 // Shared diner-surface UI primitives (Phase 1 redesign).
 // Keep these presentational + dependency-light: menu/product/cart all import them.
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { UtensilsCrossed } from 'lucide-react';
 import { isRtl, type Lang } from '@/lib/i18n';
+
+/**
+ * Return focus to whatever was focused before a dialog/popup opened, once it
+ * closes (WCAG 2.4.3). Call from the component that owns the open/closed state
+ * (so it stays mounted across the transition) — captures `document.activeElement`
+ * on open and restores it on close.
+ */
+export function useReturnFocus(isOpen: boolean) {
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (isOpen && !wasOpen.current) {
+      triggerRef.current = (document.activeElement as HTMLElement | null) ?? null;
+    } else if (!isOpen && wasOpen.current) {
+      triggerRef.current?.focus?.();
+      triggerRef.current = null;
+    }
+    wasOpen.current = isOpen;
+  }, [isOpen]);
+}
 
 /**
  * Keep the document's lang/dir in sync with the diner's chosen language so

@@ -14,7 +14,8 @@
 | `d88e15c` | **Phase 0** | Token system + primitives (button/input/dialog) |
 | `f849298` | **Phase 1** | Diner surface redesign |
 | `d5d1035` | **Phase 2** | Admin panel — primitives, modes hero, analytics, design guards |
-| **working tree (uncommitted)** | **Phase 3** | **Owner panel redesign — this session.** Ready to commit (see "Commit"). |
+| `da621ad` | **Phase 3** | Owner panel — responsive accounts table, stat cards, toasts |
+| **working tree (uncommitted)** | **Phase 4** | **Motion + a11y polish — this session.** Ready to commit (see "Commit"). |
 
 ### Phase 0 — tokens & primitives (`d88e15c`)
 OKLCH palette; semantic state tokens independent of brand; fluid type scale; spacing/motion tokens; solid focus outline; reduced-motion honored. Button ≥44px + focus ring + solid-red destructive; Input visible border; Dialog `end-2` close (RTL). Vazirmatn + Noto Sans Arabic + IBM Plex Mono.
@@ -57,6 +58,14 @@ OKLCH palette; semantic state tokens independent of brand; fluid type scale; spa
 - **Dialogs** — `create-account-dialog` migrated to the shared `Field` (password field uses `group`); `delete-account-dialog` fires a success **toast**. (The "type the slug to confirm" delete stays a Dialog — it's a friction-gated destructive form.)
 - Screenshots captured via a **temporary** `app/owner-preview` route with mock data (no owner auth needed), then the route was deleted before commit.
 
+### Phase 4 — motion + a11y polish (THIS SESSION — working tree)
+- **Motion (A1/A2):** diner cart-bar enter (`animate-in slide-in-from-bottom fade-in`, `--ease-out-expo`); product grid fades on section change (`key`+`animate-in fade-in`). (Drag-lift was already added in Phase 2.) All ride the existing motion tokens and are suppressed under `prefers-reduced-motion` (global rule).
+- **W7 — diner language picker** converted from a hand-rolled listbox (every option `tabindex=0`, no roving focus) to the **base-ui `DropdownMenu`** primitive — correct keyboard nav / focus / aria for free; per-item `lang`/`dir`; check on the active language.
+- **`useReturnFocus` hook (NEW in `_ui.tsx`)** — restores focus to the trigger when the welcome language popup and the "read to waiter" modal close (2.4.3); both were hand-rolled focus traps that didn't return focus.
+- **Diner chips** — dropped the broken `role="tablist"`/`tab` contract (no tabpanels existed); chips are now `aria-pressed` filter buttons.
+- **Admin/owner a11y** — modes `ModeCard` gets `aria-current` + an always-mounted `role=status` live region (4.1.3); design HEX input gets an `aria-label` (4.1.2); closing/chef product lists get `role=group`+`aria-labelledby` (1.3.1).
+- **Audit:** ran the `a11y-architect` agent over all three surfaces — it confirmed **heading hierarchy + landmarks are clean** (W8) and the W7 fix is correct; its substantive findings were applied (the above), false positives (e.g. "outline-none kills the ring" — it's a box-shadow ring) and low-value items were logged and skipped.
+
 ---
 
 ## 🧪 Verification status (last run, clean warm server)
@@ -68,6 +77,7 @@ OKLCH palette; semantic state tokens independent of brand; fluid type scale; spa
 - **Screenshots:**
   - `design-progress/phase-2/` — `01-menu`, `02-menu-product-dialog`, `03-modes`, `04-closing-dialog`, `05-chef-picks-dialog`, `06-analytics`, `07-design` (mobile 390×844, ephemeral tenant via `shoot-admin.mjs`).
   - `design-progress/phase-3/` — `01-login` (390), `02-overview-accounts-desktop` (1280), `03-accounts-mobile` (390). Confirmed: stat-card icons, table↔cards responsive split, Switch toggles, search/count toolbar.
+- **Phase 4 re-run:** tsc clean, build OK; smoke (pwa sidelined) → **12/12** (smoke-desync passed warm this time). a11y-architect audit applied. Diner screenshots in `design-progress/phase-4/` (`01-welcome`, `02-menu-rtl`, `03-menu-ltr`, `04-product`, `05-cart`, `06-admin-login`, `07-owner-login`) — confirmed the diner is intact after the language-picker swap + motion (no regression).
 
 ---
 
@@ -94,19 +104,24 @@ npx tsc --noEmit ; npx next build ; (kill :3000 node, restart dev, warm) ; node 
 # diner/public screenshots: node design-progress/shoot.mjs design-progress/phase-N
 ```
 
-## 💾 Commit (Phase 3 is uncommitted)
+## 💾 Commit (Phase 4 is uncommitted)
 Stage explicitly (exclude `.claude/settings.local.json`):
 ```
-git add app/owner app/globals.css design-progress/phase-3 design-progress/HANDOFF.md PROGRESS.md
-git commit -m "feat(design-phase-3): owner panel — responsive accounts table, stat cards, toasts"
+git add app/r components/ui/.gitkeep app/admin/dashboard/modes app/admin/dashboard/design design-progress/phase-4 design-progress/HANDOFF.md PROGRESS.md
+git commit -m "feat(design-phase-4): motion + a11y polish — listbox→menu, return-focus, chip semantics"
 ```
+(adjust paths to the actual changed files — see `git status`.)
 
 ---
 
-## ⏭️ Remaining work (DESIGN-PLAN §ب roadmap)
+## ✅ Redesign complete — phases 0–4 all shipped
 
-### Phase 4 — Motion & a11y polish (NOT STARTED)
-Purposeful motion on the motion tokens (cart-bar enter, chip/section transitions — A1/A2 beyond the drag lift already done). Full heading-hierarchy + landmarks audit (W8) across diner + admin. Final automated a11y + keyboard + screen-reader pass (run `a11y-architect`). `LanguageDropdown` listbox contract (W7). Diner Chef's-Picks caption (was removed in Phase 1 as untranslated).
+The full DESIGN-PLAN §ب roadmap is done: tokens/primitives (0), diner (1), admin (2), owner (3), motion + a11y (4). All gates green (tsc/build/smoke 12/13 with the single documented `smoke-pwa` dev flake). a11y-architect confirmed heading hierarchy + landmarks clean.
+
+### Possible future polish (optional, not blocking)
+- Re-add a **translated** diner Chef's-Picks eyebrow caption (removed in Phase 1 as untranslated `CHEF'S SELECTION · TONIGHT`).
+- Analytics bars could expose `role=meter` (low value — the adjacent number is the accessible data).
+- A polite live region announcing "cart cleared" after the read-to-waiter clear (a11y nicety).
 
 ### Known deferral (needs data-layer change — out of "UI-only" scope, confirm with user)
 - **F5:** distinguish "restaurant closed" from "transient DB/network error" — both render `ClosedScreen`. Requires `lib/menu.ts` (backend), so left for explicit approval.
