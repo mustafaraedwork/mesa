@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 import { deleteAccount } from './actions';
 import type { AccountRow } from './accounts-table';
 
@@ -24,6 +25,7 @@ export function DeleteAccountDialog({
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const toast = useToast();
 
   const expected = account.slug;
   const armed = confirm === expected;
@@ -34,8 +36,12 @@ export function DeleteAccountDialog({
     setError(null);
     startTransition(async () => {
       const r = await deleteAccount(account.id);
-      if (!r.ok) setError(r.error);
-      else onClose();
+      if (!r.ok) {
+        setError(r.error);
+      } else {
+        toast.add({ type: 'success', title: `تم حذف «${account.display_name}»` });
+        onClose();
+      }
     });
   }
 

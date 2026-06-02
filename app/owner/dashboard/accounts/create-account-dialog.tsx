@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Field } from '@/components/ui/field';
 import { generateRandomPassword } from '@/lib/util/random-password';
 import { createAccount } from './actions';
 
@@ -96,7 +97,7 @@ export function CreateAccountDialog({
               <DialogDescription>سيُولّد كلمة سر عشوائية تلقائياً.</DialogDescription>
             </DialogHeader>
 
-            <Field label="اسم المطعم">
+            <Field label="اسم المطعم" required>
               <Input value={display} onChange={(e) => setDisplay(e.target.value)} required autoFocus />
             </Field>
             <Field label="Slug (للرابط)" hint={`/r/${slug || '—'}`}>
@@ -120,7 +121,7 @@ export function CreateAccountDialog({
                 required
               />
             </Field>
-            <Field label="كلمة السر">
+            <Field label="كلمة السر" group>
               <div className="flex gap-2">
                 <Input
                   dir="ltr"
@@ -170,15 +171,5 @@ export function CreateAccountDialog({
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium">{label}</label>
-      {children}
-      {hint && <p className="text-muted-foreground text-xs" dir="ltr">{hint}</p>}
-    </div>
   );
 }

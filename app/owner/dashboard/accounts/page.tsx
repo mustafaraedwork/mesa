@@ -36,10 +36,8 @@ async function loadAccounts(): Promise<AccountRow[]> {
 export default async function AccountsPage() {
   const accounts = await loadAccounts();
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">إدارة الحسابات</h2>
-      </header>
+    <div className="space-y-5">
+      <h1 className="text-h2 font-semibold">إدارة الحسابات</h1>
       <AccountsTable accounts={accounts} />
     </div>
   );

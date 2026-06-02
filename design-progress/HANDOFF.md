@@ -13,7 +13,8 @@
 | `abb63c5` | baseline | DESIGN-PLAN.md + design-preview.html |
 | `d88e15c` | **Phase 0** | Token system + primitives (button/input/dialog) |
 | `f849298` | **Phase 1** | Diner surface redesign |
-| **working tree (uncommitted)** | **Phase 2** | **Admin panel redesign — this session.** Ready to commit (see "Commit" below). |
+| `d5d1035` | **Phase 2** | Admin panel — primitives, modes hero, analytics, design guards |
+| **working tree (uncommitted)** | **Phase 3** | **Owner panel redesign — this session.** Ready to commit (see "Commit"). |
 
 ### Phase 0 — tokens & primitives (`d88e15c`)
 OKLCH palette; semantic state tokens independent of brand; fluid type scale; spacing/motion tokens; solid focus outline; reduced-motion honored. Button ≥44px + focus ring + solid-red destructive; Input visible border; Dialog `end-2` close (RTL). Vazirmatn + Noto Sans Arabic + IBM Plex Mono.
@@ -48,6 +49,14 @@ OKLCH palette; semantic state tokens independent of brand; fluid type scale; spa
 - **`layout.tsx`** — wraps dashboard in `ToastProvider`; header uses lucide LogOut + tokens.
 - **Owner (`accounts-table.tsx`, `owner/dashboard/page.tsx`)** — status pills → `Badge` (C8). (Full owner redesign is Phase 3.)
 
+### Phase 3 — owner panel (THIS SESSION — working tree)
+- **`owner/dashboard/accounts/accounts-table.tsx`** (H3/M3) — real data table: toolbar (search + count `Badge` + "حساب جديد" primary); **responsive split** — `<table>` on `md+`, **card-per-account on mobile** (was an 8-col horizontal scroll); availability is a **`Switch`** with optimistic state + success/error **toast** (was a silent button); row actions collapsed into a `⋮` `DropdownMenu` (change-password / delete). Client-side search over name/slug/username.
+- **`owner/dashboard/page.tsx`** (H6) — stat cards gain semantic icon chips + meaning (Store/CircleSlash/UtensilsCrossed) instead of bare numbers; recent list uses `Badge` + a mirrored "all accounts" link.
+- **`owner/dashboard/layout.tsx`** — wrapped in `ToastProvider`; sticky header with brand mark + in-header nav (`owner-nav-link.tsx`, NEW, active-aware) + lucide LogOut. Added `owner/dashboard/loading.tsx` skeleton.
+- **`owner/page.tsx`** (login) — brand identity (logo mark + title + subtitle).
+- **Dialogs** — `create-account-dialog` migrated to the shared `Field` (password field uses `group`); `delete-account-dialog` fires a success **toast**. (The "type the slug to confirm" delete stays a Dialog — it's a friction-gated destructive form.)
+- Screenshots captured via a **temporary** `app/owner-preview` route with mock data (no owner auth needed), then the route was deleted before commit.
+
 ---
 
 ## 🧪 Verification status (last run, clean warm server)
@@ -55,7 +64,10 @@ OKLCH palette; semantic state tokens independent of brand; fluid type scale; spa
 - `npx next build` → **OK** (compiles, all routes).
 - `node scripts/run-smoke.mjs` → **12/13 pass**. Only `smoke-pwa` is the **documented dev flake** (passes "page loaded online", then hangs on SW activation under `next dev`+Turbopack; SW/manifest untouched; prod build passes). **Critically, both admin validators pass:** `smoke-no-native-confirms` (logs into the redesigned modes screen, drives the T2/T3 AlertDialogs, **zero console errors**) and `smoke-modes` (modes/chef-picks/off + suggestions/complementary/reorder data paths). `smoke-desync` now passes warm.
 - **Console probe** across all 4 admin pages → **zero warnings/errors** (after the dnd-kit `useId` fix).
-- **Screenshots:** `design-progress/phase-2/` — `01-menu`, `02-menu-product-dialog`, `03-modes`, `04-closing-dialog`, `05-chef-picks-dialog`, `06-analytics`, `07-design` (mobile 390×844, seeded ephemeral tenant via `shoot-admin.mjs`, emerald brand). Visually confirmed: distinct mode colors + mini-previews, Switch availability, contrast guards, bar chart + image grouping, chip-based duration, branded checkboxes.
+- **Phase 3 re-run:** tsc clean, build OK; smoke with `smoke-pwa` sidelined → **11/12**, the only fail being `smoke-desync` which **passes warm/isolated** (709ms < 1000ms) — the documented perf-threshold flake under suite load, not a regression (Phase 3 touched owner files only). The owner-preview route showed **zero dev-overlay issues** (clean console).
+- **Screenshots:**
+  - `design-progress/phase-2/` — `01-menu`, `02-menu-product-dialog`, `03-modes`, `04-closing-dialog`, `05-chef-picks-dialog`, `06-analytics`, `07-design` (mobile 390×844, ephemeral tenant via `shoot-admin.mjs`).
+  - `design-progress/phase-3/` — `01-login` (390), `02-overview-accounts-desktop` (1280), `03-accounts-mobile` (390). Confirmed: stat-card icons, table↔cards responsive split, Switch toggles, search/count toolbar.
 
 ---
 
@@ -82,19 +94,16 @@ npx tsc --noEmit ; npx next build ; (kill :3000 node, restart dev, warm) ; node 
 # diner/public screenshots: node design-progress/shoot.mjs design-progress/phase-N
 ```
 
-## 💾 Commit (Phase 2 is uncommitted)
+## 💾 Commit (Phase 3 is uncommitted)
 Stage explicitly (exclude `.claude/settings.local.json`):
 ```
-git add components/ui app/admin app/owner app/globals.css lib/contrast.ts design-progress/phase-2 design-progress/shoot-admin.mjs design-progress/HANDOFF.md PROGRESS.md
-git commit -m "feat(design-phase-2): admin panel — primitives, modes hero, analytics, design guards"
+git add app/owner app/globals.css design-progress/phase-3 design-progress/HANDOFF.md PROGRESS.md
+git commit -m "feat(design-phase-3): owner panel — responsive accounts table, stat cards, toasts"
 ```
 
 ---
 
 ## ⏭️ Remaining work (DESIGN-PLAN §ب roadmap)
-
-### Phase 3 — Owner (NOT STARTED)
-`owner/dashboard/accounts/accounts-table.tsx` + `components/ui/table.tsx`: real data table — toolbar (count + search + primary action), sticky header, **mobile card layout** instead of the 8-col horizontal overflow (H3/M3). `Badge` for status is already applied (C8). Owner overview stat cards (H6 — "numbers in boxes"). Owner login identity. Add `ToastProvider` + `loading.tsx` skeletons to the owner shell. The Badge/Toast/Field/Table primitives are ready to reuse.
 
 ### Phase 4 — Motion & a11y polish (NOT STARTED)
 Purposeful motion on the motion tokens (cart-bar enter, chip/section transitions — A1/A2 beyond the drag lift already done). Full heading-hierarchy + landmarks audit (W8) across diner + admin. Final automated a11y + keyboard + screen-reader pass (run `a11y-architect`). `LanguageDropdown` listbox contract (W7). Diner Chef's-Picks caption (was removed in Phase 1 as untranslated).

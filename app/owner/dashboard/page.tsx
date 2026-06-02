@@ -1,8 +1,10 @@
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, CircleSlash, Store, UtensilsCrossed } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getServiceClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/require-owner';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,38 +50,38 @@ export default async function OwnerDashboardPage() {
   const o = await loadOverview();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-section">
+      <h1 className="text-h2 font-semibold">نظرة عامة</h1>
+
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Stat label="إجمالي الحسابات" value={o.total} />
-        <Stat label="نشطة" value={o.active} />
-        <Stat label="معطّلة" value={o.disabled} />
-        <Stat label="المنتجات" value={o.products} />
+        <Stat label="إجمالي الحسابات" value={o.total} Icon={Store} tone="primary" />
+        <Stat label="نشطة" value={o.active} Icon={Store} tone="success" />
+        <Stat label="معطّلة" value={o.disabled} Icon={CircleSlash} tone="warning" />
+        <Stat label="المنتجات" value={o.products} Icon={UtensilsCrossed} tone="neutral" />
       </section>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">أحدث ٥ حسابات</h2>
+          <h2 className="text-h3 font-semibold">أحدث الحسابات</h2>
           <Link
             href="/owner/dashboard/accounts"
-            className="text-primary text-sm hover:underline"
+            className="text-primary inline-flex items-center gap-1 text-sm hover:underline"
           >
-            كل الحسابات ←
+            كل الحسابات
+            <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden />
           </Link>
         </div>
         {o.recent.length === 0 ? (
-          <p className="text-muted-foreground text-sm">لا توجد حسابات بعد.</p>
+          <p className="text-muted-foreground bg-card border-border-lite rounded-xl border p-6 text-center text-sm">
+            لا توجد حسابات بعد.
+          </p>
         ) : (
-          <ul className="divide-y rounded-lg border bg-card">
+          <ul className="bg-card border-border-lite divide-border-lite divide-y rounded-xl border">
             {o.recent.map((r) => (
-              <li
-                key={r.id}
-                className="flex items-center justify-between px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium">{r.display_name}</p>
-                  <p className="text-muted-foreground text-xs" dir="ltr">
-                    /r/{r.slug}
-                  </p>
+              <li key={r.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{r.display_name}</p>
+                  <p className="text-muted-foreground text-caption" dir="ltr">/r/{r.slug}</p>
                 </div>
                 <Badge variant={r.is_active ? 'success' : 'neutral'}>
                   {r.is_active ? 'نشط' : 'معطّل'}
@@ -93,16 +95,34 @@ export default async function OwnerDashboardPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+const TONES: Record<string, string> = {
+  primary: 'bg-primary/10 text-primary',
+  success: 'bg-success/12 text-success-text',
+  warning: 'bg-warning/15 text-warning-text',
+  neutral: 'bg-muted text-muted-foreground',
+};
+
+function Stat({
+  label,
+  value,
+  Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  Icon: typeof Store;
+  tone: keyof typeof TONES;
+}) {
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-muted-foreground text-sm font-normal">
-          {label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-3xl font-semibold tabular-nums">{value}</p>
+      <CardContent className="flex items-center gap-3">
+        <span className={cn('flex size-11 shrink-0 items-center justify-center rounded-xl', TONES[tone])}>
+          <Icon className="size-5" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="text-h2 font-semibold tabular-nums leading-none">{value}</p>
+          <p className="text-muted-foreground text-caption mt-1">{label}</p>
+        </div>
       </CardContent>
     </Card>
   );
