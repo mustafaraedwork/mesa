@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Check, ChevronDown, Plus, Search, Share2, ShoppingBag, Star, Tag, UtensilsCrossed } from 'lucide-react';
+import { Check, ChevronDown, Plus, Search, Share2, ShoppingBag, Star, UtensilsCrossed } from 'lucide-react';
 import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
 import {
   DropdownMenu,
@@ -22,7 +22,6 @@ import {
   OfflineBanner,
   PriceTag,
   formatAmount,
-  formatTimeBaghdad,
   nameLangProps,
   useSyncHtmlLang,
 } from './_ui';
@@ -397,10 +396,9 @@ export function MenuView({
                 </div>
               )}
 
-              {/* H7: calm closing-offer banner with the end time (no flashing timer) */}
-              {r.active_mode === 'closing' && r.closing_mode_ends_at && (
-                <ClosingBanner endsAt={r.closing_mode_ends_at} lang={lang} />
-              )}
+      {/* Closing mode stays invisible to the diner: they still get the discounted
+          prices + the offers section, but no "closing offer ends at HH:MM" banner.
+          The end-time detail lives only in the owner's modes panel (per owner). */}
 
       {/* Parent category chips */}
       {tree.length > 0 && (
@@ -717,23 +715,6 @@ function Chip({
     >
       {children}
     </button>
-  );
-}
-
-// Calm closing-offer banner (H7). Formats the end time in Baghdad time; no
-// ticking — just "ends at HH:MM" so the discount reads as time-limited.
-function ClosingBanner({ endsAt, lang }: { endsAt: string; lang: Lang }) {
-  const timeStr = formatTimeBaghdad(endsAt, lang);
-  return (
-    <div className="px-gutter pt-3">
-      <div className="bg-destructive/10 text-destructive-text flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium">
-        <Tag className="size-4 shrink-0" aria-hidden />
-        <span>
-          {t('offer_ends_at', lang)}{' '}
-          {timeStr && <span dir="ltr" className="font-mono tabular-nums">{timeStr}</span>}
-        </span>
-      </div>
-    </div>
   );
 }
 
