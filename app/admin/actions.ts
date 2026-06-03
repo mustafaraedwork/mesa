@@ -6,7 +6,7 @@ import { getServiceClient } from '@/lib/supabase/server';
 import { verifyPassword } from '@/lib/auth/password';
 import { createSession, setSessionCookie, clearSessionCookie, deleteSession } from '@/lib/auth/session';
 import { SESSION_COOKIE } from '@/lib/auth/cookie';
-import { checkLoginAttempt, clearLoginAttempts, checkIpRate } from '@/lib/auth/rate-limit';
+import { checkLoginAttempt, clearLoginAttempts, checkIpRate, clientIp } from '@/lib/auth/rate-limit';
 
 type SignInResult = { ok: true } | { ok: false; error: string };
 
@@ -18,13 +18,9 @@ export async function signInTenant(formData: FormData): Promise<SignInResult> {
   }
 
   // H-4: per-IP limit across all usernames (credential-stuffing guard), on top
-  // of the per-username window below.
+  // of the per-username window below. IP is Cloudflare-aware (see clientIp).
   const reqHeaders = await headers();
-  const ip = (
-    reqHeaders.get('x-forwarded-for')?.split(',')[0] ??
-    reqHeaders.get('x-real-ip') ??
-    'unknown'
-  ).trim();
+  const ip = clientIp(reqHeaders);
   if (!checkIpRate(`login-ip:${ip}`, 20, 15 * 60 * 1000)) {
     return { ok: false, error: 'محاولات كثيرة من هذا الجهاز — جرّب لاحقاً' };
   }

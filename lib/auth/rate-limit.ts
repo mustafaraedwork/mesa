@@ -38,6 +38,22 @@ export function clearLoginAttempts(key: string): void {
   buckets.delete(key);
 }
 
+// Derive the client IP from proxy headers, Cloudflare-first. Behind Cloudflare
+// the socket peer is ALWAYS a Cloudflare edge address, so the genuine client IP
+// lives in CF-Connecting-IP; the X-Forwarded-For first hop and X-Real-IP are
+// fallbacks for other proxies / bare local dev. We never read the socket
+// address here — behind the proxy it would bucket every diner under one CF IP.
+// Accepts both a WHATWG Headers (route handlers) and Next's ReadonlyHeaders
+// (server actions) — both expose `.get()`.
+export function clientIp(h: { get(name: string): string | null }): string {
+  return (
+    h.get('cf-connecting-ip') ??
+    h.get('x-forwarded-for')?.split(',')[0] ??
+    h.get('x-real-ip') ??
+    'unknown'
+  ).trim();
+}
+
 // Generic IP-based limiter for unauthenticated endpoints (H-4: a per-IP login
 // guard across all usernames, and a /api/track flood guard). Same in-memory,
 // restart-resetting trade-off as the per-username login bucket above. Returns

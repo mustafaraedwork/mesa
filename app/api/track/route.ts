@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/server';
-import { checkIpRate } from '@/lib/auth/rate-limit';
+import { checkIpRate, clientIp } from '@/lib/auth/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,11 +22,8 @@ export async function POST(req: Request) {
   }
 
   // H-4: per-IP flood guard on this public, unauthenticated ingest endpoint.
-  const ip = (
-    req.headers.get('x-forwarded-for')?.split(',')[0] ??
-    req.headers.get('x-real-ip') ??
-    'unknown'
-  ).trim();
+  // IP is Cloudflare-aware (CF-Connecting-IP first — see clientIp).
+  const ip = clientIp(req.headers);
   if (!checkIpRate(`track:${ip}`, 60, 60_000)) {
     return new NextResponse(null, { status: 204, headers: NO_STORE });
   }

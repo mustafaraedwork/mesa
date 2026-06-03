@@ -30,8 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — real values stay ignored; the placeholder templates are tracked
+# (they carry no secrets and are the deploy reference; mirrors .dockerignore).
 .env*
+!.env.example
+!.env.local.example
+!.env.production.example
 
 # secrets-rotation worksheet (keys pasted in temporarily, then deleted)
 scripts/rotate-secrets-checklist.local.md

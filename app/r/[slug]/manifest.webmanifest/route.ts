@@ -55,7 +55,11 @@ export async function GET(
   return NextResponse.json(manifest, {
     headers: {
       'Content-Type': 'application/manifest+json; charset=utf-8',
-      'Cache-Control': 'no-cache',
+      // no-store (not no-cache): the manifest is per-restaurant (slug is in the
+      // path, so no cross-tenant leak) but carries the brand theme/bg colour —
+      // no-store guarantees a re-branded restaurant's installed PWA repaints
+      // without a stale-validator round-trip behind Cloudflare.
+      'Cache-Control': 'no-store',
     },
   });
 }
