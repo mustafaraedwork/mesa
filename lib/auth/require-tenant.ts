@@ -19,11 +19,12 @@ export async function requireTenant(): Promise<TenantContext> {
   const sb = getServiceClient();
   const { data, error } = await sb
     .from('restaurants')
-    .select('id, display_name, is_active, currency')
+    .select('id, display_name, is_active, currency, deleted_at')
     .eq('id', restaurantId)
     .maybeSingle();
 
-  if (error || !data) redirect('/admin');
+  // A soft-deleted restaurant locks its tenant out, even with a live session.
+  if (error || !data || data.deleted_at) redirect('/admin');
 
   return {
     restaurantId: data.id,

@@ -35,7 +35,7 @@ export async function signInTenant(formData: FormData): Promise<SignInResult> {
   const sb = getServiceClient();
   const { data: tenant } = await sb
     .from('restaurants')
-    .select('id, password_hash, is_active')
+    .select('id, password_hash, is_active, deleted_at')
     .eq('username', username)
     .maybeSingle();
 
@@ -45,6 +45,10 @@ export async function signInTenant(formData: FormData): Promise<SignInResult> {
     : await verifyPassword(password, '$2b$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva');
 
   if (!tenant || !ok) {
+    return { ok: false, error: 'بيانات الدخول غير صحيحة' };
+  }
+  // A soft-deleted account behaves like a non-existent one — no login.
+  if (tenant.deleted_at) {
     return { ok: false, error: 'بيانات الدخول غير صحيحة' };
   }
   if (!tenant.is_active) {

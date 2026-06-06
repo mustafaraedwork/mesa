@@ -18,9 +18,13 @@ import type { AccountRow } from './accounts-table';
 export function DeleteAccountDialog({
   account,
   onClose,
+  onDeleted,
 }: {
   account: AccountRow;
   onClose: () => void;
+  // Called instead of onClose when the delete succeeds. Defaults to onClose —
+  // the detail page passes a navigation here so it doesn't 404 on the gone row.
+  onDeleted?: () => void;
 }) {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +44,7 @@ export function DeleteAccountDialog({
         setError(r.error);
       } else {
         toast.add({ type: 'success', title: `تم حذف «${account.display_name}»` });
-        onClose();
+        (onDeleted ?? onClose)();
       }
     });
   }

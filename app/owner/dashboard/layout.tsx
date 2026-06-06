@@ -1,4 +1,4 @@
-import { LayoutGrid, LogOut, Users } from 'lucide-react';
+import { LayoutGrid, LogOut, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToastProvider } from '@/components/ui/toast';
 import { signOutOwner } from '../actions';
@@ -25,8 +25,8 @@ export default function OwnerDashboardLayout({
                   نظرة عامة
                 </OwnerNavLink>
                 <OwnerNavLink href="/owner/dashboard/accounts">
-                  <Users className="size-4" />
-                  الحسابات
+                  <Store className="size-4" />
+                  المطاعم
                 </OwnerNavLink>
               </nav>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { generateRandomPassword } from '@/lib/util/random-password';
 import { createAccount } from './actions';
 
@@ -21,6 +23,8 @@ const slugify = (s: string) =>
     .replace(/[^a-z0-9-]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 64);
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 type Phase = 'form' | 'created';
 
@@ -37,9 +41,21 @@ export function CreateAccountDialog({
   const [slugTouched, setSlugTouched] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [currency, setCurrency] = useState('IQD');
+  const [plan, setPlan] = useState('');
+  const [branches, setBranches] = useState('1');
+  // Optional initial ("تأسيس") payment.
+  const [amount, setAmount] = useState('');
+  const [paidAt, setPaidAt] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
+
+  const currencyItems = useMemo(
+    () => Object.fromEntries(SUPPORTED_CURRENCIES.map((c) => [c.code, `${c.code} — ${c.label_ar}`])),
+    [],
+  );
 
   /* eslint-disable react-hooks/set-state-in-effect --
      Both effects deliberately set state: the first resets the dialog when it
@@ -54,6 +70,12 @@ export function CreateAccountDialog({
       setSlugTouched(false);
       setUsername('');
       setPassword(generateRandomPassword());
+      setCurrency('IQD');
+      setPlan('');
+      setBranches('1');
+      setAmount('');
+      setPaidAt(todayISO());
+      setPeriodEnd('');
       setError(null);
       setCopied(false);
     }
@@ -80,8 +102,23 @@ export function CreateAccountDialog({
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const branch_count = Number.parseInt(branches, 10);
+    const amt = amount.trim() ? Number(amount) : 0;
+    const initialPayment =
+      amt > 0
+        ? { amount: amt, currency, paid_at: paidAt, period_end: periodEnd.trim() || null }
+        : null;
     startTransition(async () => {
-      const result = await createAccount({ display_name: display, slug, username, password });
+      const result = await createAccount({
+        display_name: display,
+        slug,
+        username,
+        password,
+        currency,
+        plan,
+        branch_count,
+        initialPayment,
+      });
       if (!result.ok) setError(result.error);
       else setPhase('created');
     });
@@ -89,11 +126,11 @@ export function CreateAccountDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         {phase === 'form' ? (
           <form onSubmit={onSubmit} className="space-y-4">
             <DialogHeader>
-              <DialogTitle>إنشاء حساب جديد</DialogTitle>
+              <DialogTitle>إنشاء مطعم جديد</DialogTitle>
               <DialogDescription>سيُولّد كلمة سر عشوائية تلقائياً.</DialogDescription>
             </DialogHeader>
 
@@ -135,6 +172,74 @@ export function CreateAccountDialog({
                 </Button>
               </div>
             </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="العملة">
+                <Select value={currency} onValueChange={(v) => v && setCurrency(v)} items={currencyItems}>
+                  <SelectTrigger />
+                  <SelectContent>
+                    {SUPPORTED_CURRENCIES.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.code} — {c.label_ar}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="عدد الفروع" hint="للتسعير فقط">
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  dir="ltr"
+                  className="text-left"
+                  value={branches}
+                  onChange={(e) => setBranches(e.target.value)}
+                />
+              </Field>
+            </div>
+            <Field label="الخطة" hint="اسم اختياري (مثلاً basic / pro)">
+              <Input value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="—" />
+            </Field>
+
+            <fieldset className="border-border-lite space-y-3 rounded-lg border p-3">
+              <legend className="text-caption text-muted-foreground px-1">
+                دفعة التأسيس (اختياري — يمكن تسجيلها لاحقاً)
+              </legend>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label={`المبلغ (${currency})`}>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="any"
+                    dir="ltr"
+                    className="text-left"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0"
+                  />
+                </Field>
+                <Field label="تاريخ الدفع">
+                  <Input
+                    type="date"
+                    dir="ltr"
+                    className="text-left"
+                    value={paidAt}
+                    onChange={(e) => setPaidAt(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <Field label="نهاية الفترة" hint="اختياري — للتجديد السنوي">
+                <Input
+                  type="date"
+                  dir="ltr"
+                  className="text-left"
+                  value={periodEnd}
+                  onChange={(e) => setPeriodEnd(e.target.value)}
+                />
+              </Field>
+            </fieldset>
 
             {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
 

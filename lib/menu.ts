@@ -17,6 +17,7 @@ type Restaurant = {
   slug: string;
   display_name: string;
   is_active: boolean;
+  deleted_at: string | null;
   primary_color: string;
   background_color: string;
   header_color: string | null;
@@ -116,12 +117,14 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
   const { data: rest } = await sb
     .from('restaurants')
     .select(
-      'id, slug, display_name, is_active, primary_color, background_color, header_color, card_color, text_color, logo_url, currency, show_unavailable_items, active_mode, closing_mode_ends_at, closing_mode_discount',
+      'id, slug, display_name, is_active, deleted_at, primary_color, background_color, header_color, card_color, text_color, logo_url, currency, show_unavailable_items, active_mode, closing_mode_ends_at, closing_mode_discount',
     )
     .eq('slug', slug)
     .maybeSingle<Restaurant>();
 
-  if (!rest || !rest.is_active) return null;
+  // Service role bypasses RLS, so the soft-delete guard lives here too: a
+  // soft-deleted restaurant (deleted_at set) is invisible to the diner.
+  if (!rest || !rest.is_active || rest.deleted_at) return null;
 
   // Lazy auto-revert (Q3) — race-safe via the `active_mode='closing'` WHERE.
   // Q-12: coerce any legacy rush/profit row to a live mode on read.
