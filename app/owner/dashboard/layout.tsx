@@ -19,22 +19,24 @@ export default function OwnerDashboardLayout({
                 </span>
                 <span className="hidden sm:inline">Mesa OS Lite</span>
               </span>
-              <nav className="flex items-center gap-1">
+              {/* Icon-only on phones (labels stay in the a11y tree via sr-only),
+                  full labels from sm up — keeps 4 tabs from overflowing. */}
+              <nav className="flex items-center gap-0.5 sm:gap-1">
                 <OwnerNavLink href="/owner/dashboard" exact>
                   <LayoutGrid className="size-4" />
-                  نظرة عامة
+                  <span className="sr-only sm:not-sr-only">نظرة عامة</span>
                 </OwnerNavLink>
                 <OwnerNavLink href="/owner/dashboard/accounts">
                   <Store className="size-4" />
-                  المطاعم
+                  <span className="sr-only sm:not-sr-only">المطاعم</span>
                 </OwnerNavLink>
                 <OwnerNavLink href="/owner/dashboard/billing">
                   <Receipt className="size-4" />
-                  الفوترة
+                  <span className="sr-only sm:not-sr-only">الفوترة</span>
                 </OwnerNavLink>
                 <OwnerNavLink href="/owner/dashboard/analytics">
                   <BarChart3 className="size-4" />
-                  التحليلات
+                  <span className="sr-only sm:not-sr-only">التحليلات</span>
                 </OwnerNavLink>
               </nav>
             </div>
