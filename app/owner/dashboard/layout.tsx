@@ -1,4 +1,4 @@
-import { LayoutGrid, LogOut, Receipt, Store } from 'lucide-react';
+import { BarChart3, LayoutGrid, LogOut, Receipt, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToastProvider } from '@/components/ui/toast';
 import { signOutOwner } from '../actions';
@@ -31,6 +31,10 @@ export default function OwnerDashboardLayout({
                 <OwnerNavLink href="/owner/dashboard/billing">
                   <Receipt className="size-4" />
                   الفوترة
+                </OwnerNavLink>
+                <OwnerNavLink href="/owner/dashboard/analytics">
+                  <BarChart3 className="size-4" />
+                  التحليلات
                 </OwnerNavLink>
               </nav>
             </div>

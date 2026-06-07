@@ -33,6 +33,15 @@ export const PAYMENT_KIND_LABEL: Record<PaymentKind, string> = {
 export const RENEWAL_SOON_DAYS = 30;
 const DAY_MS = 86_400_000;
 
+// Baghdad is UTC+3 with no DST (matches the diner analytics convention). Month
+// buckets are Baghdad-local so a payment near midnight lands in the right month.
+export const BAGHDAD_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+// 'YYYY-MM' Baghdad-local month key for an ISO timestamp.
+export function monthKey(iso: string, offsetMs: number = BAGHDAD_OFFSET_MS): string {
+  return new Date(new Date(iso).getTime() + offsetMs).toISOString().slice(0, 7);
+}
+
 export type BillingStatus = 'none' | 'active' | 'due-soon' | 'overdue';
 
 export const BILLING_STATUS_META: Record<
