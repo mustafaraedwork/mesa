@@ -128,3 +128,21 @@ export function formatAmount(n: number): string {
 export function formatMoney(amount: number, currency: string): string {
   return `${formatAmount(amount)} ${currency}`;
 }
+
+// ── aggregations (billing tab + analytics) ────────────────────────────────
+export type CurrencyTotal = { currency: string; total: number; count: number };
+
+// Sum a payment list per currency. No FX — each currency stands alone (the
+// owner-chosen reporting model). IQD first, then by total desc.
+export function aggregateByCurrency(payments: PaymentRow[]): CurrencyTotal[] {
+  const m = new Map<string, { total: number; count: number }>();
+  for (const p of payments) {
+    const cur = m.get(p.currency) ?? { total: 0, count: 0 };
+    cur.total += p.amount;
+    cur.count += 1;
+    m.set(p.currency, cur);
+  }
+  return [...m.entries()]
+    .map(([currency, v]) => ({ currency, ...v }))
+    .sort((a, b) => (a.currency === 'IQD' ? -1 : b.currency === 'IQD' ? 1 : b.total - a.total));
+}

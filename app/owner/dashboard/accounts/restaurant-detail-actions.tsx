@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, KeyRound, Pencil, RotateCcw, Trash, Trash2 } from 'lucide-react';
+import { ExternalLink, KeyRound, Pencil, Plus, RotateCcw, Trash, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import {
@@ -18,10 +18,11 @@ import {
 import { EditRestaurantDialog } from './edit-restaurant-dialog';
 import { ChangePasswordDialog } from './change-password-dialog';
 import { DeleteAccountDialog } from './delete-account-dialog';
+import { RecordPaymentDialog } from '../billing/record-payment-dialog';
 import { softDeleteAccount, restoreAccount } from './actions';
 import type { AccountRow } from './accounts-table';
 
-type Open = 'none' | 'edit' | 'password' | 'softDelete' | 'restore' | 'delete';
+type Open = 'none' | 'edit' | 'password' | 'recordPayment' | 'softDelete' | 'restore' | 'delete';
 
 export function RestaurantDetailActions({ account }: { account: AccountRow }) {
   const [open, setOpen] = useState<Open>('none');
@@ -55,6 +56,10 @@ export function RestaurantDetailActions({ account }: { account: AccountRow }) {
 
       {!deleted && (
         <>
+          <Button variant="outline" size="sm" onClick={() => setOpen('recordPayment')}>
+            <Plus />
+            تسجيل دفعة
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setOpen('edit')}>
             <Pencil />
             تعديل
@@ -82,6 +87,15 @@ export function RestaurantDetailActions({ account }: { account: AccountRow }) {
 
       {open === 'edit' && <EditRestaurantDialog account={account} onClose={() => setOpen('none')} />}
       {open === 'password' && <ChangePasswordDialog account={account} onClose={() => setOpen('none')} />}
+      {open === 'recordPayment' && (
+        <RecordPaymentDialog
+          restaurants={[{ id: account.id, display_name: account.display_name, currency: account.currency }]}
+          fixedRestaurantId={account.id}
+          open
+          onClose={() => setOpen('none')}
+          onRecorded={() => router.refresh()}
+        />
+      )}
       {open === 'delete' && (
         <DeleteAccountDialog
           account={account}
