@@ -47,6 +47,18 @@ export async function recordPayment(input: {
   if (note && note.length > NOTE_MAX) return { ok: false, error: 'الملاحظة طويلة جداً' };
 
   const sb = getServiceClient();
+
+  // Don't record revenue against a soft-deleted restaurant (it would skew owner
+  // analytics). The UI already filters them out of the picker; this guards the
+  // direct Server-Action path too.
+  const { data: rest } = await sb
+    .from('restaurants')
+    .select('deleted_at')
+    .eq('id', input.restaurant_id)
+    .maybeSingle();
+  if (!rest) return { ok: false, error: 'المطعم غير موجود' };
+  if (rest.deleted_at) return { ok: false, error: 'لا يمكن تسجيل دفعة لمطعم محذوف' };
+
   const { error } = await sb.from('payments').insert({
     restaurant_id: input.restaurant_id,
     kind: input.kind,
@@ -75,9 +87,12 @@ export async function deletePayment(id: string): Promise<ActionResult> {
   await requireOwner();
   if (!UUID_RE.test(id)) return { ok: false, error: 'معرّف غير صالح' };
   const sb = getServiceClient();
+  // Grab the owning restaurant first so we can revalidate its detail page too.
+  const { data: row } = await sb.from('payments').select('restaurant_id').eq('id', id).maybeSingle();
   const { error } = await sb.from('payments').delete().eq('id', id);
   if (error) return { ok: false, error: 'فشل حذف الدفعة' };
   revalidatePath(BILLING_PATH);
   revalidatePath('/owner/dashboard');
+  if (row?.restaurant_id) revalidatePath(`/owner/dashboard/accounts/${row.restaurant_id}`);
   return { ok: true };
 }

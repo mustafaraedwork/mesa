@@ -1,7 +1,7 @@
 import { getServiceClient } from '@/lib/supabase/server';
 import { AccountsTable, type AccountRow } from './accounts-table';
 import { requireOwner } from '@/lib/auth/require-owner';
-import { billingByRestaurant, type PaymentRow } from '@/lib/billing';
+import { billingByRestaurant, paymentRowFromDb, type PaymentRow } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,18 +50,7 @@ async function loadAccounts(): Promise<AccountRow[]> {
     if (!lastEvent.has(e.restaurant_id)) lastEvent.set(e.restaurant_id, e.created_at);
   }
 
-  const payments: PaymentRow[] = (paymentRows.data ?? []).map((p) => ({
-    id: p.id,
-    restaurant_id: p.restaurant_id,
-    kind: p.kind,
-    amount: Number(p.amount),
-    currency: p.currency,
-    paid_at: p.paid_at,
-    period_start: p.period_start,
-    period_end: p.period_end,
-    note: p.note,
-    created_at: p.created_at,
-  }));
+  const payments: PaymentRow[] = (paymentRows.data ?? []).map(paymentRowFromDb);
   const billing = billingByRestaurant(payments, now);
 
   return (restaurants.data ?? []).map((r) => ({

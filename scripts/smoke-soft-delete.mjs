@@ -63,6 +63,18 @@ try {
   ok(((await anon.from('products').select('id').eq('restaurant_id', rid)).data?.length ?? 0) === 0, 'anon CANNOT read its products');
   if (serverUp) ok((await apiStatus()) === 404, 'API /api/menu = 404 when soft-deleted (loadMenu guard)');
 
+  if (serverUp) {
+    // /api/track resolves via service role (bypasses RLS) — verify its explicit
+    // deleted_at guard drops events for a soft-deleted restaurant.
+    await fetch(`${APP}/api/track`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ slug, kind: 'menu_open' }),
+    }).catch(() => {});
+    const { count } = await svc.from('events').select('*', { count: 'exact', head: true }).eq('restaurant_id', rid);
+    ok((count ?? 0) === 0, 'API /api/track records NO event for a soft-deleted restaurant');
+  }
+
   console.log('— state: restored —');
   await svc.from('restaurants').update({ deleted_at: null }).eq('id', rid);
   ok((await anon.from('restaurants').select('id').eq('slug', slug).maybeSingle()).data != null, 'anon reads restaurant again after restore');

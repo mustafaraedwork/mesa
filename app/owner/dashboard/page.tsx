@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getServiceClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/require-owner';
-import { aggregateByCurrency, billingByRestaurant, formatMoney, type PaymentRow } from '@/lib/billing';
+import { aggregateByCurrency, billingByRestaurant, formatMoney, paymentRowFromDb, type PaymentRow } from '@/lib/billing';
 import { countRestaurants, renewalOutlook, type RestaurantMeta } from '@/lib/owner-analytics';
 import { cn } from '@/lib/utils';
 
@@ -38,18 +38,7 @@ async function loadOverview() {
   }));
   const counts = countRestaurants(restaurants);
 
-  const payments: PaymentRow[] = (payRes.data ?? []).map((p) => ({
-    id: p.id,
-    restaurant_id: p.restaurant_id,
-    kind: p.kind,
-    amount: Number(p.amount),
-    currency: p.currency,
-    paid_at: p.paid_at,
-    period_start: p.period_start,
-    period_end: p.period_end,
-    note: p.note,
-    created_at: p.created_at,
-  }));
+  const payments: PaymentRow[] = (payRes.data ?? []).map(paymentRowFromDb);
   const totals = aggregateByCurrency(payments);
   const outlook = renewalOutlook([...billingByRestaurant(payments, now).values()]);
 

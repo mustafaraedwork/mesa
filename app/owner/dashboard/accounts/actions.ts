@@ -112,7 +112,12 @@ export async function createAccount(input: {
       recorded_by: ownerId,
     });
     if (payErr) {
-      await sb.from('restaurants').delete().eq('id', created.id);
+      const { error: delErr } = await sb.from('restaurants').delete().eq('id', created.id);
+      if (delErr) {
+        // Both the payment insert and the compensating delete failed — surface
+        // the orphan so it can be cleaned up manually instead of vanishing.
+        console.error('[createAccount] orphan cleanup failed after payment error:', created.id, delErr.message);
+      }
       return { ok: false, error: 'تعذّر تسجيل دفعة التأسيس — أُلغي إنشاء الحساب' };
     }
   }
@@ -174,7 +179,8 @@ export async function updateRestaurant(
   if (Object.keys(patch).length === 0) return { ok: true };
 
   const sb = getServiceClient();
-  const { error } = await sb.from('restaurants').update(patch).eq('id', id);
+  // Soft-deleted restaurants aren't editable from the UI; guard the action path.
+  const { error } = await sb.from('restaurants').update(patch).eq('id', id).is('deleted_at', null);
   if (error) {
     if (error.code === '23505') {
       const dup = error.message.includes('slug') ? 'الـslug' : 'اسم المستخدم';
@@ -193,7 +199,9 @@ export async function setAccountActive(id: string, is_active: boolean): Promise<
   await requireOwner();
   if (!UUID_RE.test(id)) return { ok: false, error: 'معرّف غير صالح' };
   const sb = getServiceClient();
-  const { error } = await sb.from('restaurants').update({ is_active }).eq('id', id);
+  // `.is('deleted_at', null)` no-ops on a soft-deleted row (the UI hides these
+  // controls for deleted restaurants; this guards the direct action path).
+  const { error } = await sb.from('restaurants').update({ is_active }).eq('id', id).is('deleted_at', null);
   if (error) return { ok: false, error: 'فشل تحديث الحالة' };
   revalidatePath(ACCOUNTS_PATH);
   revalidatePath('/owner/dashboard');

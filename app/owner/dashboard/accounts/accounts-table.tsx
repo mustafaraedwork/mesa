@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { BILLING_STATUS_META, formatMoney, type RestaurantBilling } from '@/lib/billing';
+import { BILLING_STATUS_META, bagDate, formatMoney, type RestaurantBilling } from '@/lib/billing';
 import { CreateAccountDialog } from './create-account-dialog';
 import { EditRestaurantDialog } from './edit-restaurant-dialog';
 import { ChangePasswordDialog } from './change-password-dialog';
@@ -74,7 +74,7 @@ type DialogState =
 type SortKey = 'created' | 'name' | 'plan' | 'active' | 'billing' | 'activity';
 type SortState = { key: SortKey; dir: 'asc' | 'desc' };
 
-const fmtDate = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : '—');
+const fmtDate = bagDate; // Baghdad-local 'YYYY-MM-DD', null → '—'
 
 // Most recent of admin login and diner activity, in ms (0 when never).
 const lastActivityMs = (a: AccountRow) =>
@@ -430,7 +430,7 @@ function BillingCell({ billing }: { billing: RestaurantBilling | null }) {
       <Badge variant={meta.variant}>{meta.label}</Badge>
       {billing.currentPeriodEnd && (
         <div className="text-muted-foreground text-caption" dir="ltr">
-          {new Date(billing.currentPeriodEnd).toISOString().slice(0, 10)}
+          {bagDate(billing.currentPeriodEnd)}
           {billing.nextRenewalAmount != null && billing.nextRenewalCurrency
             ? ` · ${formatMoney(billing.nextRenewalAmount, billing.nextRenewalCurrency)}`
             : ''}

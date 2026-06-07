@@ -38,11 +38,15 @@ export async function POST(req: Request) {
 
   const sb = getServiceClient();
 
+  // Service role bypasses RLS, so the soft-delete guard is explicit here too —
+  // a soft-deleted restaurant (deleted_at set, is_active left intact for restore)
+  // must not keep ingesting diner events. Mirrors loadMenu's guard.
   const { data: rest } = await sb
     .from('restaurants')
     .select('id')
     .eq('slug', slug)
     .eq('is_active', true)
+    .is('deleted_at', null)
     .maybeSingle();
   if (!rest) return new NextResponse(null, { status: 204, headers: NO_STORE });
 

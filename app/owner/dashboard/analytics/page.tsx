@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getServiceClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/require-owner';
-import { aggregateByCurrency, billingByRestaurant, formatMoney, formatAmount, type PaymentRow } from '@/lib/billing';
+import { aggregateByCurrency, billingByRestaurant, formatMoney, formatAmount, paymentRowFromDb, type PaymentRow } from '@/lib/billing';
 import {
   countRestaurants,
   recentMonths,
@@ -47,18 +47,7 @@ async function load() {
     branch_count: r.branch_count ?? 1,
     currency: r.currency ?? 'IQD',
   }));
-  const payments: PaymentRow[] = (payRes.data ?? []).map((p) => ({
-    id: p.id,
-    restaurant_id: p.restaurant_id,
-    kind: p.kind,
-    amount: Number(p.amount),
-    currency: p.currency,
-    paid_at: p.paid_at,
-    period_start: p.period_start,
-    period_end: p.period_end,
-    note: p.note,
-    created_at: p.created_at,
-  }));
+  const payments: PaymentRow[] = (payRes.data ?? []).map(paymentRowFromDb);
 
   const counts = countRestaurants(restaurants);
   const liveCount = counts.active + counts.suspended;

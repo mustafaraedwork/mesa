@@ -3,6 +3,7 @@ import { requireOwner } from '@/lib/auth/require-owner';
 import {
   aggregateByCurrency,
   billingByRestaurant,
+  paymentRowFromDb,
   type PaymentRow,
   type BillingStatus,
 } from '@/lib/billing';
@@ -31,18 +32,7 @@ async function loadBilling() {
   const restaurants = restRes.data ?? [];
   const nameMap = new Map<string, string>(restaurants.map((r) => [r.id, r.display_name]));
 
-  const payments: PaymentRow[] = (paymentsRes.data ?? []).map((p) => ({
-    id: p.id,
-    restaurant_id: p.restaurant_id,
-    kind: p.kind,
-    amount: Number(p.amount),
-    currency: p.currency,
-    paid_at: p.paid_at,
-    period_start: p.period_start,
-    period_end: p.period_end,
-    note: p.note,
-    created_at: p.created_at,
-  }));
+  const payments: PaymentRow[] = (paymentsRes.data ?? []).map(paymentRowFromDb);
 
   const ledger: LedgerRow[] = payments.map((p) => ({
     id: p.id,

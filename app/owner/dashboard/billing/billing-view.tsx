@@ -25,6 +25,7 @@ import {
   BILLING_STATUS_META,
   PAYMENT_KIND_LABEL,
   PAYMENT_KINDS,
+  bagDate,
   formatMoney,
   type BillingStatus,
   type CurrencyTotal,
@@ -55,7 +56,7 @@ export type RenewalRow = {
   currency: string | null;
 };
 
-const fmtDate = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : '—');
+const fmtDate = bagDate; // Baghdad-local 'YYYY-MM-DD', null → '—'
 const KIND_FILTER = ['all', ...PAYMENT_KINDS] as const;
 
 export function BillingView({
@@ -286,12 +287,16 @@ export function BillingView({
         </CardContent>
       </Card>
 
-      <RecordPaymentDialog
-        restaurants={restaurants}
-        open={recording}
-        onClose={() => setRecording(false)}
-        onRecorded={() => router.refresh()}
-      />
+      {/* Mounted only while open so each open starts from a clean form (no stale
+          amount/note/restaurant leaking between entries). */}
+      {recording && (
+        <RecordPaymentDialog
+          restaurants={restaurants}
+          open
+          onClose={() => setRecording(false)}
+          onRecorded={() => router.refresh()}
+        />
+      )}
 
       {confirmDelete && (
         <AlertDialog open onOpenChange={(v) => !v && setConfirmDelete(null)}>

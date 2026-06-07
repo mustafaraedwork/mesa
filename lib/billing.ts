@@ -29,6 +29,36 @@ export const PAYMENT_KIND_LABEL: Record<PaymentKind, string> = {
   adjustment: 'تسوية',
 };
 
+// The single typed funnel from the untyped service client to PaymentRow:
+// coerces NUMERIC(12,2) (PostgREST returns it as a STRING) to a number and
+// narrows kind — in ONE place, so a loader can't silently forget the Number()
+// coercion and leak a string into the money arithmetic.
+export function paymentRowFromDb(p: {
+  id: string;
+  restaurant_id: string;
+  kind: string;
+  amount: string | number;
+  currency: string;
+  paid_at: string;
+  period_start: string | null;
+  period_end: string | null;
+  note: string | null;
+  created_at: string;
+}): PaymentRow {
+  return {
+    id: p.id,
+    restaurant_id: p.restaurant_id,
+    kind: p.kind as PaymentKind,
+    amount: Number(p.amount),
+    currency: p.currency,
+    paid_at: p.paid_at,
+    period_start: p.period_start,
+    period_end: p.period_end,
+    note: p.note,
+    created_at: p.created_at,
+  };
+}
+
 // A renewal within this many days reads as "due soon" rather than "active".
 export const RENEWAL_SOON_DAYS = 30;
 const DAY_MS = 86_400_000;
@@ -40,6 +70,22 @@ export const BAGHDAD_OFFSET_MS = 3 * 60 * 60 * 1000;
 // 'YYYY-MM' Baghdad-local month key for an ISO timestamp.
 export function monthKey(iso: string, offsetMs: number = BAGHDAD_OFFSET_MS): string {
   return new Date(new Date(iso).getTime() + offsetMs).toISOString().slice(0, 7);
+}
+
+// 'YYYY-MM-DD' Baghdad-local date. The single date formatter for the owner panel
+// so display + renewal math share one timezone convention (period_end is a
+// TIMESTAMPTZ stored at UTC-midnight; rendering its raw UTC date would be off by
+// one near local midnight).
+export function bagDate(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(new Date(iso).getTime() + BAGHDAD_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+// Whole Baghdad-calendar days from `fromMs` to `toMs` (date-granular). So a
+// renewal flips to overdue at Baghdad midnight, not at 03:00 local.
+function bagDayDiff(fromMs: number, toMs: number): number {
+  const day = (ms: number) => Date.parse(new Date(ms + BAGHDAD_OFFSET_MS).toISOString().slice(0, 10) + 'T00:00:00Z');
+  return Math.round((day(toMs) - day(fromMs)) / DAY_MS);
 }
 
 export type BillingStatus = 'none' | 'active' | 'due-soon' | 'overdue';
@@ -87,8 +133,7 @@ export function deriveBilling(payments: PaymentRow[], nowMs: number): Restaurant
   let status: BillingStatus = 'none';
   let daysToRenewal: number | null = null;
   if (currentPeriodEnd) {
-    const diffMs = new Date(currentPeriodEnd).getTime() - nowMs;
-    daysToRenewal = Math.floor(diffMs / DAY_MS);
+    daysToRenewal = bagDayDiff(nowMs, new Date(currentPeriodEnd).getTime());
     if (daysToRenewal < 0) status = 'overdue';
     else if (daysToRenewal <= RENEWAL_SOON_DAYS) status = 'due-soon';
     else status = 'active';

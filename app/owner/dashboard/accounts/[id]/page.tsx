@@ -8,10 +8,11 @@ import { requireOwner } from '@/lib/auth/require-owner';
 import {
   deriveBilling,
   formatMoney,
+  bagDate,
   BILLING_STATUS_META,
   PAYMENT_KIND_LABEL,
+  paymentRowFromDb,
   type PaymentRow,
-  type PaymentKind,
 } from '@/lib/billing';
 import { currencyLabel } from '@/lib/currencies';
 import { RestaurantDetailActions } from '../restaurant-detail-actions';
@@ -20,7 +21,7 @@ import type { AccountRow } from '../accounts-table';
 export const dynamic = 'force-dynamic';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const fmtDate = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : '—');
+const fmtDate = bagDate; // Baghdad-local 'YYYY-MM-DD', null → '—'
 
 type CategoryRow = { id: string; name_ar: string; parent_id: string | null; display_order: number };
 type ProductRow = { id: string; category_id: string; is_available: boolean | null };
@@ -62,18 +63,7 @@ export default async function RestaurantDetailPage({ params }: { params: Promise
   const sess = (sessions ?? []) as SessionRow[];
   const lastEventAt = lastEventRes.data?.[0]?.created_at ?? null;
 
-  const payments: PaymentRow[] = (payRows ?? []).map((p) => ({
-    id: p.id,
-    restaurant_id: p.restaurant_id,
-    kind: p.kind as PaymentKind,
-    amount: Number(p.amount),
-    currency: p.currency,
-    paid_at: p.paid_at,
-    period_start: p.period_start,
-    period_end: p.period_end,
-    note: p.note,
-    created_at: p.created_at,
-  }));
+  const payments: PaymentRow[] = (payRows ?? []).map(paymentRowFromDb);
   const billing = deriveBilling(payments, now);
 
   const productsByCat = new Map<string, number>();
