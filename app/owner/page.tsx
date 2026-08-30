@@ -20,7 +20,7 @@ export default async function OwnerLoginPage() {
             M
           </span>
           <div className="space-y-1">
-            <h1 className="text-h3 font-semibold">Mesa OS Lite</h1>
+            <h1 className="text-h3 font-semibold">BIZIII Menu</h1>
             <p className="text-muted-foreground text-sm">لوحة المالك — سجّل الدخول لإدارة الحسابات</p>
           </div>
         </header>

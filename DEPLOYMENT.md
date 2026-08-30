@@ -1,4 +1,8 @@
-# دليل النشر — Mesa OS Lite (qaema.app)
+# دليل النشر — BIZIII Menu (مسار مهجور: qaema.app)
+
+> ⚠️ **مسار نشر مهجور — للأرشيف فقط.** هذا الملف يصف نشراً على **Coolify + Contabo VPS**
+> بدومين **`qaema.app`**. الوجهة الحالية هي **Vercel على `menu.biziii.io`** — راجع
+> `docs/COMPANY-CONTEXT.md`. لم يُحذف الملف لأن أقسام Cloudflare/R2 والمراقبة فيه ما زالت مرجعاً مفيداً.
 
 نشر ذاتي على **Contabo VPS** عبر **Coolify**، خلف **Cloudflare**، مع الصور على **Cloudflare R2** وقاعدة البيانات على **Supabase (Frankfurt)**.
 

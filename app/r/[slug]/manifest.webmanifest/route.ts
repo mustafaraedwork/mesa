@@ -31,12 +31,18 @@ export async function GET(
 
   const themeColor = data && HEX.test(data.primary_color ?? '') ? data.primary_color! : DEFAULT_THEME;
   const bgColor = data && HEX.test(data.background_color ?? '') ? data.background_color! : DEFAULT_BG;
-  const name = data?.display_name?.slice(0, 80) ?? 'Mesa OS Lite';
+  const name = data?.display_name?.slice(0, 80) ?? 'BIZIII Menu';
 
   const manifest = {
-    name: `${name} — Mesa OS Lite`,
-    short_name: 'Mesa OS',
-    description: 'منيو رقمي للمطعم — Mesa OS Lite',
+    // Pins the installed app's identity within this origin. Without `id` the
+    // browser derives it from start_url, so any future change to start_url
+    // would register as a SEPARATE installed app rather than an update.
+    // (The origin is always part of the identity, so this does not survive a
+    // domain change — it stabilises everything short of that.)
+    id: `/r/${slug}`,
+    name: `${name} — BIZIII Menu`,
+    short_name: 'BIZIII',
+    description: 'منيو رقمي للمطعم — BIZIII Menu',
     start_url: `/r/${slug}`,
     scope: `/r/${slug}`,
     display: 'standalone',

@@ -3,7 +3,12 @@
 // Prerequisites differ per script:
 //   STATIC  — source-shape checks; need nothing.
 //   ENV     — hit Supabase / R2 directly; need .env.local at the repo root.
-//   SERVER  — also need `npm run dev` reachable at NEXT_PUBLIC_APP_URL
+//   SERVER  — also need a server reachable at NEXT_PUBLIC_APP_URL.
+//             ⚠️ smoke-pwa.mjs needs a PRODUCTION one (`npm run build && npm
+//             start`): the diner service worker is registered only when
+//             NODE_ENV === 'production' (app/r/[slug]/sw-register.tsx), so on
+//             `next dev` there is no SW to test. This runner cannot tell the
+//             two apart — it only probes that the URL answers.
 //             (default http://localhost:3000), plus Playwright for the
 //             browser-driven ones.
 //

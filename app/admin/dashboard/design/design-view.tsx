@@ -52,7 +52,7 @@ export function DesignView({
 }: {
   initial: DesignInitial;
   slug: string;
-  menuUrl: string;
+  menuUrl: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();

@@ -1,5 +1,11 @@
 # PHASES.md — مراحل التنفيذ
 
+> ⚠️ **هذا الملف متأخّر عن الكود.** بنود معلَّمة «مؤجَّل» شُحنت فعلاً — من بينها Drag & Drop
+> (`app/admin/dashboard/menu/sortable-list.tsx`)، و`suggestions_type` / `custom_suggestion_ids`،
+> والسكاشن المكمّلة، و`show_unavailable_items`. كما أن الدومين المذكور في المرحلة ١ (`qaema.app`)
+> ومسار Coolify مهجوران — الوجهة الحالية Vercel على `menu.biziii.io`.
+> للوضع الفعلي راجع **`docs/PAGES.md`** و**`docs/COMPANY-CONTEXT.md`**.
+
 > المرجع الأصلي: `prd.md` §٦. هذا الملف يفصّل كل مرحلة لمهام صغيرة قابلة للتعليم. علّم `[x]` فور الإنجاز.
 > **التقدير الإجمالي:** ١٦–٢٤ يوم تطوير.
 

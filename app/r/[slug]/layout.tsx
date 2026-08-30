@@ -42,7 +42,7 @@ export async function generateMetadata({
     appleWebApp: {
       capable: true,
       statusBarStyle: 'default',
-      title: 'Mesa OS',
+      title: 'BIZIII Menu',
     },
   };
 }

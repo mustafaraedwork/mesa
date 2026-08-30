@@ -1,4 +1,4 @@
-# MenuPro Redesign — Session Handoff
+# BIZIII Menu Redesign — Session Handoff
 
 **Updated:** 2026-06-02 · **Branch:** `feat/design-redesign` (from `fix/security-findings` HEAD `045461b`, includes security fixes H-1..H-5, M-1..M-8).
 **Plan being executed:** `DESIGN-PLAN.md` §ب (phased roadmap). **Visual direction reference:** `design-preview.html`.

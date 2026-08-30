@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
+import { getMenuUrl, APP_URL_MISSING_MESSAGE } from '@/lib/app-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,18 @@ export async function GET() {
     .maybeSingle();
   if (!rest) return new NextResponse('not found', { status: 404 });
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
-  const menuUrl = `${appUrl}/r/${rest.slug}`;
+  // Hard-fail rather than emit a localhost QR onto an A4 sheet meant for
+  // printing. There is no partial result worth returning here: a wrong PDF is
+  // strictly worse than no PDF, because it looks correct until the tables are
+  // already laid out.
+  const menuUrl = getMenuUrl(rest.slug);
+  if (!menuUrl) {
+    console.error('[qr-pdf] NEXT_PUBLIC_APP_URL missing at build time — refusing to generate a QR');
+    return new NextResponse(APP_URL_MISSING_MESSAGE, {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
+  }
 
   const qrPng = await QRCode.toBuffer(menuUrl, {
     width: 1200,

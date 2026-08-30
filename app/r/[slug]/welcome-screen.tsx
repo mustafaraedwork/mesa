@@ -153,7 +153,7 @@ export function WelcomeScreen({
           {t('open_menu', lang)}
           <ArrowRight className="h-5 w-5 rtl:-scale-x-100" aria-hidden />
         </button>
-        <p className="text-muted-lite text-caption tracking-[0.18em]">POWERED BY MESA OS</p>
+        <p className="text-muted-lite text-caption tracking-[0.18em]">POWERED BY BIZIII</p>
       </div>
 
       {/* Language popup */}

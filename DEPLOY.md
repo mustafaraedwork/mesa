@@ -1,4 +1,8 @@
-# DEPLOY.md — Mesa OS Lite
+# DEPLOY.md — BIZIII Menu
+
+> ⚠️ **مسار نشر مهجور — للأرشيف فقط.** هذا الملف يصف نشراً على **Coolify + Contabo VPS**
+> بدومين **`qaema.app`**. الوجهة الحالية هي **Vercel على `menu.biziii.io`** — راجع
+> `docs/COMPANY-CONTEXT.md`. لم يُحذف الملف لأن أقسام Cloudflare/R2 والتحقّقات فيه ما زالت مرجعاً مفيداً.
 
 > **Target stack:** Coolify on Contabo VPS, Cloudflare DNS for `qaema.app`, Supabase (Frankfurt) for DB+Auth, Cloudflare R2 for image storage.
 

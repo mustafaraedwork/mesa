@@ -1,6 +1,7 @@
 import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
 import { DesignView } from './design-view';
+import { getMenuUrl } from '@/lib/app-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,8 +29,9 @@ export default async function DesignPage() {
     .eq('id', tenant.restaurantId)
     .single<Restaurant>();
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
-  const menuUrl = `${appUrl}/r/${rest!.slug}`;
+  // null in production when NEXT_PUBLIC_APP_URL was missing at BUILD time.
+  // QrSection renders an explanation instead of a localhost QR code.
+  const menuUrl = getMenuUrl(rest!.slug);
 
   return (
     <DesignView

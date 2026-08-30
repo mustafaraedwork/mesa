@@ -1,4 +1,4 @@
-// Mesa OS Lite — diner service worker (Phase 7, PRD §4.7).
+// BIZIII Menu — diner service worker (Phase 7, PRD §4.7).
 // Scope: /r/  (configured via Service-Worker-Allowed header in next.config.ts;
 // only diner pages register this SW — admin/owner are never controlled.)
 //

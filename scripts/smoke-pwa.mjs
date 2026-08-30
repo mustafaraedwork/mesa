@@ -6,7 +6,13 @@
 //      (i.e. the SW must NOT serve a stale cached body when online).
 //
 // Run:  node --env-file=.env.local scripts/smoke-pwa.mjs
-// Requires: dev server already on http://localhost:3000
+//
+// ⚠️ REQUIRES A PRODUCTION SERVER — `npm run build && npm start`, NOT `next dev`.
+// app/r/[slug]/sw-register.tsx registers the diner SW only when
+// NODE_ENV === 'production'; in development it deliberately UNregisters any SW
+// (its CacheFirst rule on /_next/static/* would serve stale JS after every
+// edit). Against a dev server there is simply no service worker to test, so
+// every assertion below is meaningless. The wait is bounded and says so.
 
 import { createClient } from '@supabase/supabase-js';
 import { chromium } from 'playwright';
@@ -77,9 +83,21 @@ try {
   // chain has settled — that's where HTML_CACHE priming happens) AND it is
   // controlling this client. `serviceWorker.ready` resolves once activation
   // completes; then `clients.claim()` guarantees `controller != null`.
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
+  // Bounded: `serviceWorker.ready` never settles when no SW registers, which
+  // used to hang this script forever with no explanation.
+  const ready = await page.evaluate(async () => {
+    const timeout = new Promise((r) => setTimeout(() => r(false), 15000));
+    return Promise.race([navigator.serviceWorker.ready.then(() => true), timeout]);
   });
+  if (!ready) {
+    console.error('  ✗ no service worker activated within 15s.');
+    console.error('    Almost certainly the server under test is `next dev`.');
+    console.error('    The diner SW registers ONLY in production — see');
+    console.error('    app/r/[slug]/sw-register.tsx.');
+    console.error('    Run:  npm run build && npm start   then re-run this script.');
+    process.exit(1);
+  }
+
   const hasController = await page.evaluate(() => navigator.serviceWorker.controller !== null);
   if (!hasController) fail('SW activated but did not claim the client');
   pass('service worker is active and controlling the page');

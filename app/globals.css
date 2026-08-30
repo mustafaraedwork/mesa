@@ -125,7 +125,7 @@
   --animate-duration-slow: 400ms;
 }
 
-/* Mesa OS design system — warm editorial palette, OKLCH.
+/* BIZIII Menu design system — warm editorial palette, OKLCH.
    Brand colors (primary/accent/surfaces) are per-restaurant overridable.
    Semantic state colors (success/warning/destructive/info) are fixed. */
 :root {

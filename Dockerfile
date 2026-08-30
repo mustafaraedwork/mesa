@@ -1,3 +1,10 @@
+# ⚠️ THIS DOCKERFILE DOES NOT BUILD AS-IS SINCE 2026-08-25.
+# `output: 'standalone'` was removed from next.config.ts when the deploy
+# target moved to Vercel (which ignores it). The COPY of .next/standalone
+# below therefore has no source. Kept deliberately as a future exit route
+# from Vercel: restore that one line in next.config.ts and this works again.
+# See docs/COMPANY-CONTEXT.md §3 for the current deployment target.
+
 # Mesa OS Lite — production image.
 # Multi-stage build over node:22-alpine. Outputs a Next 16 standalone server
 # at /app/server.js, with public/ and .next/static/ alongside. Runs as a

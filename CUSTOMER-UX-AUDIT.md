@@ -1,4 +1,4 @@
-# CUSTOMER-UX-AUDIT — تدقيق تجربة الزبون (Diner) في MenuPro
+# CUSTOMER-UX-AUDIT — تدقيق تجربة الزبون (Diner) في BIZIII Menu
 
 > **تقرير فقط — لم يُعدَّل أي كود.** التاريخ: 2026-06-02 · الفرع: `feat/design-redesign`.
 

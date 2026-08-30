@@ -59,9 +59,22 @@ function r2RemotePatterns() {
 }
 
 const nextConfig: NextConfig = {
-  // Self-contained server bundle for the Coolify/Docker deploy
-  // (./.next/standalone/server.js with only the traced node_modules).
-  output: 'standalone',
+  // Pin the workspace root. This repo sits next to sibling projects
+  // (../feedback, ../landing), each with its own package-lock.json. Seeing
+  // several lockfiles, Next infers the workspace root as the shared parent
+  // (.../newwork) and Turbopack then resolves bare imports from THERE — where
+  // no node_modules exists. Symptom: `next dev` dies on every request with
+  //   Error: Can't resolve 'tailwindcss' in '...\newwork'
+  // even though tailwindcss is installed correctly in ./node_modules.
+  // outputFileTracingRoot pins the same boundary for builds.
+  turbopack: { root: __dirname },
+  outputFileTracingRoot: __dirname,
+
+  // NOTE: `output: 'standalone'` was removed 2026-08-25. It existed for the
+  // Coolify/Docker deploy; Vercel ignores it, so it was dead configuration
+  // that implied a build shape this project no longer produces. The Dockerfile
+  // is kept as a future exit route — if it is ever used again, this line must
+  // come back with it.
 
   images: {
     remotePatterns: r2RemotePatterns(),

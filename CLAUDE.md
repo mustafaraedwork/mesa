@@ -2,16 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Company context — read first:** `docs/COMPANY-CONTEXT.md` (BIZIII, the two products, the total-isolation rule, and the host-only cookie constraint).
+
 ## Project status
 
-**Pre-code.** No `package.json`, no source files, no tooling yet. The repo currently contains only docs:
+**Functionally complete, not yet deployed.** The app is built and builds clean: ~109 `.ts`/`.tsx` source files, 11 applied migrations (`0001`–`0011`), 24 routes, 19 smoke scripts. `tsc --noEmit` and `eslint` both pass with zero errors.
+
+The commercial name is **BIZIII Menu**; the in-code identifier is still `mesa-os-lite` (`package.json`, `app/layout.tsx`, `public/sw.js` and 8 other spots). Both names refer to this repo.
 
 | File | Role |
 |---|---|
+| `docs/COMPANY-CONTEXT.md` | Company + product isolation context — the one non-negotiable frame |
 | `prd.md` | Source of truth for product behavior — read before architectural decisions |
 | `RULES.md` | Hard constraints, simplicity-first principle. **Read first.** |
-| `PHASES.md` | 8-phase implementation checklist — tick `[x]` as you ship |
+| `PHASES.md` | 8-phase implementation checklist. **Currently stale** — several items marked deferred actually shipped (drag & drop, `suggestions_type`, complementary categories, `show_unavailable_items`) |
 | `PROGRESS.md` | Session log — append one line per work session |
+| `docs/PAGES.md` | Per-page inventory read straight from the code |
+| `docs/BIZIII-READINESS.md` | Deployment-readiness audit |
 | `CLAUDE.md` | This file — orientation for future Claude instances |
 
 The project owner is **Mustafa**; he prefers Arabic communication and authored the PRD himself. Frame technical work in terms of PRD sections (e.g. "the Closing mode flow in §3.1").
@@ -23,7 +30,7 @@ The project owner is **Mustafa**; he prefers Arabic communication and authored t
 
 ## Product in one paragraph
 
-**Mesa OS Lite** is a one-time-purchase SaaS (no subscriptions) for small/medium single-branch restaurants — primary market Iraq (IQD default), expanded market the Arab world (18 currencies). It delivers a QR-scanned digital menu for diners and a mobile PWA dashboard for restaurant owners. The signature feature is **mutually-exclusive smart modes** — now **Normal** and **Closing** (the Rush and Profit re-rank modes were retired 2026-05-26 — see below). Mustafa creates tenant accounts manually; payments are handled offline.
+**BIZIII Menu** (`mesa-os-lite` in code) is a SaaS for small/medium single-branch restaurants, sold as manually-administered annual packages — primary market Iraq (IQD default), expanded market the Arab world (18 currencies). It delivers a QR-scanned digital menu for diners and a mobile PWA dashboard for restaurant owners. The signature feature is **mutually-exclusive smart modes** — now **Normal** and **Closing** (the Rush and Profit re-rank modes were retired 2026-05-26 — see below). Mustafa creates tenant accounts manually; payments are collected offline and only *recorded* in the owner panel (`payments` table, migration `0011`, with `plan` and `period_end` for optional annual renewal tracking). No online payment processing.
 
 ## Three user surfaces, three auth models
 
@@ -62,12 +69,14 @@ Order of precedence for the 3–4 suggestions on `/r/:slug/cart`:
 
 ## Database (Supabase Postgres, Frankfurt)
 
-5 tables — schema defined in `prd.md` §4.3. Key constraints:
+8 tables — the 5 in `prd.md` §4.3 (`restaurants`, `categories`, `products`, `complementary_categories`, `tenant_sessions`) plus `events` (`0003`, analytics), `payments` (`0011`, billing ledger) and `login_attempts` (`0015`, the rate-limit window). Key constraints:
 
-- `categories` is **2-level only** (`parent_id` self-FK, no grandchildren). Enforce in app code.
+- `categories` is **2-level only** (`parent_id` self-FK, no grandchildren). Enforced in app code *and* by a DB trigger (`categories_enforce_two_levels`, migration `0009`).
 - `products.suggestions_type` is `'default' | 'custom'`; `custom_suggestion_ids UUID[]` is only meaningful when `'custom'`.
 - `complementary_categories` is a many-to-many self-join on `categories` scoped to a restaurant.
 - `tenant_sessions` deliberately has **no `expires_at`** — sessions are permanent by design (multi-device login on the same account is allowed).
+- `anon`/`authenticated` hold an **explicit column list** on `restaurants` and `tenant_sessions` since `0013`, not a blanket table grant. A new column on `restaurants` needs `GRANT SELECT (col)` in the SAME migration or the diner path breaks silently — see `docs/COMPANY-CONTEXT.md` §9.0.
+- `restaurants.subscription_ends_at` (`0016`) is denormalized from `MAX(payments.period_end)` and maintained **only** by a trigger — never write it from app code.
 - `ON DELETE CASCADE` flows from `restaurants` down through everything; deleting a tenant must also purge images from Cloudflare R2 (not handled by the DB).
 
 ## Image pipeline
@@ -80,19 +89,35 @@ Upload → Next.js API route → `sharp` (max 800×800, WebP, quality 80) → Cl
 
 ## Routing map
 
+`proxy.ts` (named `proxy.ts`, not `middleware.ts` — Next 16 rename) guards `/admin/dashboard/:path*` and `/owner/dashboard/:path*` only.
+
 ```
-/                         landing (optional, later)
-/r/:slug                  diner menu
-/r/:slug/cart             cart + suggestions + "read to waiter" screen
-/admin                    tenant login
-/admin/dashboard/{menu,modes,design}   tenant PWA (3-tab bottom nav)
-/owner                    owner login (Supabase Auth)
-/owner/dashboard/accounts owner account management
+/                                       internal landing page (exists)
+/r/:slug                                diner menu
+/r/:slug/p/:productId                   product page
+/r/:slug/cart                           cart + suggestions + "read to waiter" screen
+/r/:slug/manifest.webmanifest           per-tenant PWA manifest
+/admin                                  tenant login
+/admin/dashboard/{menu,modes,analytics,design}   tenant PWA (4-tab bottom nav)
+/admin/suspended                        subscription lapsed past grace (0016)
+/owner                                  owner login (Supabase Auth)
+/owner/dashboard                        owner overview
+/owner/dashboard/accounts               account management
+/owner/dashboard/accounts/:id           account detail
+/owner/dashboard/billing                payment ledger + renewals
+/owner/dashboard/analytics              platform analytics
+/api/menu/:slug                         public menu JSON (30s polling target)
+/api/admin/state                        tenant state polling
+/api/admin/qr-pdf                       A4 QR sheet
+/api/track                              analytics ingest
+/api/health                             healthcheck
 ```
 
-## Stack (planned, not yet installed)
+## Stack (installed)
 
-Next.js 15 App Router + TypeScript • TailwindCSS + shadcn/ui • Supabase Postgres + RLS • Cloudflare R2 + `sharp` • Coolify on Contabo VPS • PWA via Workbox • `qrcode` for QR generation • bcrypt (cost=10) for tenant passwords.
+Next.js **16.2.6** App Router + React 19.2.4 + TypeScript (strict) • TailwindCSS v4 + shadcn/ui • Supabase Postgres + RLS • Cloudflare R2 + `sharp` • PWA via a **hand-written `public/sw.js`** (no Workbox dependency) • `qrcode` + `pdf-lib` for QR generation • bcrypt (cost=10, `lib/auth/password.ts`) for tenant passwords.
+
+Hosting: a `Dockerfile` + `output: 'standalone'` for Coolify/Contabo exist from an earlier plan; the current destination is **Vercel on `menu.biziii.io`** (`docs/COMPANY-CONTEXT.md`). Nothing is deployed yet.
 
 ## Explicitly out of scope (do not build)
 
@@ -100,7 +125,7 @@ KDS / kitchen display, per-table QR, online payments, delivery, loyalty/coupons,
 
 ## Implementation phases
 
-Phases 1–8 in `prd.md` §6 are the agreed sequencing (Foundation → Owner panel → Tenant menu CRUD → Modes → Design+QR → Diner UI → PWA/offline → Polish). Cross items off in `prd.md` as they ship — the checklist there is the project tracker.
+Phases 1–8 in `prd.md` §6 are the agreed sequencing (Foundation → Owner panel → Tenant menu CRUD → Modes → Design+QR → Diner UI → PWA/offline → Polish). All eight are substantially shipped; what remains open needs a live VPS/device or a manual pass. `PHASES.md` is the tracker — tick items there as they ship (it currently lags the code).
 
 ## Agent skills
 
@@ -114,4 +139,4 @@ Default canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context convention: one `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`. **Neither exists yet** — the standing context lives in `docs/COMPANY-CONTEXT.md`, `prd.md`, and `RULES.md`.

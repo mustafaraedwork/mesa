@@ -40,8 +40,8 @@ const ibmPlexMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Mesa OS Lite',
-  description: 'منيو رقمي للمطاعم — Mesa OS Lite',
+  title: 'BIZIII Menu',
+  description: 'منيو رقمي للمطاعم — BIZIII Menu',
 };
 
 export default function RootLayout({

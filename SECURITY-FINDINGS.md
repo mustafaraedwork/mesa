@@ -1,6 +1,6 @@
 # SECURITY-FINDINGS
 
-ملف تتبّع لنتائج مراجعة الأمان وطبقة Supabase لمشروع **Mesa OS Lite**.
+ملف تتبّع لنتائج مراجعة الأمان وطبقة Supabase لمشروع **BIZIII Menu**.
 
 - التاريخ: 2026-05-31
 - المراجعون: `security-reviewer` + `database-reviewer` (تقرير فقط، بدون تعديل كود)

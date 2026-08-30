@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { Button } from '@/components/ui/button';
+import { APP_URL_MISSING_MESSAGE } from '@/lib/app-url';
 
-export function QrSection({ menuUrl, slug }: { menuUrl: string; slug: string }) {
+export function QrSection({ menuUrl, slug }: { menuUrl: string | null; slug: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -19,7 +20,7 @@ export function QrSection({ menuUrl, slug }: { menuUrl: string; slug: string }) 
 
   // Render the QR onto the canvas whenever the URL changes.
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !menuUrl) return;
     QRCode.toCanvas(canvasRef.current, menuUrl, {
       width: 240,
       margin: 1,
@@ -30,6 +31,7 @@ export function QrSection({ menuUrl, slug }: { menuUrl: string; slug: string }) 
   }, [menuUrl]);
 
   async function copyLink() {
+    if (!menuUrl) return;
     try {
       await navigator.clipboard.writeText(menuUrl);
       setCopied(true);
@@ -55,6 +57,24 @@ export function QrSection({ menuUrl, slug }: { menuUrl: string; slug: string }) 
   function downloadPdf() {
     // The PDF route streams an A4 page with the QR centered + the URL.
     window.location.href = `/api/admin/qr-pdf`;
+  }
+
+  // Production build without NEXT_PUBLIC_APP_URL. Everything else on the
+  // design tab still works; only the QR surface is withheld, because the
+  // alternative is handing the owner a printable code pointing at localhost.
+  if (!menuUrl) {
+    return (
+      <div
+        role="status"
+        className="border-warning/40 bg-warning/10 space-y-1 rounded-md border p-4"
+      >
+        <p className="text-sm font-medium">{APP_URL_MISSING_MESSAGE}</p>
+        <p className="text-muted-foreground text-xs">
+          لا يمكن توليد رمز QR أو رابط المنيو حتى يُضبط دومين المنصّة. لا تطبع أي رمز
+          قبل ذلك.
+        </p>
+      </div>
+    );
   }
 
   return (

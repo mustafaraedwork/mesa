@@ -17,7 +17,7 @@ export default function OwnerDashboardLayout({
                 <span className="bg-primary text-primary-foreground flex size-7 items-center justify-center rounded-lg text-sm">
                   M
                 </span>
-                <span className="hidden sm:inline">Mesa OS Lite</span>
+                <span className="hidden sm:inline">BIZIII Menu</span>
               </span>
               {/* Icon-only on phones (labels stay in the a11y tree via sr-only),
                   full labels from sm up — keeps 4 tabs from overflowing. */}
