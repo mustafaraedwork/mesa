@@ -5,10 +5,27 @@
 //   2. Read categories/products belonging to an inactive restaurant
 //   3. Read tenant_sessions (no public policy)
 //   4. Insert/update/delete on any table
+//   5. Read `username` / `password_hash` of an ACTIVE restaurant (0012 → 0013)
+//   6. Read `tenant_sessions.token_hash` (0014 renamed the column; digests only)
+//
+// #5 is the one that matters most. RLS is ROW-level: the "Public read active"
+// policy hides inactive restaurants but grants anon every COLUMN of the active
+// ones. Testing only the inactive case (which is all this file did before
+// 2026-08-25) passes happily while the credential columns of every live tenant
+// are wide open. The credential assertions below therefore run against an
+// ACTIVE restaurant on purpose — do not "simplify" them back to inactive.
 //
 // Run:  node --env-file=.env.local scripts/smoke-rls.mjs
 
 import { createClient } from '@supabase/supabase-js';
+import { createHash } from 'node:crypto';
+
+// Sessions are stored hashed since migration 0014 — the raw token goes in the
+// cookie, sha256(token) goes in the DB. Seeding a row means inserting the digest.
+function sha256(v) {
+  return createHash('sha256').update(v, 'utf8').digest('hex');
+}
+
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -77,7 +94,7 @@ try {
 
   await admin
     .from('tenant_sessions')
-    .insert({ restaurant_id: restaurantId, token: `secret-token-${SLUG}` });
+    .insert({ restaurant_id: restaurantId, token_hash: sha256(`secret-token-${SLUG}`) });
 
   console.log('— anon read attempts on inactive tenant —');
 
@@ -146,15 +163,20 @@ try {
     count.length === 0 ? ok('no injected category row exists') : fail('injected category row leaked through!');
   }
   {
+    // Use a WELL-FORMED digest (0014 adds a 64-hex CHECK, and the column is
+    // `token_hash` now). A malformed value or a stale column name would make
+    // this insert fail for a schema reason and the assertion would pass
+    // without ever exercising RLS — a false green.
+    const forged = sha256('forged-token');
     const { error } = await anon.from('tenant_sessions').insert({
       restaurant_id: restaurantId,
-      token: 'forged-token',
+      token_hash: forged,
     });
     error ? ok('anon insert tenant_sessions blocked (explicit error)') : fail('anon insert tenant_sessions ALLOWED');
     const { data: count } = await admin
       .from('tenant_sessions')
       .select('id')
-      .eq('token', 'forged-token');
+      .eq('token_hash', forged);
     count.length === 0 ? ok('no forged session row exists') : fail('forged tenant_session leaked through!');
   }
 
@@ -171,6 +193,57 @@ try {
   {
     const { data } = await anon.from('tenant_sessions').select('*').eq('restaurant_id', restaurantId);
     expectEmpty(data, 'tenant_sessions still hidden even when restaurant active');
+  }
+
+  // ── 0012: credential columns must be denied even on an ACTIVE restaurant ──
+  // The restaurant is active at this point (flipped above), so the row-level
+  // policy PERMITS the row. Only the column-level REVOKE from 0012 can block
+  // these. A silent empty result is NOT a pass here — Postgres raises
+  // "permission denied for column" when the grant is missing, so we require a
+  // real error and additionally assert the secret never appears in the payload.
+  console.log('— anon read of credential columns on an ACTIVE restaurant (0012) —');
+  function expectColumnDenied(error, data, column, msg) {
+    if (error) { ok(`${msg} (${error.code ?? 'error'})`); return; }
+    const leaked = JSON.stringify(data ?? null);
+    fail(`${msg} — NOT denied, column '${column}' returned ${leaked.slice(0, 120)}`);
+  }
+  {
+    const { data, error } = await anon.from('restaurants').select('username').eq('id', restaurantId);
+    expectColumnDenied(error, data, 'username', 'anon cannot select username');
+  }
+  {
+    const { data, error } = await anon.from('restaurants').select('password_hash').eq('id', restaurantId);
+    expectColumnDenied(error, data, 'password_hash', 'anon cannot select password_hash');
+  }
+  {
+    const { data, error } = await anon
+      .from('restaurants')
+      .select('id, slug, username, password_hash')
+      .eq('id', restaurantId);
+    expectColumnDenied(error, data, 'username,password_hash', 'anon cannot mix credential columns into a legit select');
+  }
+  {
+    // `select('*')` is the realistic attack: it must not smuggle the columns
+    // through. If PostgREST expands '*' to only the granted columns this
+    // returns rows — that is fine, as long as neither secret is present.
+    const { data, error } = await anon.from('restaurants').select('*').eq('id', restaurantId);
+    if (error) {
+      ok('anon select * on active restaurant denied outright');
+    } else {
+      const row = Array.isArray(data) ? data[0] : data;
+      const keys = row ? Object.keys(row) : [];
+      if (!keys.includes('username') && !keys.includes('password_hash')) {
+        ok(`anon select * carries no credential columns (got: ${keys.length} cols)`);
+      } else {
+        fail(`anon select * LEAKED credentials — keys: ${keys.join(', ')}`);
+      }
+    }
+  }
+  {
+    // Filtering on a revoked column is another read channel: a working
+    // `.eq('username', …)` would let an attacker confirm a username by probing.
+    const { data, error } = await anon.from('restaurants').select('id').eq('username', SLUG);
+    expectColumnDenied(error, data, 'username', 'anon cannot filter by username');
   }
 } finally {
   console.log('— cleanup —');

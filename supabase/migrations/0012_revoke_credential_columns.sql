@@ -1,0 +1,57 @@
+-- 0012 — revoke tenant credential columns from anon/authenticated
+-- (2026-08-25, BIZIII-READINESS blocker #1).
+--
+-- THE HOLE: the "Public read active" policy on `restaurants`
+-- (0001_init.sql:125, recreated in 0011_owner_billing.sql:67) is a ROW-level
+-- policy. Postgres RLS filters rows, never columns — so it grants the `anon`
+-- role SELECT on EVERY column of every active, non-deleted restaurant,
+-- including `username` and `password_hash`.
+--
+-- The anon key is public by definition: it is inlined into the browser bundle
+-- at build time (lib/supabase/auth-browser.ts, proxy.ts). Any visitor to any
+-- diner menu could therefore run
+--     GET /rest/v1/restaurants?select=username,password_hash
+-- and walk away with the login name and bcrypt hash of every tenant on the
+-- platform.
+--
+-- THE FIX: column-level REVOKE, same technique already applied to
+-- `tenant_sessions.token` in 0009_db_hardening.sql:46. Column privileges are
+-- checked independently of RLS, so this closes the hole without touching the
+-- policy — the diner menu keeps reading the columns it actually needs.
+--
+-- SAFE / ADDITIVE / RE-RUNNABLE. Cannot fail on existing data: it grants
+-- nothing and alters no rows. NOTE: this project has no automated migration
+-- channel — apply manually via the Supabase SQL editor or `supabase db push`.
+--
+-- ── Pre-flight (informational; the REVOKE is safe regardless) ───────────────
+-- Confirms the hole is real before you close it. As `anon` (or from the
+-- browser with the anon key) this returns rows TODAY and must return a
+-- permission error AFTER:
+--
+--   SELECT username, password_hash FROM restaurants LIMIT 1;
+--
+-- Verified in the application code before writing this migration: every read
+-- of `restaurants.username` / `.password_hash` goes through the service-role
+-- client, which bypasses column privileges entirely —
+--   app/admin/actions.ts:35-39            (login: select password_hash)
+--   app/owner/dashboard/accounts/actions.ts:89, :160, :248  (create/edit/rotate)
+--   app/owner/dashboard/accounts/page.tsx, /[id]/page.tsx   (owner listing)
+-- There is no anon-key or authenticated-key read of either column anywhere.
+
+REVOKE SELECT (password_hash, username) ON restaurants FROM anon, authenticated;
+
+-- ── Post-apply verification ────────────────────────────────────────────────
+-- 1. As anon → must ERROR with "permission denied for column ...":
+--      SELECT username FROM restaurants LIMIT 1;
+--      SELECT password_hash FROM restaurants LIMIT 1;
+--
+-- 2. As anon → must still WORK (the diner menu depends on it):
+--      SELECT id, slug, display_name FROM restaurants WHERE is_active LIMIT 1;
+--
+-- 3. Column grants should list neither column for anon/authenticated:
+--      SELECT grantee, column_name FROM information_schema.column_privileges
+--       WHERE table_name = 'restaurants' AND privilege_type = 'SELECT'
+--         AND grantee IN ('anon','authenticated')
+--       ORDER BY grantee, column_name;
+--
+-- 4. Tenant login must still succeed end-to-end (service-role path untouched).
