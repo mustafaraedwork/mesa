@@ -83,7 +83,9 @@ export function bagDate(iso: string | null): string {
 
 // Whole Baghdad-calendar days from `fromMs` to `toMs` (date-granular). So a
 // renewal flips to overdue at Baghdad midnight, not at 03:00 local.
-function bagDayDiff(fromMs: number, toMs: number): number {
+// Exported so lib/subscription.ts shares the exact same day boundary — the
+// money view and the access view must never disagree about what day it is.
+export function bagDayDiff(fromMs: number, toMs: number): number {
   const day = (ms: number) => Date.parse(new Date(ms + BAGHDAD_OFFSET_MS).toISOString().slice(0, 10) + 'T00:00:00Z');
   return Math.round((day(toMs) - day(fromMs)) / DAY_MS);
 }

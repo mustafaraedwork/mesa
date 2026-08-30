@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/toast';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { updateRestaurant } from './actions';
 import type { AccountRow } from './accounts-table';
+import { PLANS, PLAN_LABEL } from '@/lib/subscription';
 
 export function EditRestaurantDialog({
   account,
@@ -30,6 +31,13 @@ export function EditRestaurantDialog({
   const [username, setUsername] = useState(account.username);
   const [currency, setCurrency] = useState(account.currency);
   const [plan, setPlan] = useState(account.plan ?? '');
+  // Free text here would guarantee a runtime DB error: 0016 constrains `plan`
+  // to exactly these three. '' is the "not chosen yet" option, sent as null.
+  const planItems = useMemo(
+    () => ({ '': '— بلا خطة —', ...Object.fromEntries(PLANS.map((p) => [p, PLAN_LABEL[p]])) }),
+    [],
+  );
+
   const [branches, setBranches] = useState(String(account.branch_count));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -105,8 +113,18 @@ export function EditRestaurantDialog({
               />
             </Field>
           </div>
-          <Field label="الخطة" hint="اسم اختياري (مثلاً basic / pro)">
-            <Input value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="—" />
+          <Field label="الخطة" hint="الباقات السنوية بالدينار العراقي">
+              <Select value={plan} onValueChange={(v) => setPlan(v ?? '')} items={planItems}>
+                <SelectTrigger />
+                <SelectContent>
+                  <SelectItem value="">— بلا خطة —</SelectItem>
+                  {PLANS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PLAN_LABEL[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
           </Field>
 
           {error && <p role="alert" className="text-destructive text-sm">{error}</p>}

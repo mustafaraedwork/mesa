@@ -2,6 +2,7 @@ import { getServiceClient } from '@/lib/supabase/server';
 import { AccountsTable, type AccountRow } from './accounts-table';
 import { requireOwner } from '@/lib/auth/require-owner';
 import { billingByRestaurant, paymentRowFromDb, type PaymentRow } from '@/lib/billing';
+import { deriveSubscription } from '@/lib/subscription';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ async function loadAccounts(): Promise<AccountRow[]> {
     sb
       .from('restaurants')
       .select(
-        'id, display_name, slug, username, is_active, deleted_at, created_at, last_login_at, plan, branch_count, currency',
+        'id, display_name, slug, username, is_active, deleted_at, created_at, last_login_at, plan, branch_count, currency, subscription_ends_at',
       )
       .order('created_at', { ascending: false }),
     sb.from('products').select('restaurant_id'),
@@ -69,6 +70,9 @@ async function loadAccounts(): Promise<AccountRow[]> {
     product_count: productCounts.get(r.id) ?? 0,
     category_count: categoryCounts.get(r.id) ?? 0,
     billing: billing.get(r.id) ?? null,
+    // Access state, separate from the money state above: a restaurant can be
+    // overdue on payment and still inside its grace window, i.e. working.
+    subscription: deriveSubscription(r.subscription_ends_at, now),
   }));
 }
 

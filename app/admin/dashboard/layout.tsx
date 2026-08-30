@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ToastProvider } from '@/components/ui/toast';
 import { signOutTenant } from '../actions';
 import { BottomNav } from './bottom-nav';
+import { SubscriptionBanner } from './subscription-banner';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,10 @@ export default async function TenantDashboardLayout({
             </Button>
           </form>
         </header>
-        <main className="mx-auto w-full max-w-3xl flex-1 p-gutter">{children}</main>
+        <main className="mx-auto w-full max-w-3xl flex-1 p-gutter">
+          <SubscriptionBanner subscription={tenant.subscription} />
+          {children}
+        </main>
         <BottomNav />
       </div>
     </ToastProvider>

@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { generateRandomPassword } from '@/lib/util/random-password';
 import { createAccount } from './actions';
+import { PLANS, PLAN_LABEL } from '@/lib/subscription';
 
 const slugify = (s: string) =>
   s
@@ -54,6 +55,13 @@ export function CreateAccountDialog({
 
   const currencyItems = useMemo(
     () => Object.fromEntries(SUPPORTED_CURRENCIES.map((c) => [c.code, `${c.code} — ${c.label_ar}`])),
+    [],
+  );
+
+  // Free text here would guarantee a runtime DB error: 0016 constrains `plan`
+  // to exactly these three. '' is the "not chosen yet" option, sent as null.
+  const planItems = useMemo(
+    () => ({ '': '— بلا خطة —', ...Object.fromEntries(PLANS.map((p) => [p, PLAN_LABEL[p]])) }),
     [],
   );
 
@@ -198,8 +206,18 @@ export function CreateAccountDialog({
                 />
               </Field>
             </div>
-            <Field label="الخطة" hint="اسم اختياري (مثلاً basic / pro)">
-              <Input value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="—" />
+            <Field label="الخطة" hint="الباقات السنوية بالدينار العراقي">
+              <Select value={plan} onValueChange={(v) => setPlan(v ?? '')} items={planItems}>
+                <SelectTrigger />
+                <SelectContent>
+                  <SelectItem value="">— بلا خطة —</SelectItem>
+                  {PLANS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PLAN_LABEL[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
 
             <fieldset className="border-border-lite space-y-3 rounded-lg border p-3">

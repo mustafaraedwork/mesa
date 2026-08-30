@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { BILLING_STATUS_META, bagDate, formatMoney, type RestaurantBilling } from '@/lib/billing';
+import { SUBSCRIPTION_STATUS_META, type SubscriptionState } from '@/lib/subscription';
 import { CreateAccountDialog } from './create-account-dialog';
 import { EditRestaurantDialog } from './edit-restaurant-dialog';
 import { ChangePasswordDialog } from './change-password-dialog';
@@ -60,6 +61,7 @@ export type AccountRow = {
   product_count: number;
   category_count: number;
   billing: RestaurantBilling | null;
+  subscription: SubscriptionState;
 };
 
 type DialogState =
@@ -268,7 +270,7 @@ export function AccountsTable({ accounts }: { accounts: AccountRow[] }) {
                         )}
                       </TableCell>
                       <TableCell>
-                        <BillingCell billing={a.billing} />
+                        <BillingCell billing={a.billing} subscription={a.subscription} />
                       </TableCell>
                       <TableCell className="text-caption">
                         <ActivityCell a={a} />
@@ -312,7 +314,7 @@ export function AccountsTable({ accounts }: { accounts: AccountRow[] }) {
                     <dt className="text-muted-foreground">الخطة</dt>
                     <dd className="text-end">{a.plan ?? '—'} · {a.branch_count} فرع · {a.currency}</dd>
                     <dt className="text-muted-foreground">الفوترة</dt>
-                    <dd className="flex justify-end"><BillingCell billing={a.billing} /></dd>
+                    <dd className="flex justify-end"><BillingCell billing={a.billing} subscription={a.subscription} /></dd>
                     <dt className="text-muted-foreground">انضمّ</dt>
                     <dd dir="ltr" className="text-end">{fmtDate(a.created_at)}</dd>
                     <dt className="text-muted-foreground">آخر نشاط</dt>
@@ -420,14 +422,42 @@ function SortHead({
   );
 }
 
-function BillingCell({ billing }: { billing: RestaurantBilling | null }) {
+// Access state — who is about to go dark, and who already has. This is the
+// column the owner scans before deciding who to call, so it sits ABOVE the
+// money badge rather than replacing it: "overdue" is about the invoice,
+// "موقوف تلقائياً" is about whether diners can see the menu right now.
+function AccessBadge({ subscription }: { subscription: SubscriptionState }) {
+  if (subscription.status === 'active' || subscription.status === 'none') return null;
+  const meta = SUBSCRIPTION_STATUS_META[subscription.status];
+  const suffix =
+    subscription.status === 'grace'
+      ? ` · ${subscription.graceDaysLeft} ي`
+      : subscription.status === 'expiring' && subscription.daysLeft !== null
+        ? ` · ${subscription.daysLeft} ي`
+        : '';
+  return <Badge variant={meta.variant}>{meta.label}{suffix}</Badge>;
+}
+
+function BillingCell({
+  billing,
+  subscription,
+}: {
+  billing: RestaurantBilling | null;
+  subscription: SubscriptionState;
+}) {
   if (!billing || billing.paymentCount === 0) {
-    return <span className="text-muted-foreground text-caption">بلا دفعات</span>;
+    return (
+      <div className="space-y-0.5">
+        <span className="text-muted-foreground text-caption">بلا دفعات</span>
+        <div><AccessBadge subscription={subscription} /></div>
+      </div>
+    );
   }
   const meta = BILLING_STATUS_META[billing.status];
   return (
     <div className="space-y-0.5">
       <Badge variant={meta.variant}>{meta.label}</Badge>
+      <div><AccessBadge subscription={subscription} /></div>
       {billing.currentPeriodEnd && (
         <div className="text-muted-foreground text-caption" dir="ltr">
           {bagDate(billing.currentPeriodEnd)}

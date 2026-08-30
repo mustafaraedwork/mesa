@@ -17,6 +17,7 @@ import {
 import { currencyLabel } from '@/lib/currencies';
 import { RestaurantDetailActions } from '../restaurant-detail-actions';
 import type { AccountRow } from '../accounts-table';
+import { deriveSubscription } from '@/lib/subscription';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ export default async function RestaurantDetailPage({ params }: { params: Promise
   const { data: r } = await sb
     .from('restaurants')
     .select(
-      'id, display_name, slug, username, is_active, deleted_at, created_at, last_login_at, plan, branch_count, currency',
+      'id, display_name, slug, username, is_active, deleted_at, created_at, last_login_at, plan, branch_count, currency, subscription_ends_at',
     )
     .eq('id', id)
     .maybeSingle();
@@ -94,6 +95,7 @@ export default async function RestaurantDetailPage({ params }: { params: Promise
     product_count: prods.length,
     category_count: cats.length,
     billing,
+    subscription: deriveSubscription(r.subscription_ends_at, now),
   };
 
   const deleted = !!r.deleted_at;

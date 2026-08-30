@@ -6,6 +6,8 @@ import { hashPassword } from '@/lib/auth/password';
 import { deleteRestaurantImages } from '@/lib/r2/upload';
 import { requireOwner } from '@/lib/auth/require-owner';
 import { isSupportedCurrency } from '@/lib/currencies';
+import { isReservedSlug, RESERVED_SLUG_MESSAGE } from '@/lib/reserved-slugs';
+import { isPlan } from '@/lib/subscription';
 
 const ACCOUNTS_PATH = '/owner/dashboard/accounts';
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
@@ -13,7 +15,7 @@ const USERNAME_RE = /^[A-Za-z0-9_.-]{3,32}$/;
 // M-8: validate the restaurant id at the function boundary before it hits the DB.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const PLAN_MAX = 40;
+const PLAN_INVALID_MESSAGE = 'الخطة غير معروفة — اختر إحدى الباقات الثلاث';
 const BRANCH_MAX = 999;
 const AMOUNT_MAX = 9_999_999_999.99; // NUMERIC(12,2) ceiling
 
@@ -59,13 +61,17 @@ export async function createAccount(input: {
 
   if (!display_name) return { ok: false, error: 'اسم المطعم مطلوب' };
   if (!SLUG_RE.test(slug)) return { ok: false, error: 'الـslug يحتوي حروف صغيرة وأرقام وشرطات فقط' };
+  if (isReservedSlug(slug)) return { ok: false, error: RESERVED_SLUG_MESSAGE };
   if (!USERNAME_RE.test(username)) return { ok: false, error: 'اسم المستخدم: 3-32 حرف من a-z A-Z 0-9 . _ -' };
   if (password.length < 8) return { ok: false, error: 'كلمة السر ٨ أحرف على الأقل' };
   if (!isSupportedCurrency(currency)) return { ok: false, error: 'عملة غير مدعومة' };
   if (!Number.isInteger(branch_count) || branch_count < 1 || branch_count > BRANCH_MAX) {
     return { ok: false, error: 'عدد الفروع يجب أن يكون رقماً صحيحاً ≥ ١' };
   }
-  if (plan && plan.length > PLAN_MAX) return { ok: false, error: 'اسم الخطة طويل جداً' };
+  // Validate at the boundary, not by letting the DB CHECK (0016) throw: a
+  // constraint violation surfaces as an opaque Postgres error, not as an
+  // Arabic message the owner can act on.
+  if (plan && !isPlan(plan)) return { ok: false, error: PLAN_INVALID_MESSAGE };
 
   // Validate the optional initial payment up front so we never create a
   // restaurant only to reject it on the payment.
@@ -152,6 +158,7 @@ export async function updateRestaurant(
   if (fields.slug !== undefined) {
     const v = fields.slug.trim().toLowerCase();
     if (!SLUG_RE.test(v)) return { ok: false, error: 'الـslug يحتوي حروف صغيرة وأرقام وشرطات فقط' };
+    if (isReservedSlug(v)) return { ok: false, error: RESERVED_SLUG_MESSAGE };
     patch.slug = v;
   }
   if (fields.username !== undefined) {
@@ -165,7 +172,7 @@ export async function updateRestaurant(
   }
   if (fields.plan !== undefined) {
     const v = fields.plan?.trim() || null;
-    if (v && v.length > PLAN_MAX) return { ok: false, error: 'اسم الخطة طويل جداً' };
+    if (v && !isPlan(v)) return { ok: false, error: PLAN_INVALID_MESSAGE };
     patch.plan = v;
   }
   if (fields.branch_count !== undefined) {

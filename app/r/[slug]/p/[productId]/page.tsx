@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
-import { loadMenu } from '@/lib/menu';
+import { loadMenuResult } from '@/lib/menu';
 import { ClosedScreen } from '../../closed-screen';
+import { PausedScreen } from '../../paused-screen';
 import { ProductView } from './product-view';
 
 export const dynamic = 'force-dynamic';
@@ -11,8 +12,9 @@ export default async function ProductPage({
   params: Promise<{ slug: string; productId: string }>;
 }) {
   const { slug, productId } = await params;
-  const data = await loadMenu(slug);
-  if (!data) return <ClosedScreen />;
+  const res = await loadMenuResult(slug);
+  if (!res.ok) return res.reason === 'suspended' ? <PausedScreen /> : <ClosedScreen />;
+  const data = res.data;
 
   // Find the product in its real category (skip the virtual closing dup).
   let product = null;

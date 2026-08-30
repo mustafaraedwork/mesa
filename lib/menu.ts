@@ -2,6 +2,7 @@
 // Single source of truth for the menu shape returned to diners.
 
 import { getServiceClient } from '@/lib/supabase/server';
+import { deriveSubscription } from '@/lib/subscription';
 import {
   applyDiscount,
   applyLazyRevert,
@@ -18,6 +19,7 @@ type Restaurant = {
   display_name: string;
   is_active: boolean;
   deleted_at: string | null;
+  subscription_ends_at: string | null;
   primary_color: string;
   background_color: string;
   header_color: string | null;
@@ -109,22 +111,48 @@ export type MenuPayload = {
   categories: MenuCategory[];
 };
 
-// Returns null when the restaurant doesn't exist or is inactive — caller
-// decides how to render "غير متوفر".
+// Why the diner gate returns a REASON, not just null: the three ways a menu
+// can be unavailable need three different things said to a person standing at
+// a table with a phone in their hand. See MenuGateReason.
+export type MenuGateReason =
+  // No such slug, or the owner soft-deleted / deactivated the account.
+  | 'unavailable'
+  // Subscription lapsed past its grace window (migration 0016).
+  | 'suspended';
+
+export type MenuResult =
+  | { ok: true; data: MenuPayload }
+  | { ok: false; reason: MenuGateReason };
+
+// Thin wrapper kept for callers that only need "menu or nothing" (cart page,
+// product page, the polling API route). They redirect or 404, so they don't
+// need to distinguish the reason.
 export async function loadMenu(slug: string): Promise<MenuPayload | null> {
+  const res = await loadMenuResult(slug);
+  return res.ok ? res.data : null;
+}
+
+export async function loadMenuResult(slug: string): Promise<MenuResult> {
   const sb = getServiceClient();
 
   const { data: rest } = await sb
     .from('restaurants')
     .select(
-      'id, slug, display_name, is_active, deleted_at, primary_color, background_color, header_color, card_color, text_color, logo_url, currency, show_unavailable_items, active_mode, closing_mode_ends_at, closing_mode_discount',
+      'id, slug, display_name, is_active, deleted_at, subscription_ends_at, primary_color, background_color, header_color, card_color, text_color, logo_url, currency, show_unavailable_items, active_mode, closing_mode_ends_at, closing_mode_discount',
     )
     .eq('slug', slug)
     .maybeSingle<Restaurant>();
 
   // Service role bypasses RLS, so the soft-delete guard lives here too: a
   // soft-deleted restaurant (deleted_at set) is invisible to the diner.
-  if (!rest || !rest.is_active || rest.deleted_at) return null;
+  if (!rest || !rest.is_active || rest.deleted_at) return { ok: false, reason: 'unavailable' };
+
+  // Subscription enforcement (0016). Costs ZERO extra queries — the column
+  // rides along on the restaurant row we already fetched. A NULL expiry means
+  // "no subscription recorded" and never blocks; see lib/subscription.ts.
+  if (deriveSubscription(rest.subscription_ends_at, Date.now()).isBlocked) {
+    return { ok: false, reason: 'suspended' };
+  }
 
   // Lazy auto-revert (Q3) — race-safe via the `active_mode='closing'` WHERE.
   // Q-12: coerce any legacy rush/profit row to a live mode on read.
@@ -171,7 +199,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
 
   // Q-3: surface a transient read failure instead of silently rendering an
   // empty menu (the `?? []` fallbacks below would otherwise mask it).
-  if (catsErr || prodsErr || complinksErr) return null;
+  if (catsErr || prodsErr || complinksErr) return { ok: false, reason: 'unavailable' };
 
   const productsByCategory = new Map<string, MenuProduct[]>();
   const closingProducts: MenuProduct[] = [];
@@ -276,7 +304,7 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     });
   }
 
-  return {
+  const payload: MenuPayload = {
     server_now: new Date().toISOString(),
     restaurant: {
       id: rest.id,
@@ -297,4 +325,6 @@ export async function loadMenu(slug: string): Promise<MenuPayload | null> {
     },
     categories,
   };
+
+  return { ok: true, data: payload };
 }
