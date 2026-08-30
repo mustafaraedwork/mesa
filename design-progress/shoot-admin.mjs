@@ -5,10 +5,17 @@
 //
 // Run:  node --env-file=.env.local design-progress/shoot-admin.mjs [outDir]
 
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { chromium } from 'playwright';
+
+// Sessions are stored hashed since migration 0014 — the raw token goes in the
+// cookie, sha256(token) goes in the DB. Seeding a row means inserting the digest.
+function sha256(v) {
+  return createHash('sha256').update(v, 'utf8').digest('hex');
+}
+
 
 const APP = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 const OUT = process.argv[2] || 'design-progress/phase-2';
@@ -119,7 +126,7 @@ await sb.from('events').insert(events);
 console.log(`seeded ${pids.length} products, ${events.length} events`);
 
 const token = randomBytes(32).toString('hex');
-await sb.from('tenant_sessions').insert({ restaurant_id: rest.id, token, device_info: 'shoot-admin' });
+await sb.from('tenant_sessions').insert({ restaurant_id: rest.id, token_hash: sha256(token), device_info: 'shoot-admin' });
 
 const browser = await chromium.launch();
 async function snap(page, name) {

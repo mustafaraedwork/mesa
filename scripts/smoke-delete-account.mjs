@@ -18,6 +18,13 @@ import {
   ListObjectsV2Command,
   DeleteObjectsCommand,
 } from '@aws-sdk/client-s3';
+import { createHash } from 'node:crypto';
+
+// Sessions are stored hashed since migration 0014 — the raw token goes in the
+// cookie, sha256(token) goes in the DB. Seeding a row means inserting the digest.
+function sha256(v) {
+  return createHash('sha256').update(v, 'utf8').digest('hex');
+}
 
 const sb = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -105,7 +112,7 @@ const { data: prod } = await sb
 
 await sb
   .from('tenant_sessions')
-  .insert({ restaurant_id: restaurantId, token: `del-smoke-token-${Date.now()}` });
+  .insert({ restaurant_id: restaurantId, token_hash: sha256(`del-smoke-token-${Date.now()}`) });
 
 console.log('— uploading dummy images to R2 prefix —');
 const keys = [

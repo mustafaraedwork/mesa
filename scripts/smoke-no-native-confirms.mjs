@@ -5,9 +5,16 @@
 // Run:  node --env-file=.env.local scripts/smoke-no-native-confirms.mjs
 // Requires: dev server already on http://localhost:3000
 
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { chromium } from 'playwright';
+
+// Sessions are stored hashed since migration 0014 — the raw token goes in the
+// cookie, sha256(token) goes in the DB. Seeding a row means inserting the digest.
+function sha256(v) {
+  return createHash('sha256').update(v, 'utf8').digest('hex');
+}
+
 
 const APP = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 const sb = createClient(
@@ -57,7 +64,7 @@ await sb.from('products').insert({
 const token = randomBytes(32).toString('hex');
 await sb.from('tenant_sessions').insert({
   restaurant_id: rest.id,
-  token,
+  token_hash: sha256(token),
   device_info: 'playwright',
 });
 

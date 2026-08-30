@@ -1,73 +1,94 @@
-// In-memory sliding-window rate limiter. PRD §4.5 calls for 5 attempts per
-// 15 minutes on tenant login. The window resets on process restart, which
-// is a feature for an MVP single-process VPS deploy: it's generous to honest
-// users and harmless against attackers since they'd need to maintain a
-// connection across the restart.
+// Postgres-backed sliding-window rate limiter (migration 0015).
 //
-// If we ever scale to multiple instances, replace this with a Postgres-backed
-// implementation (key → array<timestamp>) keyed on the same window.
+// This used to be a module-level Map. That worked on a single always-on VPS
+// process and is worthless on Vercel: every cold start begins with an empty
+// window, so an attacker spreading attempts across instances is never
+// throttled. The window now lives in the `login_attempts` table, shared by
+// every instance.
+//
+// check-and-record happens inside one plpgsql function so concurrent requests
+// cannot race past the limit between a read and a write. Expired rows are
+// pruned lazily inside that same call — this project has no cron.
 
-type Window = { hits: number[] };
-const buckets = new Map<string, Window>();
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_HITS = 5;
+import { getServiceClient } from '@/lib/supabase/server';
 
-export function checkLoginAttempt(key: string):
-  | { allowed: true }
-  | { allowed: false; retryAfterSeconds: number } {
-  const now = Date.now();
-  const win = buckets.get(key) ?? { hits: [] };
+export type RateResult = { allowed: true } | { allowed: false; retryAfterSeconds: number };
 
-  // Drop hits older than the window.
-  win.hits = win.hits.filter((t) => now - t < WINDOW_MS);
+// Limits are unchanged from the in-memory implementation (PRD §4.5 + H-4).
+export const LIMIT_LOGIN_PER_USERNAME = { max: 5, windowSeconds: 15 * 60 } as const;
+export const LIMIT_LOGIN_PER_IP = { max: 20, windowSeconds: 15 * 60 } as const;
+export const LIMIT_TRACK_PER_IP = { max: 60, windowSeconds: 60 } as const;
 
-  if (win.hits.length >= MAX_HITS) {
-    const oldest = win.hits[0];
-    const retryAfterSeconds = Math.ceil((WINDOW_MS - (now - oldest)) / 1000);
-    return { allowed: false, retryAfterSeconds };
+// Fails CLOSED. A rate limiter that opens up whenever the database hiccups is
+// not a rate limiter. Both call sites tolerate this well: login cannot proceed
+// without the database anyway, and /api/track already drops beacons silently.
+export async function checkRate(
+  key: string,
+  max: number,
+  windowSeconds: number,
+): Promise<RateResult> {
+  const sb = getServiceClient();
+  const { data, error } = await sb.rpc('check_rate_limit', {
+    p_key: key,
+    p_max: max,
+    p_window_seconds: windowSeconds,
+  });
+
+  if (error) {
+    console.error('[rate-limit] check_rate_limit failed:', error.message);
+    return { allowed: false, retryAfterSeconds: 60 };
   }
 
-  win.hits.push(now);
-  buckets.set(key, win);
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || row.allowed !== true) {
+    const retry = Number(row?.retry_after_seconds);
+    return {
+      allowed: false,
+      retryAfterSeconds: Number.isFinite(retry) && retry > 0 ? retry : 60,
+    };
+  }
   return { allowed: true };
 }
 
-// On a successful login, reset the bucket for the key — honest users who
-// finally typed the right password shouldn't be punished for prior typos.
-export function clearLoginAttempts(key: string): void {
-  buckets.delete(key);
+// On a successful login, reset the bucket — honest users who finally typed the
+// right password shouldn't be punished for prior typos.
+export async function clearRate(key: string): Promise<void> {
+  const sb = getServiceClient();
+  const { error } = await sb.rpc('clear_rate_limit', { p_key: key });
+  if (error) console.error('[rate-limit] clear_rate_limit failed:', error.message);
 }
 
-// Derive the client IP from proxy headers, Cloudflare-first. Behind Cloudflare
-// the socket peer is ALWAYS a Cloudflare edge address, so the genuine client IP
-// lives in CF-Connecting-IP; the X-Forwarded-For first hop and X-Real-IP are
-// fallbacks for other proxies / bare local dev. We never read the socket
-// address here — behind the proxy it would bucket every diner under one CF IP.
+// Derive the client IP from proxy headers.
+//
+// ORDER MATTERS FOR SECURITY. Only headers the hosting platform sets itself
+// are trustworthy; anything a client can send and the platform forwards
+// verbatim is an unlimited rate-limit bypass (send a fresh fake IP per
+// request, get a fresh bucket every time).
+//
+// On Vercel — the deployment target for menu.biziii.io — `x-vercel-forwarded-for`
+// is written by Vercel's edge, so it is checked first. `x-real-ip` and the
+// first hop of `x-forwarded-for` follow as fallbacks for other hosts and for
+// bare local dev.
+//
+// `cf-connecting-ip` was checked FIRST here while the plan was Coolify behind
+// Cloudflare. It is now last: on Vercel without Cloudflare in the path nothing
+// strips a client-supplied CF-Connecting-IP, which turned the primary source
+// of truth into the easiest header to forge.
+//
+// ⚠️ If Cloudflare is ever put in front of Vercel for this domain, revisit
+// this: every request would then carry Cloudflare's edge IP in the Vercel
+// headers, collapsing all diners into a handful of buckets and making the
+// /api/track limit fire against legitimate traffic. In that setup
+// `cf-connecting-ip` must move back to the front.
+//
 // Accepts both a WHATWG Headers (route handlers) and Next's ReadonlyHeaders
 // (server actions) — both expose `.get()`.
 export function clientIp(h: { get(name: string): string | null }): string {
-  return (
-    h.get('cf-connecting-ip') ??
-    h.get('x-forwarded-for')?.split(',')[0] ??
+  const raw =
+    h.get('x-vercel-forwarded-for')?.split(',')[0] ??
     h.get('x-real-ip') ??
-    'unknown'
-  ).trim();
-}
-
-// Generic IP-based limiter for unauthenticated endpoints (H-4: a per-IP login
-// guard across all usernames, and a /api/track flood guard). Same in-memory,
-// restart-resetting trade-off as the per-username login bucket above. Returns
-// true when the request is allowed.
-const ipBuckets = new Map<string, number[]>();
-
-export function checkIpRate(key: string, maxHits: number, windowMs: number): boolean {
-  const now = Date.now();
-  const hits = (ipBuckets.get(key) ?? []).filter((t) => now - t < windowMs);
-  if (hits.length >= maxHits) {
-    ipBuckets.set(key, hits);
-    return false;
-  }
-  hits.push(now);
-  ipBuckets.set(key, hits);
-  return true;
+    h.get('x-forwarded-for')?.split(',')[0] ??
+    h.get('cf-connecting-ip') ??
+    'unknown';
+  return raw.trim();
 }

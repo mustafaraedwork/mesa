@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/server';
-import { checkIpRate, clientIp } from '@/lib/auth/rate-limit';
+import { checkRate, clientIp, LIMIT_TRACK_PER_IP } from '@/lib/auth/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,9 +22,11 @@ export async function POST(req: Request) {
   }
 
   // H-4: per-IP flood guard on this public, unauthenticated ingest endpoint.
-  // IP is Cloudflare-aware (CF-Connecting-IP first — see clientIp).
+  // Postgres-backed since 0015 — one indexed RPC on a fire-and-forget beacon
+  // that already talks to the database twice below.
   const ip = clientIp(req.headers);
-  if (!checkIpRate(`track:${ip}`, 60, 60_000)) {
+  const limit = await checkRate(`track:${ip}`, LIMIT_TRACK_PER_IP.max, LIMIT_TRACK_PER_IP.windowSeconds);
+  if (!limit.allowed) {
     return new NextResponse(null, { status: 204, headers: NO_STORE });
   }
 

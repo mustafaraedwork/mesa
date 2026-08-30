@@ -6,7 +6,13 @@ import { getServiceClient } from '@/lib/supabase/server';
 import { verifyPassword } from '@/lib/auth/password';
 import { createSession, setSessionCookie, clearSessionCookie, deleteSession } from '@/lib/auth/session';
 import { SESSION_COOKIE } from '@/lib/auth/cookie';
-import { checkLoginAttempt, clearLoginAttempts, checkIpRate, clientIp } from '@/lib/auth/rate-limit';
+import {
+  checkRate,
+  clearRate,
+  clientIp,
+  LIMIT_LOGIN_PER_IP,
+  LIMIT_LOGIN_PER_USERNAME,
+} from '@/lib/auth/rate-limit';
 
 type SignInResult = { ok: true } | { ok: false; error: string };
 
@@ -18,15 +24,20 @@ export async function signInTenant(formData: FormData): Promise<SignInResult> {
   }
 
   // H-4: per-IP limit across all usernames (credential-stuffing guard), on top
-  // of the per-username window below. IP is Cloudflare-aware (see clientIp).
+  // of the per-username window below. Both windows live in Postgres (0015).
   const reqHeaders = await headers();
   const ip = clientIp(reqHeaders);
-  if (!checkIpRate(`login-ip:${ip}`, 20, 15 * 60 * 1000)) {
+  const ipLimit = await checkRate(`login-ip:${ip}`, LIMIT_LOGIN_PER_IP.max, LIMIT_LOGIN_PER_IP.windowSeconds);
+  if (!ipLimit.allowed) {
     return { ok: false, error: 'محاولات كثيرة من هذا الجهاز — جرّب لاحقاً' };
   }
 
   // Rate limit on the username — PRD §4.5: 5 attempts / 15 min.
-  const limit = checkLoginAttempt(`login:${username.toLowerCase()}`);
+  const limit = await checkRate(
+    `login:${username.toLowerCase()}`,
+    LIMIT_LOGIN_PER_USERNAME.max,
+    LIMIT_LOGIN_PER_USERNAME.windowSeconds,
+  );
   if (!limit.allowed) {
     const min = Math.ceil(limit.retryAfterSeconds / 60);
     return { ok: false, error: `محاولات كثيرة — جرّب بعد ${min} دقيقة` };
@@ -60,7 +71,7 @@ export async function signInTenant(formData: FormData): Promise<SignInResult> {
   const token = await createSession(tenant.id, ua);
   await setSessionCookie(token);
   await sb.from('restaurants').update({ last_login_at: new Date().toISOString() }).eq('id', tenant.id);
-  clearLoginAttempts(`login:${username.toLowerCase()}`);
+  await clearRate(`login:${username.toLowerCase()}`);
 
   redirect('/admin/dashboard');
 }
