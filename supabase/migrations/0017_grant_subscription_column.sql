@@ -1,0 +1,74 @@
+-- 0017 — grant the column 0016 forgot
+-- (2026-08-30, defect introduced by 0016 in this same work).
+--
+-- ── WHAT WENT WRONG ────────────────────────────────────────────────────────
+-- 0013 removed the blanket table-level SELECT grant that anon/authenticated
+-- held on `restaurants` and replaced it with an EXPLICIT LIST of 20 columns —
+-- the only way to actually withhold `username` and `password_hash`, since a
+-- column-level REVOKE cannot override a table-level grant.
+--
+-- That turned "add a column" into a two-part operation. 0016 then added
+-- `restaurants.subscription_ends_at` and did only the first part. The column
+-- landed outside the granted list, so anon cannot read it.
+--
+-- ── WHY NOTHING CAUGHT IT ──────────────────────────────────────────────────
+-- This failure mode is SILENT by construction:
+--
+--   • Every application read of `restaurants` — the diner menu included —
+--     goes through the service-role client, which bypasses column privileges
+--     entirely. So the feature works locally, works in both panels, and works
+--     in every one of the 15 smoke tests.
+--   • It would surface ONLY for the anonymous visitor, ONLY in production,
+--     as `42501 permission denied for column subscription_ends_at`.
+--
+-- It was found by the schema check in docs/verify-fresh-db.sql, not by any
+-- test — which is precisely why that file exists. The hazard was written down
+-- in docs/COMPANY-CONTEXT.md §9.0 hours before 0016 walked into it; the
+-- warning was correct and still not enough. Hence the tightened check below.
+--
+-- ── PRACTICAL IMPACT WHEN WRITTEN ──────────────────────────────────────────
+-- Nothing was broken in production: no anon-key code path reads `restaurants`
+-- today (lib/supabase/client.ts has zero callers). This closes a latent trap,
+-- and stops docs/verify-fresh-db.sql from reporting DEVIATION forever after.
+--
+-- SAFE / ADDITIVE / RE-RUNNABLE. A grant only: no row changes, no object
+-- dropped, no destructive effect of any kind. NOTE: this project has no
+-- automated migration channel — apply manually via the Supabase SQL editor or
+-- `supabase db push`.
+
+GRANT SELECT (subscription_ends_at) ON restaurants TO anon, authenticated;
+
+-- ── Post-apply verification ────────────────────────────────────────────────
+-- 1. THE fix — the new column must be readable, and the two credential
+--    columns must still be denied. Expect exactly:
+--      subscription_ends_at | true  | ✅
+--      password_hash        | false | ✅
+--      username             | false | ✅
+--
+--      SELECT v.col,
+--             has_column_privilege('anon','restaurants',v.col,'SELECT') AS anon_can_read,
+--             CASE
+--               WHEN v.col = 'subscription_ends_at'
+--                 THEN CASE WHEN has_column_privilege('anon','restaurants',v.col,'SELECT')
+--                           THEN '✅ OK' ELSE '❌ 0017 not applied' END
+--               ELSE CASE WHEN has_column_privilege('anon','restaurants',v.col,'SELECT')
+--                         THEN '❌ CREDENTIAL EXPOSED' ELSE '✅ OK' END
+--             END AS verdict
+--        FROM (VALUES ('subscription_ends_at'),('password_hash'),('username')) v(col);
+--
+-- 2. The general invariant, and the query to run after ANY future migration
+--    that touches `restaurants`. Must return ZERO rows — every column except
+--    the two credential ones is readable by anon:
+--
+--      SELECT c.column_name
+--        FROM information_schema.columns c
+--       WHERE c.table_schema = 'public' AND c.table_name = 'restaurants'
+--         AND c.column_name NOT IN ('username','password_hash')
+--         AND NOT has_column_privilege('anon','restaurants',c.column_name,'SELECT');
+--
+--    docs/verify-fresh-db.sql now runs exactly this, instead of spot-checking
+--    a hardcoded handful of columns — a list that could not have caught this
+--    defect because the new column was, by definition, not on it.
+--
+-- 3. Full sweep: re-run the single-row verdict at the end of
+--    docs/verify-fresh-db.sql. It must read ALL GOOD.

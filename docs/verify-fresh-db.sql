@@ -1,7 +1,7 @@
 -- ════════════════════════════════════════════════════════════════════════════
 -- verify-fresh-db.sql — تحقّق قراءة-فقط من قاعدة BIZIII Menu
 -- ════════════════════════════════════════════════════════════════════════════
--- كل ما في هذا الملف مستخرَج حرفياً من supabase/migrations/0001 … 0016.
+-- كل ما في هذا الملف مستخرَج حرفياً من supabase/migrations/0001 … 0017.
 -- لا يعدّل ولا ينشئ ولا يحذف أي شيء — SELECT فقط (عدا القسم 11 الاختياري الذي
 -- يستخدم معاملة تنتهي بـ ROLLBACK).
 --
@@ -9,7 +9,7 @@
 -- كل استعلام يُرجع عمود verdict: '✅ OK' أو '❌ ...'.
 -- القسم 10 يعطي سطراً واحداً نهائياً.
 --
--- التوقّع على قاعدة جديدة طُبِّقت عليها 0001→0016 من الصفر:
+-- التوقّع على قاعدة جديدة طُبِّقت عليها 0001→0017 من الصفر:
 --   8 جداول · 76 عموداً · 12 سياسة RLS · 17 فهرساً · 5 دوال · triggerان · صفر صفوف.
 -- ════════════════════════════════════════════════════════════════════════════
 
@@ -53,16 +53,22 @@ ORDER BY t.tbl, t.col, t.role_name;
 
 
 -- الوجه الآخر لـ0013: التقييد يجب ألّا يكسر قراءة الزبون.
--- المتوقّع: صفّ واحد ✅. لو ظهر ❌ فقائمة الأعمدة في 0013 ناقصة — وهذا ما يحدث
--- إذا أضافت هجرةٌ لاحقةٌ عموداً لـrestaurants بلا GRANT مصاحب.
+--
+-- ⚠️ هذا الفحص كان يفحص خمسة أعمدة مسمّاة، فلم يمسك العمود الذي أضافته 0016
+-- بلا GRANT (`subscription_ends_at`) — لأن العمود الجديد، بحكم التعريف، ليس على
+-- أي قائمة ثابتة. صار الآن **شاملاً ذاتياً**: يمرّ على كل أعمدة `restaurants`
+-- ويستثني العمودين الاعتماديين وحدهما، فأي عمود مستقبلي بلا GRANT يظهر تلقائياً.
+--
+-- المتوقّع: صفّ واحد، `blocked_columns` = '—' والحكم ✅.
 SELECT
-  'أعمدة الزبون ما زالت مقروءة لـanon' AS check_name,
-  CASE WHEN has_column_privilege('anon','restaurants','slug','SELECT')
-        AND has_column_privilege('anon','restaurants','display_name','SELECT')
-        AND has_column_privilege('anon','restaurants','active_mode','SELECT')
-        AND has_column_privilege('anon','restaurants','logo_url','SELECT')
-        AND has_column_privilege('anon','restaurants','deleted_at','SELECT')
-       THEN '✅ OK' ELSE '❌ BROKEN — قائمة GRANT في 0013 ناقصة' END AS verdict;
+  'كل عمود غير اعتمادي مقروء لـanon' AS check_name,
+  COALESCE(string_agg(c.column_name, ', ' ORDER BY c.column_name), '—') AS blocked_columns,
+  CASE WHEN count(*) = 0 THEN '✅ OK'
+       ELSE '❌ BROKEN — عمود بلا GRANT؛ أضِف GRANT SELECT (col) في هجرته' END AS verdict
+FROM information_schema.columns c
+WHERE c.table_schema = 'public' AND c.table_name = 'restaurants'
+  AND c.column_name NOT IN ('username', 'password_hash')
+  AND NOT has_column_privilege('anon', 'restaurants', c.column_name, 'SELECT');
 
 
 -- تشخيص مساعد: هل توجد منحة SELECT على مستوى الجدول؟ إن ظهر anon/authenticated
@@ -179,7 +185,7 @@ ORDER BY tablename, policyname;
 -- ════════════════════════════════════════════════════════════════════════════
 -- القسم 4 — البنية: الجداول
 -- ════════════════════════════════════════════════════════════════════════════
--- 8 جداول. لا هجرة من 0001→0016 تحذف أي جدول.
+-- 8 جداول. لا هجرة من 0001→0017 تحذف أي جدول.
 -- المتوقّع: 7 صفوف ✅، ولا جدول زائد.
 
 SELECT
@@ -736,10 +742,14 @@ uniq_old_gone AS (
      AND conname='complementary_categories_category_id_complement_id_key'
 ),
 ext_ok AS (SELECT count(*) AS n FROM pg_extension WHERE extname='pgcrypto'),
-diner_ok AS (SELECT CASE WHEN has_column_privilege('anon','restaurants','slug','SELECT')
-                          AND has_column_privilege('anon','restaurants','display_name','SELECT')
-                          AND has_column_privilege('anon','restaurants','active_mode','SELECT')
-                         THEN 1 ELSE 0 END AS n),
+-- شامل ذاتياً: صفر عمود محجوب خارج العمودين الاعتماديين (انظر 0017).
+diner_ok AS (
+  SELECT CASE WHEN count(*) = 0 THEN 1 ELSE 0 END AS n
+    FROM information_schema.columns c
+   WHERE c.table_schema = 'public' AND c.table_name = 'restaurants'
+     AND c.column_name NOT IN ('username','password_hash')
+     AND NOT has_column_privilege('anon','restaurants',c.column_name,'SELECT')
+),
 creds_exposed AS (
   SELECT count(*) AS n FROM (VALUES
     ('anon','restaurants','password_hash'),('anon','restaurants','username'),
@@ -772,7 +782,7 @@ SELECT
         AND mode_ok.n = 1 AND uniq_ok.n = 1 AND uniq_old_gone.n = 0 AND ext_ok.n = 1
         AND diner_ok.n = 1
        THEN CASE WHEN creds_exposed.n = 0
-                 THEN '✅ كل شيء سليم — البنية مطابقة 0001→0016 والاعتمادات محجوبة'
+                 THEN '✅ كل شيء سليم — البنية مطابقة 0001→0017 والاعتمادات محجوبة'
                  ELSE '⚠️ البنية سليمة لكن ' || creds_exposed.n ||
                       ' عمود اعتماد ما زال مقروءاً — راجع القسم 1' END
        ELSE '❌ يوجد انحراف — راجع الأقسام 1-9 لتحديد موضعه' END AS overall
