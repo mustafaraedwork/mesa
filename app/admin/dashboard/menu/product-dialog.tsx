@@ -112,18 +112,6 @@ export function ProductDialog(props: Props) {
                 required
               />
             </Field>
-            <Field label="هامش الربح %">
-              <Input
-                name="profit_percentage"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                dir="ltr"
-                className="text-left font-mono"
-                defaultValue={initial?.profit_percentage ?? 0}
-              />
-            </Field>
             <Field label="وقت التحضير (د)">
               <Input
                 name="prep_time_minutes"

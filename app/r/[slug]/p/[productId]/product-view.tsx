@@ -1,15 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Clock, Minus, Plus } from 'lucide-react';
-import { getCart, setQuantity, subscribe, totalQuantity } from '@/lib/cart';
+import { addToCart, getCart, setQuantity, subscribe, totalQuantity } from '@/lib/cart';
 import { isRtl, parseLang, resolveName, t, type Lang } from '@/lib/i18n';
 import { readableTextOn } from '@/lib/contrast';
 import { track } from '@/lib/track';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
-import { FloatingCart } from '../../menu-view';
-import { DiscountBadge, MenuImage, OfflineBanner, PriceTag, formatAmount, nameLangProps, useSyncHtmlLang } from '../../_ui';
+import { FloatingCart, markMenuOpened } from '../../menu-view';
+import { DiscountBadge, MenuImage, OfflineBanner, PriceTag, SuggestionCard, formatAmount, nameLangProps, useSyncHtmlLang } from '../../_ui';
 
 const LANG_KEY = 'mesa-lang';
 
@@ -17,10 +18,13 @@ export function ProductView({
   slug,
   product,
   restaurant,
+  suggestions,
 }: {
   slug: string;
   product: MenuProduct;
   restaurant: MenuPayload['restaurant'];
+  /** Owner-configured pairings for this item, resolved on the server. */
+  suggestions: MenuProduct[];
 }) {
   const [lang, setLang] = useState<Lang>('ar');
   const [cartCount, setCartCount] = useState(0);
@@ -29,12 +33,15 @@ export function ProductView({
 
   useSyncHtmlLang(lang);
 
-  // Step back through history so the diner returns to wherever they came from
-  // (menu scroll position, chosen category) instead of a fresh menu load.
-  // Fall back to the menu for deep-linked entries with no in-app history.
-  function goBack() {
-    if (window.history.length > 1) router.back();
-    else router.push(`/r/${slug}`);
+  // Always land on the menu itself. Stepping back through browser history was
+  // unreliable — `history.length` counts entries we don't own, so a shared
+  // product link or a refresh either left the site or went nowhere; and when it
+  // did reach the menu on a runtime that never rendered it, the diner got the
+  // welcome screen instead of the food. markMenuOpened() closes that second
+  // hole: from a product page the diner is already past the entry screen.
+  function goToMenu() {
+    markMenuOpened();
+    router.push(`/r/${slug}`);
   }
 
   // M4: add the chosen quantity (on top of whatever is already in the cart).
@@ -89,23 +96,36 @@ export function ProductView({
         {t('skip_to_content', lang)}
       </a>
       <OfflineBanner lang={lang} />
+      {/* Three tracks — back / name / spacer — so the venue name sits centred
+          between equal gutters. The side tracks keep their auto minimum, so a
+          long name or a narrow screen nudges the centre instead of letting the
+          two controls overlap. */}
       <header
-        className="shadow-card sticky top-0 z-20 flex items-center gap-2 px-gutter py-3"
+        className="shadow-card sticky top-0 z-20 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-gutter py-3"
         style={{ background: restaurant.primary_color, color: 'var(--primary-foreground)' }}
       >
         <button
           type="button"
-          onClick={goBack}
-          className="-ms-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-medium hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+          onClick={goToMenu}
+          className="-ms-2 inline-flex min-h-11 items-center gap-1.5 justify-self-start rounded-full px-2 text-sm font-medium hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
         >
           <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" aria-hidden />
           {t('back_to_menu', lang)}
         </button>
-        {/* M17: venue name is a back-nav label, not the page's primary heading. */}
-        <p className="flex-1 truncate text-base font-semibold">
+        {/* M17: venue name is a back-nav label, not the page's primary heading —
+            so it stays a link, never an <h1>. The max-w caps the auto-sized
+            middle track so `truncate` has a width to bite on: without it a long
+            venue name grows to max-content and collides with the back button. */}
+        <Link
+          href={`/r/${slug}`}
+          prefetch
+          onClick={markMenuOpened}
+          className="min-w-0 max-w-[50vw] justify-self-center truncate rounded-lg px-2 py-1 text-base font-semibold hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+        >
           {/* L14: isolate the venue name so a Latin name never transposes the RTL chrome around it. */}
           <bdi>{restaurant.display_name}</bdi>
-        </p>
+        </Link>
+        <span aria-hidden />
       </header>
 
       <div id="product-content" className="mx-auto max-w-2xl px-gutter py-5">
@@ -193,6 +213,28 @@ export function ProductView({
             </button>
           </div>
         </div>
+
+        {/* The owner's pairings for this dish, shown before ordering rather than
+            only at checkout — pick مشاوي and the مقبلات they linked show here. */}
+        {suggestions.length > 0 && (
+          <section className="mt-6 space-y-2">
+            <h2 className="text-sm font-semibold" style={{ color: restaurant.primary_color }}>
+              {t('suggestions', lang)}
+            </h2>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {suggestions.map((p) => (
+                <SuggestionCard
+                  key={p.id}
+                  product={p}
+                  lang={lang}
+                  card={restaurant.card_color}
+                  currency={restaurant.currency}
+                  onAdd={() => addToCart(slug, p.id)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       <FloatingCart slug={slug} count={cartCount} primary={restaurant.primary_color} lang={lang} />

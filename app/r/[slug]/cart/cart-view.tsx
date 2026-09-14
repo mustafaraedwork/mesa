@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Megaphone, Minus, Plus, ShoppingBag, Star, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Megaphone, Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
 import {
   addToCart,
   clearCart,
@@ -15,11 +15,11 @@ import { isRtl, parseLang, resolveName, t, type Lang } from '@/lib/i18n';
 import { readableTextOn } from '@/lib/contrast';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import type { MenuPayload, MenuProduct } from '@/lib/menu';
+import { pickSuggestions } from '@/lib/suggestions';
 import { formatPrice } from '../menu-view';
-import { DiscountBadge, MenuImage, OfflineBanner, PriceTag, formatAmount, nameLangProps, useReturnFocus, useSyncHtmlLang } from '../_ui';
+import { MenuImage, OfflineBanner, PriceTag, SuggestionCard, formatAmount, nameLangProps, useReturnFocus, useSyncHtmlLang } from '../_ui';
 
 const LANG_KEY = 'mesa-lang';
-const SUGGESTION_COUNT = 4;
 
 type Resolved = { product: MenuProduct; quantity: number; lineTotal: number };
 
@@ -118,51 +118,13 @@ export function CartView({
   const dir = isRtl(lang) ? 'rtl' : 'ltr';
   const r = data.restaurant;
 
-  // Suggestions algorithm — PRD §3.2. Precedence: (1) manual suggestions for
-  // custom-typed cart items, (2) items from complementary categories,
-  // (3) random fill from categories not represented in the cart.
-  const suggestions = useMemo(() => {
-    const cartIds = new Set(resolved.map((x) => x.product.id));
-    const cartCategoryIds = new Set(resolved.map((x) => x.product.category_id));
-
-    const picked: MenuProduct[] = [];
-    const pickedIds = new Set<string>();
-    const tryAdd = (p: MenuProduct | undefined) => {
-      if (picked.length >= SUGGESTION_COUNT) return;
-      if (!p || pickedIds.has(p.id) || cartIds.has(p.id) || !p.is_available) return;
-      picked.push(p);
-      pickedIds.add(p.id);
-    };
-
-    // Step 1 — manual suggestions for custom-typed items in the cart.
-    for (const { product } of resolved) {
-      if (product.suggestions_type !== 'custom') continue;
-      for (const id of product.custom_suggestion_ids ?? []) tryAdd(productIndex.get(id));
-    }
-
-    // Step 2 — items from categories complementary to the cart's categories.
-    const complementIds = new Set<string>();
-    for (const cat of data.categories) {
-      if (cartCategoryIds.has(cat.id)) {
-        for (const cid of cat.complement_ids) complementIds.add(cid);
-      }
-    }
-    for (const cat of data.categories) {
-      if (cat.id === CLOSING_VIRTUAL_CATEGORY_ID) continue;
-      if (!complementIds.has(cat.id)) continue;
-      for (const p of cat.products) tryAdd(p);
-    }
-
-    // Step 3 — random fill from categories not represented in the cart.
-    // The menu is already sorted per active mode (Q4) — preserve that order.
-    for (const cat of data.categories) {
-      if (cat.id === CLOSING_VIRTUAL_CATEGORY_ID) continue;
-      if (cartCategoryIds.has(cat.id)) continue;
-      for (const p of cat.products) tryAdd(p);
-    }
-
-    return picked.slice(0, SUGGESTION_COUNT);
-  }, [data.categories, resolved, productIndex]);
+  // Suggestions — PRD §3.2, seeded with everything currently in the basket.
+  // Shared with the product page (which seeds it with the one item on screen)
+  // so both surfaces show the same pairings from the same rules.
+  const suggestions = useMemo(
+    () => pickSuggestions(data.categories, resolved.map((x) => x.product)),
+    [data.categories, resolved],
+  );
 
   const brand: CSSProperties = {
     ['--primary' as string]: r.primary_color,
@@ -384,59 +346,6 @@ function CartRow({
         </div>
       </div>
     </li>
-  );
-}
-
-function SuggestionCard({
-  product,
-  lang,
-  card,
-  currency,
-  onAdd,
-}: {
-  product: MenuProduct;
-  lang: Lang;
-  card: string;
-  currency: string;
-  onAdd: () => void;
-}) {
-  const resolved = resolveName(product, lang);
-  const name = resolved.text;
-  // M5: surface the discount on offer items + a chef marker, so a suggestion
-  // carries a reason to tap rather than just a name + price.
-  const hasDiscount = product.discount_percent !== null && product.original_price !== null;
-  return (
-    <button
-      type="button"
-      onClick={onAdd}
-      className="border-border-lite shadow-card hover:shadow-lifted flex flex-col items-stretch overflow-hidden rounded-2xl border text-start transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
-      style={{ background: card }}
-    >
-      <div className="relative">
-        <MenuImage
-          src={product.image_url}
-          alt={name}
-          sizes="(max-width: 640px) 50vw, 160px"
-          className="aspect-square w-full"
-        />
-        {hasDiscount && <DiscountBadge percent={product.discount_percent!} lang={lang} />}
-        {!hasDiscount && product.is_chef_pick && (
-          <span className="bg-accent/90 text-accent-foreground shadow-subtle absolute start-2 top-2 flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold">
-            <Star className="size-2.5" aria-hidden />
-            {t('chef_pick', lang)}
-          </span>
-        )}
-      </div>
-      <div className="space-y-1 p-2">
-        <div className="line-clamp-2 text-caption font-medium" {...nameLangProps(resolved.lang)}>{name}</div>
-        <PriceTag
-          price={formatAmount(product.price)}
-          original={hasDiscount ? formatAmount(product.original_price!) : null}
-          currency={currency}
-          lang={lang}
-        />
-      </div>
-    </button>
   );
 }
 

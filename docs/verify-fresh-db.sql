@@ -240,6 +240,8 @@ WITH expected(tbl, col, typ, req_notnull, has_default) AS (VALUES
   ('restaurants','active_mode','text',false,true),
   ('restaurants','closing_mode_ends_at','timestamp with time zone',false,false),
   ('restaurants','closing_mode_discount','integer',false,false),
+  -- ── restaurants (0018) ──
+  ('restaurants','closing_discount_mode','text',true,true),
   ('restaurants','created_at','timestamp with time zone',false,true),
   ('restaurants','last_login_at','timestamp with time zone',false,false),
   -- ── restaurants (0007) ──
@@ -275,6 +277,8 @@ WITH expected(tbl, col, typ, req_notnull, has_default) AS (VALUES
   ('products','is_available','boolean',false,true),
   ('products','display_order','integer',false,true),
   ('products','is_in_closing_mode','boolean',false,true),
+  -- ── products (0018) ──
+  ('products','closing_discount_percent','integer',false,false),
   ('products','suggestions_type','text',false,true),
   ('products','custom_suggestion_ids','ARRAY',false,false),
   ('products','created_at','timestamp with time zone',false,true),
@@ -331,14 +335,14 @@ ORDER BY e.tbl, e.col;
 
 
 -- عدّاد سريع للأعمدة لكل جدول (بديل بصري للجدول أعلاه).
--- المتوقّع بالضبط: 8 / 4 / 5 / 11 / 17 / 22 / 5
+-- المتوقّع بالضبط: 8 / 4 / 5 / 11 / 18 / 24 / 5
 SELECT
   table_name,
   count(*) AS actual_columns,
   CASE table_name
-    WHEN 'restaurants'              THEN CASE WHEN count(*) = 23 THEN '✅ OK' ELSE '❌ متوقّع 23' END
+    WHEN 'restaurants'              THEN CASE WHEN count(*) = 24 THEN '✅ OK' ELSE '❌ متوقّع 24' END
     WHEN 'categories'               THEN CASE WHEN count(*) =  8 THEN '✅ OK' ELSE '❌ متوقّع 8'  END
-    WHEN 'products'                 THEN CASE WHEN count(*) = 17 THEN '✅ OK' ELSE '❌ متوقّع 17' END
+    WHEN 'products'                 THEN CASE WHEN count(*) = 18 THEN '✅ OK' ELSE '❌ متوقّع 18' END
     WHEN 'complementary_categories' THEN CASE WHEN count(*) =  4 THEN '✅ OK' ELSE '❌ متوقّع 4'  END
     WHEN 'tenant_sessions'          THEN CASE WHEN count(*) =  5 THEN '✅ OK' ELSE '❌ متوقّع 5'  END
     WHEN 'events'                   THEN CASE WHEN count(*) =  5 THEN '✅ OK' ELSE '❌ متوقّع 5'  END

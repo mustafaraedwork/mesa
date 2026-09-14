@@ -84,7 +84,10 @@ export function WelcomeScreen({
   return (
     <main
       dir={isRtl(lang) ? 'rtl' : 'ltr'}
-      className="relative flex min-h-screen flex-col overflow-hidden px-6 py-6"
+      // svh, not vh: on mobile `100vh` is the toolbar-hidden height, so the
+      // bottom CTA sat below the fold until the diner scrolled. `100svh` is the
+      // height actually visible on arrival, which keeps "افتح المنيو" reachable.
+      className="relative flex min-h-svh flex-col overflow-hidden px-6 py-6"
       style={{ background: restaurant.background_color }}
     >
       {/* M6: soft brand-tinted atmosphere so the entry doesn't read as a blank void */}

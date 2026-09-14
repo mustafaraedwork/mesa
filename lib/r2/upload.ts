@@ -72,7 +72,12 @@ export async function uploadProductImage(
   const buffer = await sharp(input, { limitInputPixels: 100_000_000 })
     .rotate()
     .resize(800, 800, { fit: 'cover', position: 'center' })
-    .webp({ quality: 80 })
+    // q72 + effort 6 measured ~25% smaller than q80/effort 4 across a sample of
+    // real menu photos, with no visible difference at the sizes the diner sees.
+    // 800px stays: the product page renders the image near full-width, so a
+    // smaller source would show on a high-DPR phone. Encoding is slower, which
+    // only costs the owner once per upload — never the diner.
+    .webp({ quality: 72, effort: 6 })
     .toBuffer();
 
   const key = `${keyPrefix.replace(/\/$/, '')}/${randomUUID()}.webp`;

@@ -12,7 +12,17 @@ type SetModeInput =
   | { mode: 'normal' | 'off' }
   | {
       mode: 'closing';
-      closing: { product_ids: string[]; discount: Discount; duration_hours: number };
+      closing: {
+        product_ids: string[];
+        /** The general percentage — also the fallback for any product without
+         *  its own override, so it stays required in both discount modes. */
+        discount: Discount;
+        duration_hours: number;
+        /** 'general' = one percentage for everything (default). 'specific' =
+         *  `per_product` carries a percentage for each selected product. */
+        discount_mode?: 'general' | 'specific';
+        per_product?: Record<string, Discount>;
+      };
     };
 
 type SetModeResult =
@@ -35,9 +45,14 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
   let endsAt: string | null = null;
   let discount: Discount | null = null;
   let closingProductIds: string[] = [];
+  let closingDiscountMode: 'general' | 'specific' = 'general';
+  // product id → its own percentage; empty in general mode.
+  let closingPerProduct: Record<string, Discount> = {};
 
   if (input.mode === 'closing') {
     const { product_ids, discount: d, duration_hours } = input.closing;
+    const discountMode = input.closing.discount_mode === 'specific' ? 'specific' : 'general';
+    const perProduct = input.closing.per_product ?? {};
 
     if (!Array.isArray(product_ids) || product_ids.length === 0) {
       return { ok: false, error: 'اختر منتجاً واحداً على الأقل' };
@@ -47,6 +62,20 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
     }
     if (!Number.isInteger(duration_hours) || duration_hours < 1 || duration_hours > 24) {
       return { ok: false, error: 'المدة يجب أن تكون بين ١ و ٢٤ ساعة' };
+    }
+    // Every per-product percentage must be a real tier, and must belong to a
+    // product that is actually in the selection — otherwise a malformed payload
+    // could write a discount onto an item the owner never picked.
+    if (discountMode === 'specific') {
+      const selected = new Set(product_ids);
+      for (const [pid, pct] of Object.entries(perProduct)) {
+        if (!selected.has(pid)) {
+          return { ok: false, error: 'خصم لمنتج غير مختار' };
+        }
+        if (!DISCOUNTS.includes(pct as Discount)) {
+          return { ok: false, error: 'الخصم يجب أن يكون 5 أو 10 أو 20' };
+        }
+      }
     }
 
     // Fetch the products in one go and verify ownership.
@@ -66,7 +95,14 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
 
     // Reject products whose discounted price would round to 0. (currency comes
     // from requireTenant() — Q-22, no extra round-trip.)
-    const offending = prods.filter((p) => applyDiscount(Number(p.price), d as Discount, currency) <= 0);
+    // Effective percentage per product — the override when set, else the
+    // general one. Checked individually so a steep per-item discount can't
+    // round a cheap product down to zero.
+    const pctFor = (id: string): Discount =>
+      discountMode === 'specific' ? (perProduct[id] ?? (d as Discount)) : (d as Discount);
+    const offending = prods.filter(
+      (p) => applyDiscount(Number(p.price), pctFor(p.id), currency) <= 0,
+    );
     if (offending.length > 0) {
       const names = offending.map((p) => p.name_ar).join('، ');
       return {
@@ -84,6 +120,8 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
 
     discount = d as Discount;
     closingProductIds = product_ids;
+    closingDiscountMode = discountMode;
+    closingPerProduct = discountMode === 'specific' ? (perProduct as Record<string, Discount>) : {};
     // Server-computes `ends_at` per Q12 (`NOW() + INTERVAL`). Retry on
     // transient failure could extend by a few seconds — accepted MVP risk.
     endsAt = new Date(Date.now() + duration_hours * MS_PER_HOUR).toISOString();
@@ -97,6 +135,7 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
       active_mode: input.mode,
       closing_mode_ends_at: endsAt,
       closing_mode_discount: discount,
+      closing_discount_mode: closingDiscountMode,
     })
     .eq('id', restaurantId);
   if (clearRestErr) return { ok: false, error: 'فشل تحديث وضع الحساب' };
@@ -105,19 +144,41 @@ export async function setMode(input: SetModeInput): Promise<SetModeResult> {
   // closing, we wipe first then set the new selection — matches Q6 contract.
   const { error: clearProdErr } = await sb
     .from('products')
-    .update({ is_in_closing_mode: false })
+    .update({ is_in_closing_mode: false, closing_discount_percent: null })
     .eq('restaurant_id', restaurantId)
     .eq('is_in_closing_mode', true);
   if (clearProdErr) return { ok: false, error: 'فشل تحديث المنتجات' };
 
   // Step 3: if closing, apply the new selection.
   if (input.mode === 'closing') {
-    const { error: setProdErr } = await sb
-      .from('products')
-      .update({ is_in_closing_mode: true })
-      .in('id', closingProductIds)
-      .eq('restaurant_id', restaurantId);
-    if (setProdErr) return { ok: false, error: 'فشل تطبيق وضع الإغلاق على المنتجات' };
+    if (closingDiscountMode === 'general') {
+      const { error: setProdErr } = await sb
+        .from('products')
+        .update({ is_in_closing_mode: true, closing_discount_percent: null })
+        .in('id', closingProductIds)
+        .eq('restaurant_id', restaurantId);
+      if (setProdErr) return { ok: false, error: 'فشل تطبيق وضع الإغلاق على المنتجات' };
+    } else {
+      // Group by percentage instead of writing per product: there are only
+      // three tiers, so this is at most 3 round-trips no matter how many items
+      // the owner selected. Anything without an explicit override falls back to
+      // the general percentage, stored as NULL.
+      const byPct = new Map<Discount | null, string[]>();
+      for (const id of closingProductIds) {
+        const pct = closingPerProduct[id] ?? null;
+        const arr = byPct.get(pct) ?? [];
+        arr.push(id);
+        byPct.set(pct, arr);
+      }
+      for (const [pct, ids] of byPct) {
+        const { error: setProdErr } = await sb
+          .from('products')
+          .update({ is_in_closing_mode: true, closing_discount_percent: pct })
+          .in('id', ids)
+          .eq('restaurant_id', restaurantId);
+        if (setProdErr) return { ok: false, error: 'فشل تطبيق وضع الإغلاق على المنتجات' };
+      }
+    }
   }
 
   revalidatePath(MODES_PATH);

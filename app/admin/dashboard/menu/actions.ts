@@ -185,15 +185,11 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
   const name_en = String(formData.get('name_en') ?? '').trim() || null;
   const name_ku = String(formData.get('name_ku') ?? '').trim() || null;
   const price = Number(formData.get('price'));
-  const profit_percentage = Number(formData.get('profit_percentage') ?? 0);
   const prep_time_minutes = Number(formData.get('prep_time_minutes') ?? 5);
   const image = formData.get('image');
 
   if (!name_ar) return { ok: false, error: 'الاسم بالعربي مطلوب' };
   if (!Number.isFinite(price) || price < 0) return { ok: false, error: 'السعر غير صالح' };
-  if (!Number.isFinite(profit_percentage) || profit_percentage < 0 || profit_percentage > 100) {
-    return { ok: false, error: 'هامش الربح يجب أن يكون بين 0 و 100' };
-  }
   if (!Number.isFinite(prep_time_minutes) || prep_time_minutes < 1 || prep_time_minutes > 240) {
     return { ok: false, error: 'وقت التحضير يجب أن يكون بين ١ و ٢٤٠ دقيقة' };
   }
@@ -242,7 +238,6 @@ export async function createProduct(formData: FormData): Promise<CreateProductRe
       name_en,
       name_ku,
       price,
-      profit_percentage,
       prep_time_minutes,
       image_url,
       display_order: next_order,
@@ -269,7 +264,6 @@ export async function updateProduct(formData: FormData): Promise<Result> {
   const name_en = String(formData.get('name_en') ?? '').trim() || null;
   const name_ku = String(formData.get('name_ku') ?? '').trim() || null;
   const price = Number(formData.get('price'));
-  const profit_percentage = Number(formData.get('profit_percentage') ?? 0);
   const prep_time_minutes = Number(formData.get('prep_time_minutes') ?? 5);
   const image = formData.get('image');
   const removeImage = formData.get('remove_image') === 'true';
@@ -289,7 +283,7 @@ export async function updateProduct(formData: FormData): Promise<Result> {
   if (!sug.ok) return sug;
 
   const update: Record<string, unknown> = {
-    name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes,
+    name_ar, name_en, name_ku, price, prep_time_minutes,
     suggestions_type: sug.suggestions_type,
     custom_suggestion_ids: sug.custom_suggestion_ids,
   };
