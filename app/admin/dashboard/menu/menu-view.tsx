@@ -42,7 +42,6 @@ export type Product = {
   name_en: string | null;
   name_ku: string | null;
   price: number;
-  profit_percentage: number;
   prep_time_minutes: number;
   image_url: string | null;
   is_available: boolean | null;
@@ -469,7 +468,7 @@ function ProductRow({
         </p>
         <p className="text-muted-foreground text-caption" dir="ltr">
           <span className="font-mono tabular-nums">{product.price.toLocaleString('en-US')}</span> ·{' '}
-          {product.prep_time_minutes}د · ربح {product.profit_percentage}٪
+          {product.prep_time_minutes}د
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">

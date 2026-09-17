@@ -34,6 +34,7 @@ export type CategoryGroup = {
     price: number;
     is_available: boolean;
     is_in_closing_mode: boolean;
+    closing_discount_percent: Discount | null;
     is_chef_pick: boolean;
   }[];
 };
@@ -42,6 +43,7 @@ type LiveState = {
   active_mode: Mode;
   closing_mode_ends_at: string | null;
   closing_mode_discount: Discount | null;
+  closing_discount_mode: 'general' | 'specific';
   server_now: string;
 };
 
@@ -353,6 +355,17 @@ export function ModesView({
               : []
           }
           initialDiscount={state.closing_mode_discount ?? 10}
+          initialDiscountMode={isClosing ? state.closing_discount_mode : 'general'}
+          initialPerProduct={
+            isClosing
+              ? Object.fromEntries(
+                  categoryGroups
+                    .flatMap((g) => g.products)
+                    .filter((p) => p.is_in_closing_mode && p.closing_discount_percent !== null)
+                    .map((p) => [p.id, p.closing_discount_percent as Discount]),
+                )
+              : {}
+          }
           onClose={() => setClosingOpen(false)}
           onResult={(r) => {
             setClosingOpen(false);

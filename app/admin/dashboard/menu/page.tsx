@@ -23,7 +23,7 @@ async function loadMenuData(restaurantId: string): Promise<{
       .order('display_order', { ascending: true }),
     sb
       .from('products')
-      .select('id, category_id, name_ar, name_en, name_ku, price, profit_percentage, prep_time_minutes, image_url, is_available, display_order, suggestions_type, custom_suggestion_ids')
+      .select('id, category_id, name_ar, name_en, name_ku, price, prep_time_minutes, image_url, is_available, display_order, suggestions_type, custom_suggestion_ids')
       .eq('restaurant_id', restaurantId)
       .order('display_order', { ascending: true }),
     sb

@@ -44,6 +44,7 @@ type ProductRow = {
   image_url: string | null;
   is_available: boolean | null;
   is_in_closing_mode: boolean | null;
+  closing_discount_percent: number | null;
   is_chef_pick: boolean | null;
   display_order: number;
   suggestions_type: string | null;
@@ -187,7 +188,7 @@ export async function loadMenuResult(slug: string): Promise<MenuResult> {
     sb
       .from('products')
       .select(
-        'id, category_id, name_ar, name_en, name_ku, price, prep_time_minutes, image_url, is_available, is_in_closing_mode, is_chef_pick, display_order, suggestions_type, custom_suggestion_ids',
+        'id, category_id, name_ar, name_en, name_ku, price, prep_time_minutes, image_url, is_available, is_in_closing_mode, closing_discount_percent, is_chef_pick, display_order, suggestions_type, custom_suggestion_ids',
       )
       .eq('restaurant_id', rest.id)
       .order('display_order', { ascending: true }),
@@ -233,12 +234,22 @@ export async function loadMenuResult(slug: string): Promise<MenuResult> {
     let discount_percent: number | null = null;
 
     const inClosing = (r.is_in_closing_mode ?? false) === true;
-    if (isClosing && inClosing && discount !== null) {
-      const discounted = applyDiscount(originalPrice, discount, rest.currency);
-      if (discounted < originalPrice) {
-        price = discounted;
-        original_price = originalPrice;
-        discount_percent = discount;
+    if (isClosing && inClosing) {
+      // A per-product override wins over the restaurant-wide percentage; NULL
+      // means "use the general one". Same Q-13 tier guard on both, so a stray
+      // DB value can never surface as a discount the tenant never configured.
+      const own = r.closing_discount_percent;
+      const effective: Discount | null =
+        own !== null && (DISCOUNTS as readonly number[]).includes(own)
+          ? (own as Discount)
+          : discount;
+      if (effective !== null) {
+        const discounted = applyDiscount(originalPrice, effective, rest.currency);
+        if (discounted < originalPrice) {
+          price = discounted;
+          original_price = originalPrice;
+          discount_percent = effective;
+        }
       }
     }
 

@@ -108,6 +108,7 @@ const STRINGS = {
     chef_pick: 'اختيار الشيف',
     pieces: 'قطعة',
     quantity: 'الكمية',
+    all_items: 'الكل',
   },
   en: {
     cart_button: 'My order',
@@ -153,6 +154,7 @@ const STRINGS = {
     chef_pick: "Chef's pick",
     pieces: 'pcs',
     quantity: 'Quantity',
+    all_items: 'All',
   },
   ku: {
     cart_button: 'فەرمایشم',
@@ -198,6 +200,7 @@ const STRINGS = {
     chef_pick: 'هەڵبژاردنی شێف',
     pieces: 'دانە',
     quantity: 'بڕ',
+    all_items: 'هەموو',
   },
 } as const;
 

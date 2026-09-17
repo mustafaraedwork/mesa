@@ -76,6 +76,15 @@ const nextConfig: NextConfig = {
   // is kept as a future exit route — if it is ever used again, this line must
   // come back with it.
 
+  // P0 fix 4: product/logo uploads travel inside a Server Action body. The
+  // default cap is 1 MB (next/dist/server/app-render/action-handler.js), which
+  // rejected every ordinary phone photo with a bare 500. 4 MB leaves headroom
+  // under Vercel's hard 4.5 MB function-body limit; the client downscales
+  // first (lib/image-client.ts) and the server still re-encodes with sharp.
+  experimental: {
+    serverActions: { bodySizeLimit: '4mb' },
+  },
+
   images: {
     remotePatterns: r2RemotePatterns(),
     // Diner thumbnails are small; cap device sizes so the optimizer doesn't

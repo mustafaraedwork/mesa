@@ -1,7 +1,7 @@
 -- ════════════════════════════════════════════════════════════════════════════
 -- verify-fresh-db.sql — تحقّق قراءة-فقط من قاعدة BIZIII Menu
 -- ════════════════════════════════════════════════════════════════════════════
--- كل ما في هذا الملف مستخرَج حرفياً من supabase/migrations/0001 … 0017.
+-- كل ما في هذا الملف مستخرَج حرفياً من supabase/migrations/0001 … 0019.
 -- لا يعدّل ولا ينشئ ولا يحذف أي شيء — SELECT فقط (عدا القسم 11 الاختياري الذي
 -- يستخدم معاملة تنتهي بـ ROLLBACK).
 --
@@ -9,8 +9,9 @@
 -- كل استعلام يُرجع عمود verdict: '✅ OK' أو '❌ ...'.
 -- القسم 10 يعطي سطراً واحداً نهائياً.
 --
--- التوقّع على قاعدة جديدة طُبِّقت عليها 0001→0017 من الصفر:
---   8 جداول · 76 عموداً · 12 سياسة RLS · 17 فهرساً · 5 دوال · triggerان · صفر صفوف.
+-- التوقّع على قاعدة جديدة طُبِّقت عليها 0001→0019 من الصفر:
+--   8 جداول · 76 عموداً · 12 سياسة RLS · 18 فهرساً · 6 دوال · triggerان · صفر صفوف.
+--   (0019 أضافت tenant_analytics() وفهرس idx_events_product.)
 -- ════════════════════════════════════════════════════════════════════════════
 
 
@@ -240,6 +241,8 @@ WITH expected(tbl, col, typ, req_notnull, has_default) AS (VALUES
   ('restaurants','active_mode','text',false,true),
   ('restaurants','closing_mode_ends_at','timestamp with time zone',false,false),
   ('restaurants','closing_mode_discount','integer',false,false),
+  -- ── restaurants (0018) ──
+  ('restaurants','closing_discount_mode','text',true,true),
   ('restaurants','created_at','timestamp with time zone',false,true),
   ('restaurants','last_login_at','timestamp with time zone',false,false),
   -- ── restaurants (0007) ──
@@ -275,6 +278,8 @@ WITH expected(tbl, col, typ, req_notnull, has_default) AS (VALUES
   ('products','is_available','boolean',false,true),
   ('products','display_order','integer',false,true),
   ('products','is_in_closing_mode','boolean',false,true),
+  -- ── products (0018) ──
+  ('products','closing_discount_percent','integer',false,false),
   ('products','suggestions_type','text',false,true),
   ('products','custom_suggestion_ids','ARRAY',false,false),
   ('products','created_at','timestamp with time zone',false,true),
@@ -331,14 +336,14 @@ ORDER BY e.tbl, e.col;
 
 
 -- عدّاد سريع للأعمدة لكل جدول (بديل بصري للجدول أعلاه).
--- المتوقّع بالضبط: 8 / 4 / 5 / 11 / 17 / 22 / 5
+-- المتوقّع بالضبط: 8 / 4 / 5 / 11 / 18 / 24 / 5
 SELECT
   table_name,
   count(*) AS actual_columns,
   CASE table_name
-    WHEN 'restaurants'              THEN CASE WHEN count(*) = 23 THEN '✅ OK' ELSE '❌ متوقّع 23' END
+    WHEN 'restaurants'              THEN CASE WHEN count(*) = 24 THEN '✅ OK' ELSE '❌ متوقّع 24' END
     WHEN 'categories'               THEN CASE WHEN count(*) =  8 THEN '✅ OK' ELSE '❌ متوقّع 8'  END
-    WHEN 'products'                 THEN CASE WHEN count(*) = 17 THEN '✅ OK' ELSE '❌ متوقّع 17' END
+    WHEN 'products'                 THEN CASE WHEN count(*) = 18 THEN '✅ OK' ELSE '❌ متوقّع 18' END
     WHEN 'complementary_categories' THEN CASE WHEN count(*) =  4 THEN '✅ OK' ELSE '❌ متوقّع 4'  END
     WHEN 'tenant_sessions'          THEN CASE WHEN count(*) =  5 THEN '✅ OK' ELSE '❌ متوقّع 5'  END
     WHEN 'events'                   THEN CASE WHEN count(*) =  5 THEN '✅ OK' ELSE '❌ متوقّع 5'  END
@@ -529,7 +534,8 @@ FROM (VALUES
   ('idx_payments_period_end',       true),   -- 0011 partial
   ('idx_login_attempts_key_time',   false),  -- 0015
   ('idx_login_attempts_created',    false),  -- 0015
-  ('idx_restaurants_subscription_ends', true) -- 0016 partial
+  ('idx_restaurants_subscription_ends', true), -- 0016 partial
+  ('idx_events_product',            true)    -- 0019 partial (WHERE product_id IS NOT NULL)
 ) AS e(idx, partial)
 LEFT JOIN pg_indexes i
   ON i.schemaname = 'public' AND i.indexname = e.idx
@@ -557,7 +563,8 @@ FROM (VALUES
   ('categories_enforce_two_levels', 'trigger'),  -- 0009
   ('check_rate_limit',              'record'),   -- 0015 (RETURNS TABLE)
   ('clear_rate_limit',              'void'),     -- 0015
-  ('payments_sync_subscription_end','trigger')   -- 0016
+  ('payments_sync_subscription_end','trigger'),  -- 0016
+  ('tenant_analytics',              'jsonb')     -- 0019 (SECURITY DEFINER, service_role only)
 ) AS e(fname, rettype)
 LEFT JOIN pg_proc p
   ON p.proname = e.fname AND p.pronamespace = 'public'::regnamespace
@@ -703,7 +710,7 @@ idx_ok AS (
      'idx_products_in_closing','idx_products_chef_pick','idx_restaurants_live',
      'idx_payments_restaurant_paid','idx_payments_period_end',
      'idx_login_attempts_key_time','idx_login_attempts_created',
-     'idx_restaurants_subscription_ends')
+     'idx_restaurants_subscription_ends','idx_events_product')
 ),
 col_ok AS (
   SELECT count(*) AS n FROM information_schema.columns
@@ -717,7 +724,7 @@ fn_ok AS (
    WHERE pronamespace='public'::regnamespace
      AND proname IN ('revert_closing_mode','categories_enforce_two_levels',
                      'check_rate_limit','clear_rate_limit',
-                     'payments_sync_subscription_end')
+                     'payments_sync_subscription_end','tenant_analytics')
 ),
 trg_ok AS (
   SELECT count(*) AS n FROM pg_trigger
@@ -778,7 +785,7 @@ SELECT
   diner_ok.n      || '/1'  AS diner_cols_readable,
   rows_total.n             AS total_rows,
   CASE WHEN tables_ok.n = 8 AND rls_ok.n = 8 AND pol_ok.n = 12 AND pol_fresh.n = 12
-        AND col_ok.n = 76 AND idx_ok.n = 17 AND fn_ok.n = 5 AND trg_ok.n = 1
+        AND col_ok.n = 76 AND idx_ok.n = 18 AND fn_ok.n = 6 AND trg_ok.n = 1
         AND mode_ok.n = 1 AND uniq_ok.n = 1 AND uniq_old_gone.n = 0 AND ext_ok.n = 1
         AND diner_ok.n = 1
        THEN CASE WHEN creds_exposed.n = 0

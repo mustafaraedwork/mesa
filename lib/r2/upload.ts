@@ -42,7 +42,10 @@ const PUBLIC_URL = () => {
 // guards against decompression bombs and SVG/polyglot inputs. `file.type` is
 // client-controlled, so this is a cheap first gate; the size cap and sharp's
 // `limitInputPixels` are the real decode-time backstops.
-export const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+// Must stay below experimental.serverActions.bodySizeLimit (4 MB, next.config.ts):
+// a larger file never reaches this check — Next rejects the whole action
+// body first. The client downscales to ≤ 3.5 MB before sending (lib/image-client.ts).
+export const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -52,7 +55,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
 
 export function validateImageUpload(file: File): string | null {
   if (file.size <= 0) return 'الملف فارغ';
-  if (file.size > MAX_IMAGE_BYTES) return 'حجم الصورة كبير جداً (الحد ١٠ ميغابايت)';
+  if (file.size > MAX_IMAGE_BYTES) return 'حجم الصورة كبير جداً (الحد ٤ ميغابايت)';
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
     return 'صيغة الصورة غير مدعومة (JPG أو PNG أو WebP أو GIF فقط)';
   }
@@ -72,7 +75,12 @@ export async function uploadProductImage(
   const buffer = await sharp(input, { limitInputPixels: 100_000_000 })
     .rotate()
     .resize(800, 800, { fit: 'cover', position: 'center' })
-    .webp({ quality: 80 })
+    // q72 + effort 6 measured ~25% smaller than q80/effort 4 across a sample of
+    // real menu photos, with no visible difference at the sizes the diner sees.
+    // 800px stays: the product page renders the image near full-width, so a
+    // smaller source would show on a high-DPR phone. Encoding is slower, which
+    // only costs the owner once per upload — never the diner.
+    .webp({ quality: 72, effort: 6 })
     .toBuffer();
 
   const key = `${keyPrefix.replace(/\/$/, '')}/${randomUUID()}.webp`;

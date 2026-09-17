@@ -52,6 +52,15 @@ function brandVars(colors: BrandColors): CSSProperties {
 // landing them back on it. A fresh page load / QR scan resets it.
 let menuOpenedThisLoad = false;
 
+/** Mark the diner as already past the welcome screen. The product page calls
+ *  this before navigating back: someone looking at a product is inside the menu
+ *  already, even when they deep-linked straight to it and this runtime never
+ *  rendered the menu. Set imperatively at click time — never during render — so
+ *  it cannot desync a hydration pass. */
+export function markMenuOpened(): void {
+  menuOpenedThisLoad = true;
+}
+
 type CategoryNode = MenuCategory & { children: MenuCategory[] };
 type BrandColors = {
   primary: string;
@@ -120,7 +129,9 @@ export function MenuView({
   // products, auto-select the first such child so the diner isn't greeted with
   // an empty grid.
   const [parentId, setParentId] = useState<string | null>(() => initialParent(tree));
-  const [subId, setSubId] = useState<string | null>(() => initialSub(tree, initialParent(tree)));
+  // Starts unfiltered: a parent shows its own products plus every
+  // sub-category's, and the "All" chip returns here.
+  const [subId, setSubId] = useState<string | null>(null);
   // L10: the section grid remounts on nav (keyed) and replays its entrance. This
   // holds which direction it enters from so the motion mirrors the navigation —
   // computed in the chip handlers (lint-safe: no ref reads during render). First
@@ -145,7 +156,14 @@ export function MenuView({
       const sub = selectedParent.children.find((c) => c.id === subId);
       return sub?.products ?? [];
     }
-    return selectedParent.products;
+    // No sub filter → the parent shows everything under it: its own products
+    // first, then each sub-category's. A dish filed under "مشاوي ← طاووق" has
+    // to be visible from "مشاوي" too, not only after tapping the sub-chip.
+    // Each product belongs to exactly one category, so there are no duplicates.
+    return [
+      ...selectedParent.products,
+      ...selectedParent.children.flatMap((c) => c.products),
+    ];
   }, [selectedParent, subId]);
 
   // Chef's Picks = the virtual category surfaced by the active mode (currently
@@ -231,13 +249,16 @@ export function MenuView({
     const nextIdx = tree.findIndex((c) => c.id === id);
     setEnterDir(slideFor(nextIdx >= curIdx));
     setParentId(id);
-    const p = tree.find((c) => c.id === id);
-    setSubId(p ? defaultSubFor(p) : null);
+    setSubId(null); // switching section always lands on "All"
+
   }
-  function pickSub(id: string) {
+  // `null` = the "All" chip, which clears the filter back to the whole parent.
+  function pickSub(id: string | null) {
     const subs = selectedParent?.children ?? [];
-    const curIdx = subs.findIndex((c) => c.id === subId);
-    const nextIdx = subs.findIndex((c) => c.id === id);
+    // "All" sits before every sub in the rail, so treat it as index -1 and the
+    // entrance slide keeps mirroring the direction the diner moved.
+    const curIdx = subId === null ? -1 : subs.findIndex((c) => c.id === subId);
+    const nextIdx = id === null ? -1 : subs.findIndex((c) => c.id === id);
     setEnterDir(slideFor(nextIdx >= curIdx));
     setSubId(id);
   }
@@ -317,6 +338,7 @@ export function MenuView({
           <LanguageDropdown lang={lang} onPickLang={pickLang} />
           <Link
             href={`/r/${slug}/cart`}
+            prefetch={false}
             aria-label={t('cart_button', lang)}
             className={
               'bg-card border-border-lite shadow-card flex h-11 items-center rounded-full border transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] ' +
@@ -419,6 +441,16 @@ export function MenuView({
       {/* Sub-category chips — only when the selected parent has children */}
       {hasSubs && selectedParent && (
         <ChipBar dense>
+          {/* "All" is the default state — it clears the sub filter and brings
+              back the parent's full list, including every sub-category. */}
+          <Chip
+            active={subId === null}
+            primary={colors.primary}
+            onClick={() => pickSub(null)}
+            variant="sub"
+          >
+            {t('all_items', lang)}
+          </Chip>
           {selectedParent.children.map((sub) => (
             <Chip
               key={sub.id}
@@ -543,17 +575,6 @@ function initialParent(tree: CategoryNode[]): string | null {
   return tree[0]?.id ?? null;
 }
 
-function initialSub(tree: CategoryNode[], parentId: string | null): string | null {
-  if (!parentId) return null;
-  const p = tree.find((c) => c.id === parentId);
-  return p ? defaultSubFor(p) : null;
-}
-
-function defaultSubFor(parent: CategoryNode): string | null {
-  // Only auto-pick a sub when the parent itself has no direct products.
-  if (parent.products.length > 0) return null;
-  return parent.children.find((c) => c.products.length > 0)?.id ?? null;
-}
 
 // ── presentational ────────────────────────────────────────────────────
 
@@ -755,33 +776,51 @@ function ProductCard({
   return (
     <div
       className={
-        'border-border-lite shadow-card flex flex-col overflow-hidden rounded-2xl border transition-shadow hover:shadow-lifted ' +
+        'border-border-lite shadow-card relative flex flex-col overflow-hidden rounded-2xl border transition-shadow hover:shadow-lifted ' +
         (unavailable ? 'opacity-60 grayscale' : '')
       }
       style={{ background: card }}
     >
+      {/* Stretched link: `after:inset-0` spreads the hit area over the whole
+          card — tapping the name or the price opens the product too, not just
+          the photo. The link itself stays unpositioned so the pseudo-element
+          anchors to the card; the badges get their own `relative` wrapper. */}
+      {/* prefetch={false} — deliberately. `prefetch` (full) on a force-dynamic
+          route makes Next fetch the WHOLE product page for every card that
+          scrolls into the viewport: measured 2 requests + 5 SQL statements per
+          card, i.e. a diner browsing two sections cost 64 requests and 183
+          statements in 90 s before ever tapping (VERIFICATION_REPORT §1.1).
+          The earlier rationale ("~0.55 s fixed latency per tap") was measured
+          from iad1 against a Frankfurt database; with the functions pinned to
+          fra1 (vercel.json) a tap is one ~40 ms render, so the trade no longer
+          pays. Next's default (partial) prefetch would still fetch the loading
+          boundary per card, so we opt out entirely. */}
       <Link
         href={`/r/${slug}/p/${product.id}`}
-        className="relative block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+        prefetch={false}
+        aria-label={name}
+        className="block after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
       >
-        <MenuImage
-          src={product.image_url}
-          alt={name}
-          sizes="(max-width: 768px) 50vw, 200px"
-          className="aspect-[4/3] w-full"
-        />
-        {hasDiscount && <DiscountBadge percent={product.discount_percent!} lang={lang} />}
-        {chefBadge && (
-          <span className="bg-accent/90 text-accent-foreground shadow-subtle absolute start-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-semibold">
-            <Star className="size-3" aria-hidden />
-            {t('chef_pick', lang)}
-          </span>
-        )}
-        {unavailable && (
-          <span className="bg-foreground/75 text-background absolute inset-x-0 top-1/2 mx-auto w-fit -translate-y-1/2 rounded-full px-3 py-1 text-caption font-semibold">
-            {t('unavailable', lang)}
-          </span>
-        )}
+        <div className="relative">
+          <MenuImage
+            src={product.image_url}
+            alt={name}
+            sizes="(max-width: 768px) 50vw, 200px"
+            className="aspect-[4/3] w-full"
+          />
+          {hasDiscount && <DiscountBadge percent={product.discount_percent!} lang={lang} />}
+          {chefBadge && (
+            <span className="bg-accent/90 text-accent-foreground shadow-subtle absolute start-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-semibold">
+              <Star className="size-3" aria-hidden />
+              {t('chef_pick', lang)}
+            </span>
+          )}
+          {unavailable && (
+            <span className="bg-foreground/75 text-background absolute inset-x-0 top-1/2 mx-auto w-fit -translate-y-1/2 rounded-full px-3 py-1 text-caption font-semibold">
+              {t('unavailable', lang)}
+            </span>
+          )}
+        </div>
       </Link>
       <div className="flex flex-1 flex-col gap-2 p-card">
         <h3 className="line-clamp-2 text-body font-medium leading-snug" title={name} {...nameLangProps(resolved.lang)}>
@@ -798,7 +837,9 @@ function ProductCard({
             type="button"
             disabled={unavailable}
             onClick={handleAdd}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-card transition-transform active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
+            /* z-10 keeps Add above the stretched link so it still adds to the
+               cart instead of opening the product page. */
+            className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-card transition-transform active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] disabled:cursor-not-allowed disabled:opacity-50"
             style={{ background: primary, color: 'var(--primary-foreground)' }}
             aria-label={`${t('add', lang)} — ${name}`}
           >
@@ -827,6 +868,7 @@ function CartBar({
   return (
     <Link
       href={`/r/${slug}/cart`}
+      prefetch={false}
       className="bg-foreground shadow-lifted fixed inset-x-4 bottom-4 z-30 flex h-14 animate-in items-center justify-between rounded-2xl px-5 duration-300 fade-in-0 slide-in-from-bottom-4 [animation-timing-function:var(--ease-out-expo)]"
     >
       <span className="text-background text-sm font-medium">
@@ -853,6 +895,7 @@ export function FloatingCart({
   return (
     <Link
       href={`/r/${slug}/cart`}
+      prefetch={false}
       className="shadow-lifted fixed bottom-4 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-transform active:scale-95"
       style={{ background: primary, color: 'var(--primary-foreground)' }}
     >

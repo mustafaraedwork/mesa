@@ -20,7 +20,19 @@ function dayLabel(d: string): string {
   return `${day}/${m}`;
 }
 
-type EventRow = { kind: string; product_id: string | null; created_at: string };
+// Shape returned by tenant_analytics() — migration 0019.
+type AnalyticsPayload = {
+  today?: string;
+  from?: string;
+  menu_by_day?: { day: string; opens: number | string }[];
+  products?: {
+    product_id: string;
+    opens: number | string;
+    opens_today: number | string;
+    adds: number | string;
+    adds_today: number | string;
+  }[];
+};
 type ProductRow = { id: string; name_ar: string; category_id: string; image_url: string | null };
 type CategoryRow = { id: string; name_ar: string };
 type Tally = { opens7: number; opensToday: number; adds7: number; addsToday: number };
@@ -35,55 +47,43 @@ export default async function AnalyticsPage() {
   // Last 7 Baghdad days, oldest → newest.
   const days: string[] = [];
   for (let i = 6; i >= 0; i--) days.push(bagDay(now - i * DAY));
-  const today = days[days.length - 1];
-  const since = new Date(now - 8 * DAY).toISOString();
 
-  const [{ data: events }, { data: products }, { data: categories }] = await Promise.all([
-    sb
-      .from('events')
-      .select('kind, product_id, created_at')
-      .eq('restaurant_id', restaurantId)
-      .gte('created_at', since),
-    sb
-      .from('products')
-      .select('id, name_ar, category_id, image_url')
-      .eq('restaurant_id', restaurantId)
-      .order('display_order', { ascending: true }),
-    sb.from('categories').select('id, name_ar').eq('restaurant_id', restaurantId),
-  ]);
+  // P0 fix 5: the aggregation lives in SQL (migration 0019, tenant_analytics).
+  // Reading raw events here was capped by PostgREST's max-rows (1000) and
+  // silently under-counted any restaurant past ~1,000 events a week.
+  const [{ data: analytics, error: analyticsErr }, { data: products }, { data: categories }] =
+    await Promise.all([
+      sb.rpc('tenant_analytics', {
+        p_restaurant_id: restaurantId,
+        p_days: days.length,
+        p_tz_offset_minutes: TZ_OFFSET / 60_000,
+      }),
+      sb
+        .from('products')
+        .select('id, name_ar, category_id, image_url')
+        .eq('restaurant_id', restaurantId)
+        .order('display_order', { ascending: true }),
+      sb.from('categories').select('id, name_ar').eq('restaurant_id', restaurantId),
+    ]);
+  if (analyticsErr) console.error('[analytics] tenant_analytics failed:', analyticsErr.message);
 
-  const daySet = new Set(days);
   const catName = new Map((categories ?? []).map((c: CategoryRow) => [c.id, c.name_ar]));
 
+  const agg = (analytics ?? {}) as AnalyticsPayload;
   const menuByDay: Record<string, number> = {};
   for (const d of days) menuByDay[d] = 0;
+  for (const row of agg.menu_by_day ?? []) {
+    if (row.day in menuByDay) menuByDay[row.day] = Number(row.opens) || 0;
+  }
 
   const stat = new Map<string, Tally>();
-  const tally = (id: string): Tally => {
-    let s = stat.get(id);
-    if (!s) {
-      s = { opens7: 0, opensToday: 0, adds7: 0, addsToday: 0 };
-      stat.set(id, s);
-    }
-    return s;
-  };
-
-  for (const e of (events ?? []) as EventRow[]) {
-    const d = bagDay(new Date(e.created_at).getTime());
-    if (!daySet.has(d)) continue;
-    if (e.kind === 'menu_open') {
-      menuByDay[d]++;
-    } else if (e.product_id) {
-      const s = tally(e.product_id);
-      const isToday = d === today;
-      if (e.kind === 'product_open') {
-        s.opens7++;
-        if (isToday) s.opensToday++;
-      } else if (e.kind === 'product_add') {
-        s.adds7++;
-        if (isToday) s.addsToday++;
-      }
-    }
+  for (const p of agg.products ?? []) {
+    stat.set(p.product_id, {
+      opens7: Number(p.opens) || 0,
+      opensToday: Number(p.opens_today) || 0,
+      adds7: Number(p.adds) || 0,
+      addsToday: Number(p.adds_today) || 0,
+    });
   }
 
   const rows: StatRow[] = ((products ?? []) as ProductRow[])

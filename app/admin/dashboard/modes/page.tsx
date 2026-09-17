@@ -1,7 +1,7 @@
 import { requireTenant } from '@/lib/auth/require-tenant';
 import { getServiceClient } from '@/lib/supabase/server';
 import { ModesView, type CategoryGroup } from './modes-view';
-import type { Mode, Discount } from '@/lib/closing';
+import { DISCOUNTS, type Mode, type Discount } from '@/lib/closing';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +10,7 @@ type Restaurant = {
   active_mode: Mode;
   closing_mode_ends_at: string | null;
   closing_mode_discount: Discount | null;
+  closing_discount_mode: 'general' | 'specific';
   currency: string;
 };
 
@@ -20,7 +21,7 @@ export default async function ModesPage() {
   const [{ data: rest }, { data: cats }, { data: prods }] = await Promise.all([
     sb
       .from('restaurants')
-      .select('id, active_mode, closing_mode_ends_at, closing_mode_discount, currency')
+      .select('id, active_mode, closing_mode_ends_at, closing_mode_discount, closing_discount_mode, currency')
       .eq('id', tenant.restaurantId)
       .single<Restaurant>(),
     sb
@@ -30,7 +31,7 @@ export default async function ModesPage() {
       .order('display_order', { ascending: true }),
     sb
       .from('products')
-      .select('id, category_id, name_ar, price, is_available, is_in_closing_mode, is_chef_pick, display_order')
+      .select('id, category_id, name_ar, price, is_available, is_in_closing_mode, closing_discount_percent, is_chef_pick, display_order')
       .eq('restaurant_id', tenant.restaurantId)
       .order('display_order', { ascending: true }),
   ]);
@@ -52,6 +53,11 @@ export default async function ModesPage() {
       price: Number(p.price),
       is_available: p.is_available ?? true,
       is_in_closing_mode: p.is_in_closing_mode ?? false,
+      // Same Q-13 tier guard the diner read path uses: a stray DB value must
+      // not reach the picker as a selectable state.
+      closing_discount_percent: DISCOUNTS.includes(p.closing_discount_percent as Discount)
+        ? (p.closing_discount_percent as Discount)
+        : null,
       is_chef_pick: p.is_chef_pick ?? false,
     })),
   }));
@@ -67,6 +73,8 @@ export default async function ModesPage() {
             : 'normal',
         closing_mode_ends_at: rest!.closing_mode_ends_at,
         closing_mode_discount: rest!.closing_mode_discount,
+        closing_discount_mode:
+          rest!.closing_discount_mode === 'specific' ? 'specific' : 'general',
         server_now: new Date().toISOString(),
       }}
       currency={rest!.currency}

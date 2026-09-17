@@ -5,8 +5,9 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
-import { UtensilsCrossed, WifiOff } from 'lucide-react';
-import { bcp47, currencyLabel, isRtl, t, type Lang } from '@/lib/i18n';
+import { Star, UtensilsCrossed, WifiOff } from 'lucide-react';
+import { bcp47, currencyLabel, isRtl, resolveName, t, type Lang } from '@/lib/i18n';
+import type { MenuProduct } from '@/lib/menu';
 
 /**
  * Return focus to whatever was focused before a dialog/popup opened, once it
@@ -137,7 +138,10 @@ export function MenuImage({
           loading={priority ? undefined : 'lazy'}
           onLoad={() => setLoaded(true)}
           className={
-            'object-cover transition-opacity duration-500 [transition-timing-function:var(--ease-out-expo)] ' +
+            // 200ms, not 500: the fade runs *after* the bytes land, so a long
+            // one reads as the page still loading. Short enough to hide the
+            // grey-box pop, quick enough to feel immediate.
+            'object-cover transition-opacity duration-200 [transition-timing-function:var(--ease-out-expo)] ' +
             (loaded ? 'opacity-100' : 'opacity-0')
           }
         />
@@ -219,5 +223,63 @@ export function PriceTag({
       {now}
       {was}
     </span>
+  );
+}
+
+/**
+ * One suggested item — a tap adds it straight to the cart. Shared by the cart
+ * page (seeded from the basket) and the product page (seeded from the item on
+ * screen), so a pairing looks identical wherever the diner meets it.
+ */
+export function SuggestionCard({
+  product,
+  lang,
+  card,
+  currency,
+  onAdd,
+}: {
+  product: MenuProduct;
+  lang: Lang;
+  card: string;
+  currency: string;
+  onAdd: () => void;
+}) {
+  const resolved = resolveName(product, lang);
+  const name = resolved.text;
+  // M5: surface the discount on offer items + a chef marker, so a suggestion
+  // carries a reason to tap rather than just a name + price.
+  const hasDiscount = product.discount_percent !== null && product.original_price !== null;
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      className="border-border-lite shadow-card hover:shadow-lifted flex flex-col items-stretch overflow-hidden rounded-2xl border text-start transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+      style={{ background: card }}
+    >
+      <div className="relative">
+        <MenuImage
+          src={product.image_url}
+          alt={name}
+          sizes="(max-width: 640px) 50vw, 160px"
+          className="aspect-square w-full"
+        />
+        {hasDiscount && <DiscountBadge percent={product.discount_percent!} lang={lang} />}
+        {!hasDiscount && product.is_chef_pick && (
+          <span className="bg-accent/90 text-accent-foreground shadow-subtle absolute start-2 top-2 flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold">
+            <Star className="size-2.5" aria-hidden />
+            {t('chef_pick', lang)}
+          </span>
+        )}
+      </div>
+      <div className="space-y-1 p-2">
+        <div className="line-clamp-2 text-caption font-medium" {...nameLangProps(resolved.lang)}>{name}</div>
+        <PriceTag
+          price={formatAmount(product.price)}
+          original={hasDiscount ? formatAmount(product.original_price!) : null}
+          currency={currency}
+          lang={lang}
+        />
+      </div>
+    </button>
   );
 }

@@ -12,6 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { contrastRatio, readableTextOn } from '@/lib/contrast';
 import { saveDesign } from './actions';
+import {
+  IMAGE_TOO_LARGE_MESSAGE,
+  UPLOAD_FAILED_MESSAGE,
+  isImageTooLargeError,
+  prepareImageForUpload,
+} from '@/lib/image-client';
 import { SUPPORTED_CURRENCIES, currencyLabel } from '@/lib/currencies';
 import { QrSection } from './qr-section';
 
@@ -132,10 +138,25 @@ export function DesignView({
     fd.set('text_color', text);
     fd.set('currency', currency);
     fd.set('show_unavailable_items', showUnavailable ? 'true' : 'false');
-    if (logoFile) fd.set('logo', logoFile);
     if (removeLogo) fd.set('remove_logo', 'true');
     startTransition(async () => {
-      const r = await saveDesign(fd);
+      // P0 fix 4: same treatment as the product image — downscale on the
+      // device, and show thrown action errors instead of swallowing them.
+      if (logoFile) {
+        try {
+          fd.set('logo', await prepareImageForUpload(logoFile));
+        } catch (e) {
+          setError(isImageTooLargeError(e) ? (e as Error).message : IMAGE_TOO_LARGE_MESSAGE);
+          return;
+        }
+      }
+      let r: Awaited<ReturnType<typeof saveDesign>>;
+      try {
+        r = await saveDesign(fd);
+      } catch {
+        setError(UPLOAD_FAILED_MESSAGE);
+        return;
+      }
       if (!r.ok) {
         setError(r.error);
         return;

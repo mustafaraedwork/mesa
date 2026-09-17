@@ -41,6 +41,8 @@ export function ClosingDialog({
   currency,
   initialSelection,
   initialDiscount,
+  initialDiscountMode,
+  initialPerProduct,
   onClose,
   onResult,
 }: {
@@ -48,10 +50,16 @@ export function ClosingDialog({
   currency: string;
   initialSelection: string[];
   initialDiscount: Discount;
+  initialDiscountMode: 'general' | 'specific';
+  initialPerProduct: Record<string, Discount>;
   onClose: () => void;
   onResult: (r: Result) => void;
 }) {
   const [discount, setDiscount] = useState<Discount>(initialDiscount);
+  // 'general' = one percentage for the whole selection (the original
+  // behaviour). 'specific' = each product carries its own.
+  const [discountMode, setDiscountMode] = useState<'general' | 'specific'>(initialDiscountMode);
+  const [perProduct, setPerProduct] = useState<Record<string, Discount>>(initialPerProduct);
   const [duration, setDuration] = useState(2);
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelection));
   const [query, setQuery] = useState('');
@@ -70,6 +78,17 @@ export function ClosingDialog({
   }
 
   const totalSelected = selected.size;
+
+  // The percentage that actually applies to a product right now — its own in
+  // specific mode, otherwise the general one. Drives both the live price
+  // preview and what gets submitted.
+  const pctFor = (id: string): Discount =>
+    discountMode === 'specific' ? (perProduct[id] ?? discount) : discount;
+
+  function setProductPct(id: string, pct: Discount) {
+    setPerProduct((prev) => ({ ...prev, [id]: pct }));
+    setOffendingIds(new Set());
+  }
 
   const allProducts = useMemo(
     () => categoryGroups.flatMap((g) => g.products),
@@ -104,6 +123,13 @@ export function ClosingDialog({
           product_ids: Array.from(selected),
           discount,
           duration_hours: duration,
+          discount_mode: discountMode,
+          // Only the selected products' overrides travel; the server falls back
+          // to the general percentage for anything missing here.
+          per_product:
+            discountMode === 'specific'
+              ? Object.fromEntries(Array.from(selected).map((id) => [id, pctFor(id)]))
+              : undefined,
         },
       });
       if (!r.ok) {
@@ -126,7 +152,35 @@ export function ClosingDialog({
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
-          <Field label="نسبة الخصم" group>
+          <Field label="نوع الخصم" group>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                aria-pressed={discountMode === 'general'}
+                variant={discountMode === 'general' ? 'default' : 'outline'}
+                onClick={() => setDiscountMode('general')}
+              >
+                خصم عام
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                aria-pressed={discountMode === 'specific'}
+                variant={discountMode === 'specific' ? 'default' : 'outline'}
+                onClick={() => setDiscountMode('specific')}
+              >
+                خصم محدد
+              </Button>
+            </div>
+            <output className="text-muted-foreground text-caption block">
+              {discountMode === 'general'
+                ? 'نسبة واحدة تُطبَّق على كل المنتجات المختارة.'
+                : 'اختر نسبة لكل منتج. النسبة أدناه هي الافتراضية لأي منتج لم تغيّره.'}
+            </output>
+          </Field>
+
+          <Field label={discountMode === 'general' ? 'نسبة الخصم' : 'النسبة الافتراضية'} group>
             <div className="flex flex-wrap gap-2">
               {DISCOUNTS.map((d) => (
                 <Button
@@ -217,7 +271,8 @@ export function ClosingDialog({
                         {g.products.map((p) => {
                           const checked = selected.has(p.id);
                           const offending = offendingIds.has(p.id);
-                          const newPrice = applyDiscount(p.price, discount, currency);
+                          const pct = pctFor(p.id);
+                          const newPrice = applyDiscount(p.price, pct, currency);
                           return (
                             <li key={p.id}>
                               <label
@@ -248,6 +303,29 @@ export function ClosingDialog({
                                   )}
                                 </span>
                               </label>
+                              {/* Per-product tier picker — only in specific
+                                  mode, and only once the item is selected.
+                                  Outside the <label> so tapping a percentage
+                                  doesn't toggle the checkbox. */}
+                              {discountMode === 'specific' && checked && (
+                                <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1.5 ps-9">
+                                  <span className="text-muted-foreground text-caption">الخصم:</span>
+                                  {DISCOUNTS.map((d) => (
+                                    <Button
+                                      key={d}
+                                      type="button"
+                                      size="sm"
+                                      aria-pressed={pct === d}
+                                      aria-label={`خصم ${d}٪ على ${p.name_ar}`}
+                                      variant={pct === d ? 'default' : 'outline'}
+                                      onClick={() => setProductPct(p.id, d)}
+                                      className="h-7 min-w-11 px-2 text-caption"
+                                    >
+                                      {d}٪
+                                    </Button>
+                                  ))}
+                                </div>
+                              )}
                             </li>
                           );
                         })}
