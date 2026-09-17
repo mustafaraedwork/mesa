@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/server';
-import { checkRate, clientIp, LIMIT_TRACK_PER_IP } from '@/lib/auth/rate-limit';
+import { checkRate, clientIp, LIMIT_TRACK_PER_SLUG, LIMIT_TRACK_PER_SLUG_IP } from '@/lib/auth/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,20 +21,38 @@ export async function POST(req: Request) {
     return new NextResponse(null, { status: 204, headers: NO_STORE });
   }
 
-  // H-4: per-IP flood guard on this public, unauthenticated ingest endpoint.
-  // Postgres-backed since 0015 — one indexed RPC on a fire-and-forget beacon
-  // that already talks to the database twice below.
-  const ip = clientIp(req.headers);
-  const limit = await checkRate(`track:${ip}`, LIMIT_TRACK_PER_IP.max, LIMIT_TRACK_PER_IP.windowSeconds);
-  if (!limit.allowed) {
-    return new NextResponse(null, { status: 204, headers: NO_STORE });
-  }
-
   const slug = typeof body.slug === 'string' ? body.slug : '';
   const kind = typeof body.kind === 'string' ? body.kind : '';
   const productId = typeof body.product_id === 'string' ? body.product_id : null;
 
-  if (!slug || !KINDS.includes(kind as Kind)) {
+  // Cheap shape checks BEFORE any rate-limit write, and a bounded slug so a
+  // garbage slug cannot mint unlimited bucket keys.
+  if (!slug || slug.length > 64 || !KINDS.includes(kind as Kind)) {
+    return new NextResponse(null, { status: 204, headers: NO_STORE });
+  }
+
+  // H-4 / P0 fix 6: flood guards on this public, unauthenticated ingest
+  // endpoint, Postgres-backed since 0015. Two buckets:
+  //   1. slug + IP — one restaurant's diners behind one router (or one CGNAT
+  //      egress) get their own generous window instead of sharing a global
+  //      per-IP one with every other restaurant on the same carrier;
+  //   2. slug alone — a hard ceiling per restaurant against a distributed
+  //      flood. Login limits (lib/auth/rate-limit.ts) are untouched.
+  const ip = clientIp(req.headers);
+  const perSlugIp = await checkRate(
+    `track:${slug}:${ip}`,
+    LIMIT_TRACK_PER_SLUG_IP.max,
+    LIMIT_TRACK_PER_SLUG_IP.windowSeconds,
+  );
+  if (!perSlugIp.allowed) {
+    return new NextResponse(null, { status: 204, headers: NO_STORE });
+  }
+  const perSlug = await checkRate(
+    `track-slug:${slug}`,
+    LIMIT_TRACK_PER_SLUG.max,
+    LIMIT_TRACK_PER_SLUG.windowSeconds,
+  );
+  if (!perSlug.allowed) {
     return new NextResponse(null, { status: 204, headers: NO_STORE });
   }
 

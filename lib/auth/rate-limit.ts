@@ -17,7 +17,13 @@ export type RateResult = { allowed: true } | { allowed: false; retryAfterSeconds
 // Limits are unchanged from the in-memory implementation (PRD §4.5 + H-4).
 export const LIMIT_LOGIN_PER_USERNAME = { max: 5, windowSeconds: 15 * 60 } as const;
 export const LIMIT_LOGIN_PER_IP = { max: 20, windowSeconds: 15 * 60 } as const;
-export const LIMIT_TRACK_PER_IP = { max: 60, windowSeconds: 60 } as const;
+// /api/track (P0 fix 6). The old key was the IP alone at 60/min: a full
+// restaurant on one Wi-Fi router, or a whole mobile-carrier CGNAT segment,
+// shared a single bucket and lost 4 out of 5 events silently (measured 300 →
+// 60 stored). The bucket is now slug+IP so restaurants never compete, and a
+// per-slug ceiling stays as the flood guard.
+export const LIMIT_TRACK_PER_SLUG_IP = { max: 600, windowSeconds: 60 } as const;
+export const LIMIT_TRACK_PER_SLUG = { max: 3000, windowSeconds: 60 } as const;
 
 // Fails CLOSED. A rate limiter that opens up whenever the database hiccups is
 // not a rate limiter. Both call sites tolerate this well: login cannot proceed
