@@ -118,7 +118,7 @@ export function ProductView({
             venue name grows to max-content and collides with the back button. */}
         <Link
           href={`/r/${slug}`}
-          prefetch
+          prefetch={false}
           onClick={markMenuOpened}
           className="min-w-0 max-w-[50vw] justify-self-center truncate rounded-lg px-2 py-1 text-base font-semibold hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
         >

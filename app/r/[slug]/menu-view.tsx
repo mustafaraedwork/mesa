@@ -338,7 +338,7 @@ export function MenuView({
           <LanguageDropdown lang={lang} onPickLang={pickLang} />
           <Link
             href={`/r/${slug}/cart`}
-            prefetch
+            prefetch={false}
             aria-label={t('cart_button', lang)}
             className={
               'bg-card border-border-lite shadow-card flex h-11 items-center rounded-full border transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] ' +
@@ -785,15 +785,19 @@ function ProductCard({
           card — tapping the name or the price opens the product too, not just
           the photo. The link itself stays unpositioned so the pseudo-element
           anchors to the card; the badges get their own `relative` wrapper. */}
-      {/* prefetch: the product route is force-dynamic, so the default would
-          prefetch only the loading skeleton and still pay the full server
-          round-trip on tap. Measured ~0.55s of that round-trip is fixed
-          infrastructure latency (a no-op /api/health costs the same), so
-          fetching the real payload while the card is on screen is what makes
-          the tap feel instant. Next only prefetches links in the viewport. */}
+      {/* prefetch={false} — deliberately. `prefetch` (full) on a force-dynamic
+          route makes Next fetch the WHOLE product page for every card that
+          scrolls into the viewport: measured 2 requests + 5 SQL statements per
+          card, i.e. a diner browsing two sections cost 64 requests and 183
+          statements in 90 s before ever tapping (VERIFICATION_REPORT §1.1).
+          The earlier rationale ("~0.55 s fixed latency per tap") was measured
+          from iad1 against a Frankfurt database; with the functions pinned to
+          fra1 (vercel.json) a tap is one ~40 ms render, so the trade no longer
+          pays. Next's default (partial) prefetch would still fetch the loading
+          boundary per card, so we opt out entirely. */}
       <Link
         href={`/r/${slug}/p/${product.id}`}
-        prefetch
+        prefetch={false}
         aria-label={name}
         className="block after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
       >
@@ -864,7 +868,7 @@ function CartBar({
   return (
     <Link
       href={`/r/${slug}/cart`}
-      prefetch
+      prefetch={false}
       className="bg-foreground shadow-lifted fixed inset-x-4 bottom-4 z-30 flex h-14 animate-in items-center justify-between rounded-2xl px-5 duration-300 fade-in-0 slide-in-from-bottom-4 [animation-timing-function:var(--ease-out-expo)]"
     >
       <span className="text-background text-sm font-medium">
@@ -891,7 +895,7 @@ export function FloatingCart({
   return (
     <Link
       href={`/r/${slug}/cart`}
-      prefetch
+      prefetch={false}
       className="shadow-lifted fixed bottom-4 left-1/2 z-30 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-transform active:scale-95"
       style={{ background: primary, color: 'var(--primary-foreground)' }}
     >
