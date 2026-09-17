@@ -45,8 +45,25 @@ assert(/no-store/.test(menuRoute), '/api/menu/[slug] sets Cache-Control: no-stor
 assert(/no-store/.test(stateRoute), '/api/admin/state sets Cache-Control: no-store');
 assert(
   /'Cache-Control':\s*'no-store/.test(menuRoute),
-  '/api/menu/[slug] header is exact `Cache-Control: no-store`',
+  '/api/menu/[slug] browser header is exact `Cache-Control: no-store`',
 );
+
+// P0 fix 2: the CDN may hold a successful menu body briefly. The contract is
+// now "worst-case staleness for a connected diner ≤ 40 s": POLL_MS (30 s) +
+// CDN fresh window (≤ 10 s). For that bound to hold, fresh + stale-while-
+// revalidate must stay strictly below POLL_MS — otherwise two consecutive
+// polls could both be served a pre-change body.
+console.log('\n— CDN cache window vs polling interval (P0 fix 2) —');
+const pollMs = Number((menuView.match(/POLL_MS\s*=\s*(\d[\d_]*)/) ?? [])[1]?.replace(/_/g, ''));
+const maxAge = Number((menuRoute.match(/CDN_MAX_AGE_S\s*=\s*(\d+)/) ?? [])[1]);
+const swr = Number((menuRoute.match(/CDN_SWR_S\s*=\s*(\d+)/) ?? [])[1]);
+assert(Number.isFinite(maxAge) && Number.isFinite(swr), 'route declares CDN_MAX_AGE_S and CDN_SWR_S');
+assert(/'Vercel-CDN-Cache-Control':\s*`public, s-maxage=\$\{CDN_MAX_AGE_S\}, stale-while-revalidate=\$\{CDN_SWR_S\}`/.test(menuRoute), 'success response carries Vercel-CDN-Cache-Control built from those constants');
+assert(maxAge <= 10, `CDN fresh window ≤ 10 s (is ${maxAge})`);
+assert(maxAge + swr < pollMs / 1000, `fresh + stale-while-revalidate (${maxAge + swr} s) < POLL_MS (${pollMs / 1000} s)`);
+assert(pollMs / 1000 + maxAge <= 40, `worst-case diner staleness ${pollMs / 1000 + maxAge} s ≤ 40 s`);
+assert(/'Vercel-CDN-Cache-Control':\s*'no-store'/.test(menuRoute), 'error responses (404) are not CDN-cached');
+assert(!/Vercel-CDN-Cache-Control/.test(stateRoute), '/api/admin/state (tenant, 10 s poll) is never CDN-cached');
 
 if (failed > 0) {
   console.error(`\n✗ ${failed} contract check(s) failed`);

@@ -518,7 +518,7 @@ subdomain. المتغيّر الواحد `NEXT_PUBLIC_APP_URL` كافٍ ومطب
 | `CLAUDE.md` §Stack | «planned, not yet installed» | مثبَّت ويعمل بالكامل |
 | `DEPLOY.md` · `DEPLOYMENT.md` (23 KB) | Coolify + Contabo VPS + Cloudflare + `qaema.app` | **مسار نشر مهجور بالكامل** بالنسبة لخطة Vercel/biziii.io |
 | `.env.production.example:8` | `NEXT_PUBLIC_APP_URL=https://qaema.app` | دومين قديم |
-| `prd.md` §3.1 | تغيير الوضع «فوراً» | فعلياً خلال دورة استطلاع (≤30 ث للزبون، ≤10 ث للمستأجر) — `CLAUDE.md` نفسه يصحّح هذا |
+| `prd.md` §3.1 | تغيير الوضع «فوراً» | فعلياً خلال دورة استطلاع + نافذة كاش CDN (≤40 ث للزبون = 30 استطلاع + 10 كاش، ≤10 ث للمستأجر) — `CLAUDE.md` نفسه يصحّح هذا |
 | `MENU-STATE-AUDIT.md` | تدقيق سابق غير متتبَّع في git، 80 KB | يغطي أرضاً مشتركة؛ لم أعتمد عليه — كل النتائج هنا مستقلّة |
 
 ---

@@ -44,7 +44,7 @@ Three auth systems coexist on purpose — do not unify them. RLS policies in §4
 
 ## The modes (the core feature)
 
-Exactly one mode active per restaurant at any time, stored as `restaurants.active_mode` ∈ `{normal, closing, off}` (migration `0004` removed the original rush/profit; `0006` added `off`). Mode changes propagate to the diner view eventually, bounded by the polling window (≤30s typical — see "Menu freshness" below). PRD §3.1 says "فوراً"; the actual contract is "within one polling cycle".
+Exactly one mode active per restaurant at any time, stored as `restaurants.active_mode` ∈ `{normal, closing, off}` (migration `0004` removed the original rush/profit; `0006` added `off`). Mode changes propagate to the diner view eventually, bounded by the polling window plus the CDN window (**≤40s worst case**: 30s poll + 10s CDN — see "Menu freshness" below). PRD §3.1 says "فوراً"; the actual contract is "within one polling cycle plus the CDN window".
 
 - **Normal** — manual `display_order`, plus an optional curated **Chef's Picks** selection: the owner flags products via `products.is_chef_pick` (modes tab → Normal card → "تعديل اختيارات الشيف" → `setChefPicks` clean-and-apply). Flagged items surface in the virtual "اختيارات الشيف" category at the top of the diner menu **with no discount** — but only alongside the first/default section (`parentId === firstParentId`), not every section. Empty selection hides it.
 - **Closing** — discount 5/10/20% on a multi-select of products for 1–24h. A virtual "اختيارات الشيف" category renders **at the top** of the menu; the same items also appear in their original categories with the discounted price + struck-through original. Driven by `closing_mode_ends_at` and `closing_mode_discount` on `restaurants`, plus `products.is_in_closing_mode`. Auto-reverts to Normal via **lazy revert** (no cron) — `loadMenu` / `GET /api/admin/state` flip it back on the first read after the timer expires.
@@ -65,7 +65,7 @@ Order of precedence for the 3–4 suggestions on `/r/:slug/cart`:
 
 ## Menu freshness
 
-**Default: 30s polling** from the diner page (NetworkFirst on open, then poll). Supabase Realtime is the documented fallback only if polling proves insufficient — do not reach for it first. Service Worker caches HTML/CSS/JS (CacheFirst), API JSON (NetworkFirst with cache fallback), and the last 50 product images (CacheFirst LRU). Offline-after-first-visit is a hard requirement for the diner surface.
+**Default: 30s polling** from the diner page (NetworkFirst on open, then poll). Since the P0 capacity fixes, `/api/menu/[slug]` is also **CDN-cached on Vercel for 10s (+15s stale-while-revalidate)** via `Vercel-CDN-Cache-Control` while the browser/SW keep `Cache-Control: no-store` — so a price or mode change reaches a connected diner within **≤40s** (30 + 10), and every diner's polls in a region collapse into one origin render per 10s. `scripts/smoke-polling-contract.mjs` enforces `fresh + swr < POLL_MS`. Supabase Realtime is the documented fallback only if polling proves insufficient — do not reach for it first. Service Worker caches HTML/CSS/JS (CacheFirst), API JSON (NetworkFirst with cache fallback), and the last 50 product images (CacheFirst LRU). Offline-after-first-visit is a hard requirement for the diner surface.
 
 ## Database (Supabase Postgres, Frankfurt)
 
@@ -106,7 +106,7 @@ Upload → Next.js API route → `sharp` (max 800×800, WebP, quality 80) → Cl
 /owner/dashboard/accounts/:id           account detail
 /owner/dashboard/billing                payment ledger + renewals
 /owner/dashboard/analytics              platform analytics
-/api/menu/:slug                         public menu JSON (30s polling target)
+/api/menu/:slug                         public menu JSON (30s polling target, CDN-cached 10s)
 /api/admin/state                        tenant state polling
 /api/admin/qr-pdf                       A4 QR sheet
 /api/track                              analytics ingest
