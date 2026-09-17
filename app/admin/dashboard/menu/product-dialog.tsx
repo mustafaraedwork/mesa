@@ -16,6 +16,12 @@ import { Field } from '@/components/ui/field';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { createProduct, updateProduct } from './actions';
+import {
+  IMAGE_TOO_LARGE_MESSAGE,
+  UPLOAD_FAILED_MESSAGE,
+  isImageTooLargeError,
+  prepareImageForUpload,
+} from '@/lib/image-client';
 import type { Product } from './menu-view';
 
 type ProductRef = { id: string; name_ar: string };
@@ -69,7 +75,25 @@ export function ProductDialog(props: Props) {
       fd.set('category_id', props.categoryId);
     }
     startTransition(async () => {
-      const r = editing ? await updateProduct(fd) : await createProduct(fd);
+      // P0 fix 4: downscale on the device so the action body stays under the
+      // 4 MB limit, and surface ANY failure (returned or thrown) inside the
+      // dialog — it never closes on error.
+      const picked = fd.get('image');
+      if (picked instanceof File && picked.size > 0) {
+        try {
+          fd.set('image', await prepareImageForUpload(picked));
+        } catch (e) {
+          setError(isImageTooLargeError(e) ? (e as Error).message : IMAGE_TOO_LARGE_MESSAGE);
+          return;
+        }
+      }
+      let r: Awaited<ReturnType<typeof createProduct>> | Awaited<ReturnType<typeof updateProduct>>;
+      try {
+        r = editing ? await updateProduct(fd) : await createProduct(fd);
+      } catch {
+        setError(UPLOAD_FAILED_MESSAGE);
+        return;
+      }
       if (!r.ok) setError(r.error);
       else props.onClose();
     });
