@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { trackMeta } from '@/lib/meta-track';
 
 // Scroll-in reveal: fade + rise 12px, once per section (design note 1c —
 // MOTION). Sections render hidden on the server and are shown the first time
@@ -83,5 +84,24 @@ export function Faq({ items }: { items: FaqItem[] }) {
         );
       })}
     </div>
+  );
+}
+
+// WhatsApp CTA: fires a Meta "Contact" event (pixel + Conversions API, one
+// eventId) before the navigation. The link is a normal <a>, so the visit
+// proceeds even if tracking fails.
+export function ContactLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className: string;
+  children: ReactNode;
+}) {
+  return (
+    <a className={className} href={href} onClick={() => trackMeta('Contact')}>
+      {children}
+    </a>
   );
 }

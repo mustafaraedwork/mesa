@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import Image from 'next/image';
 import Script from 'next/script';
 import './landing.css';
-import { Faq, Reveal, type FaqItem } from './landing-client';
+import { ContactLink, Faq, Reveal, type FaqItem } from './landing-client';
+import { MetaPageView } from '@/components/MetaPageView';
 
 // biziii.io root — the marketing landing page. Ported 1:1 from
 // landing_page/BIZIII Menu Landing (1).html; copy and layout are the
@@ -28,7 +29,10 @@ const CONTACT_HREF = `https://wa.me/${WHATSAPP_NUMBER}`;
 const ADMIN_LOGIN_HREF = 'https://menu.biziii.io/admin';
 
 // Meta Pixel — landing page only. The loader host is allow-listed in the CSP
-// (next.config.ts); the noscript image rides on img-src https:.
+// (next.config.ts). This script only initialises the pixel; PageView is fired
+// by <MetaPageView /> through lib/meta-track.ts so the browser event and the
+// Conversions API copy share one eventId and Meta deduplicates them. No
+// noscript image either: it would be a second, undeduplicated PageView.
 const META_PIXEL_ID = '3806419522830990';
 const META_PIXEL_INIT = `
 !function(f,b,e,v,n,t,s)
@@ -40,7 +44,6 @@ t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '${META_PIXEL_ID}');
-fbq('track', 'PageView');
 `;
 
 const CTA_TRY = 'جرّب المنيو الخاص بك';
@@ -158,16 +161,9 @@ export default function Home() {
       <Script id="meta-pixel" strategy="afterInteractive">
         {META_PIXEL_INIT}
       </Script>
+      <MetaPageView />
       <noscript>
         <style>{'.lp-reveal{opacity:1;transform:none}'}</style>
-        {/* eslint-disable-next-line @next/next/no-img-element -- tracking pixel, not content */}
-        <img
-          height="1"
-          width="1"
-          style={{ display: 'none' }}
-          alt=""
-          src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-        />
       </noscript>
 
       <header className="lp-nav">
@@ -180,9 +176,9 @@ export default function Home() {
               <span className="lp-only-sm">دخول</span>
               <span className="lp-only-lg">دخول أصحاب المطاعم</span>
             </a>
-            <a className="lp-btn" href={CONTACT_HREF}>
+            <ContactLink className="lp-btn" href={CONTACT_HREF}>
               {CTA_TRY}
-            </a>
+            </ContactLink>
           </div>
         </div>
       </header>
@@ -210,9 +206,9 @@ export default function Home() {
                 المعرّضة للتلف.
               </p>
             </div>
-            <a className="lp-btn lp-btn--cta" href={CONTACT_HREF}>
+            <ContactLink className="lp-btn lp-btn--cta" href={CONTACT_HREF}>
               {CTA_TRY_OURS}
-            </a>
+            </ContactLink>
             <p className="lp-note lp-hero__note">{NO_RESTART}</p>
           </div>
 
@@ -452,9 +448,9 @@ export default function Home() {
                   </p>
                 ))}
               </div>
-              <a className="lp-btn lp-btn--cta" href={CONTACT_HREF}>
+              <ContactLink className="lp-btn lp-btn--cta" href={CONTACT_HREF}>
                 {CTA_TRY_NOW}
-              </a>
+              </ContactLink>
             </div>
             <p className="lp-note lp-pricing__note">تدفع بعد ما تشوف المنيو الخاص بك جاهز وتوافق عليه.</p>
           </div>
@@ -471,10 +467,10 @@ export default function Home() {
         <div className="lp-wrap">
           <h2 className="lp-h2">المنيو الخاص بك شنو يسوي غير عرض السعر؟</h2>
           <p className="lp-body">ابعثه بأي شكل، ونرجع لك بمنيو يبيع قبل ما تفتح باچر.</p>
-          <a className="lp-btn lp-btn--final" href={CONTACT_HREF}>
+          <ContactLink className="lp-btn lp-btn--final" href={CONTACT_HREF}>
             <WhatsAppMark />
             <span>{CTA_TRY_NOW}</span>
-          </a>
+          </ContactLink>
           <p className="lp-note">{NO_RESTART}</p>
         </div>
       </Reveal>
