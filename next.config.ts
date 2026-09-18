@@ -10,8 +10,11 @@ import type { NextConfig } from 'next';
 // while the production CSP stays strict and unchanged. This is a dev-tooling
 // concession, not a production security change.
 const IS_DEV = process.env.NODE_ENV !== 'production';
+// In development @vercel/analytics loads its debug script from
+// va.vercel-scripts.com; in production it is served same-origin from
+// /_vercel/insights, so the production policy stays 'self'.
 const SCRIPT_SRC = IS_DEV
-  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com"
   : "script-src 'self' 'unsafe-inline'";
 
 const SECURITY_HEADERS = [

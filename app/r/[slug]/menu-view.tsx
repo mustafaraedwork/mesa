@@ -1,9 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Check, ChevronDown, Plus, Search, Share2, ShoppingBag, Star, UtensilsCrossed } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  MessageCircle,
+  Plus,
+  Search,
+  Share2,
+  ShoppingBag,
+  Star,
+  UtensilsCrossed,
+} from 'lucide-react';
 import { addToCart, getCart, subscribe, type Cart } from '@/lib/cart';
 import {
   DropdownMenu,
@@ -16,6 +26,7 @@ import { readableTextOn } from '@/lib/contrast';
 import { CLOSING_VIRTUAL_CATEGORY_ID } from '@/lib/closing';
 import { track } from '@/lib/track';
 import { WelcomeScreen } from './welcome-screen';
+import { RatingSheet } from './rating-sheet';
 import {
   DiscountBadge,
   MenuImage,
@@ -80,6 +91,8 @@ export function MenuView({
   const [data, setData] = useState<MenuPayload>(initialData);
   const [lang, setLang] = useState<Lang>('ar');
   const [cart, setCart] = useState<Cart>({ items: [], updatedAt: 0 });
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const closeRating = useCallback(() => setRatingOpen(false), []);
   const [started, setStarted] = useState(() => menuOpenedThisLoad);
 
   // Mirror the document to the chosen language (WCAG 3.1.2 / 1.3.2).
@@ -336,27 +349,20 @@ export function MenuView({
             <Share2 className="h-5 w-5" aria-hidden />
           </button>
           <LanguageDropdown lang={lang} onPickLang={pickLang} />
-          <Link
-            href={`/r/${slug}/cart`}
-            prefetch={false}
-            aria-label={t('cart_button', lang)}
-            className={
-              'bg-card border-border-lite shadow-card flex h-11 items-center rounded-full border transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] ' +
-              (cartCount > 0 ? 'gap-1.5 px-3.5' : 'w-11 justify-center')
-            }
+          {/* The cart moved to a floating button at the bottom; this slot is
+              the rating entry point (owner decision 2026-09-18). */}
+          <button
+            type="button"
+            onClick={() => setRatingOpen(true)}
+            className="bg-card border-border-lite shadow-card flex h-11 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
           >
-            <ShoppingBag className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span
-                key={cartCount}
-                className="animate-in zoom-in-50 text-sm font-bold tabular-nums leading-none text-primary duration-200 [animation-timing-function:var(--ease-spring)]"
-              >
-                {cartCount}
-              </span>
-            )}
-          </Link>
+            <MessageCircle className="h-5 w-5" aria-hidden />
+            {t('rate_button', lang)}
+          </button>
         </div>
       </header>
+
+      <RatingSheet slug={slug} lang={lang} open={ratingOpen} onClose={closeRating} />
 
       {/* H3: status region, pre-existing in the DOM so adds are announced. */}
       <p role="status" aria-live="polite" className="sr-only">{announce}</p>
@@ -535,13 +541,25 @@ export function MenuView({
         </>
       )}
 
-      <CartBar
-        slug={slug}
-        count={cartCount}
-        total={cartTotal}
-        currency={r.currency}
-        lang={lang}
-      />
+      {cartCount === 0 ? (
+        <Link
+          href={`/r/${slug}/cart`}
+          prefetch={false}
+          aria-label={t('cart_button', lang)}
+          className="bg-card border-border-lite shadow-lifted fixed bottom-4 z-30 flex h-14 w-14 items-center justify-center rounded-full border transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring] ltr:right-4 rtl:left-4"
+          style={{ bottom: 'calc(var(--spacing-safe-b) + 1rem)' }}
+        >
+          <ShoppingBag className="h-6 w-6" aria-hidden />
+        </Link>
+      ) : (
+        <CartBar
+          slug={slug}
+          count={cartCount}
+          total={cartTotal}
+          currency={r.currency}
+          lang={lang}
+        />
+      )}
     </main>
   );
 }

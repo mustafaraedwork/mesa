@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Palette, SlidersHorizontal, UtensilsCrossed } from 'lucide-react';
+import { BarChart3, Palette, SlidersHorizontal, Star, UtensilsCrossed } from 'lucide-react';
 
 const TABS = [
   { href: '/admin/dashboard/menu', label: 'المنيو', Icon: UtensilsCrossed },
   { href: '/admin/dashboard/modes', label: 'الأوضاع', Icon: SlidersHorizontal },
   { href: '/admin/dashboard/analytics', label: 'التحليلات', Icon: BarChart3 },
+  { href: '/admin/dashboard/ratings', label: 'التقييمات', Icon: Star },
   { href: '/admin/dashboard/design', label: 'التصميم', Icon: Palette },
 ] as const;
 
@@ -15,7 +16,7 @@ export function BottomNav() {
   const pathname = usePathname();
   return (
     <nav className="bg-card fixed inset-x-0 bottom-0 z-20 border-t pb-[var(--spacing-safe-b)]">
-      <ul className="mx-auto grid max-w-3xl grid-cols-4">
+      <ul className="mx-auto grid max-w-3xl grid-cols-5">
         {TABS.map(({ href, label, Icon }) => {
           const active = pathname.startsWith(href);
           return (
