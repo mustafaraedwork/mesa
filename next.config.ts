@@ -13,9 +13,10 @@ const IS_DEV = process.env.NODE_ENV !== 'production';
 // In development @vercel/analytics loads its debug script from
 // va.vercel-scripts.com; in production it is served same-origin from
 // /_vercel/insights, so the production policy stays 'self'.
+// connect.facebook.net: the Meta Pixel on the landing page (app/page.tsx).
 const SCRIPT_SRC = IS_DEV
-  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com"
-  : "script-src 'self' 'unsafe-inline'";
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://connect.facebook.net"
+  : "script-src 'self' 'unsafe-inline' https://connect.facebook.net";
 
 const SECURITY_HEADERS = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
