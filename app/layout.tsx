@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 // Self-hosted fonts via next/font/local — vendored under app/fonts/ (OFL-1.1,
@@ -53,7 +54,10 @@ export default function RootLayout({
       dir="rtl"
       className={`${vazirmatn.variable} ${notoSansArabic.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
-      <body className="font-sans flex min-h-full flex-col">{children}</body>
+      <body className="font-sans flex min-h-full flex-col">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

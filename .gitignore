@@ -46,3 +46,6 @@ scripts/rotate-secrets-checklist.local.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase cli scratch
+supabase/.temp/
