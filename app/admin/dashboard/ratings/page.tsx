@@ -24,12 +24,14 @@ type RatingRow = {
 
 const OVERALL_FACE = ['', '😠', '🙁', '😐', '🙂', '😄'] as const;
 
-const dateFmt = new Intl.DateTimeFormat('ar-IQ-u-nu-latn', {
+// Digits-only (dd/MM HH:mm, Baghdad) so the LTR cell never bidi-scrambles.
+const dateFmt = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Baghdad',
   day: '2-digit',
   month: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
+  hour12: false,
 });
 
 function avg(rows: RatingRow[], key: keyof RatingRow): string {
@@ -99,32 +101,32 @@ export default async function RatingsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>التاريخ</TableHead>
-                    <TableHead>الاسم</TableHead>
-                    <TableHead>الهاتف</TableHead>
+                    <TableHead className="text-center">العامة</TableHead>
                     <TableHead className="text-center">الموظفون</TableHead>
                     <TableHead className="text-center">الخدمة</TableHead>
                     <TableHead className="text-center">النظافة</TableHead>
-                    <TableHead className="text-center">العامة</TableHead>
-                    <TableHead>التعليق</TableHead>
+                    <TableHead>الاسم</TableHead>
+                    <TableHead>الهاتف</TableHead>
+                    <TableHead className="min-w-56">التعليق</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="whitespace-nowrap font-mono text-caption tabular-nums" dir="ltr">
-                        {dateFmt.format(new Date(r.created_at))}
+                        {dateFmt.format(new Date(r.created_at)).replace(',', '')}
                       </TableCell>
-                      <TableCell className="max-w-32 truncate">{r.name ?? '–'}</TableCell>
-                      <TableCell className="whitespace-nowrap font-mono tabular-nums" dir="ltr">
-                        {r.phone ?? '–'}
+                      <TableCell className="text-center">
+                        <span aria-label={String(r.overall_score)}>{OVERALL_FACE[r.overall_score]}</span>
                       </TableCell>
                       <TableCell className="text-center font-mono tabular-nums">{r.staff_score}</TableCell>
                       <TableCell className="text-center font-mono tabular-nums">{r.service_score}</TableCell>
                       <TableCell className="text-center font-mono tabular-nums">{r.clean_score}</TableCell>
-                      <TableCell className="text-center">
-                        <span aria-label={String(r.overall_score)}>{OVERALL_FACE[r.overall_score]}</span>
+                      <TableCell className="max-w-40 truncate">{r.name ?? '–'}</TableCell>
+                      <TableCell className="whitespace-nowrap font-mono tabular-nums" dir="ltr">
+                        {r.phone ?? '–'}
                       </TableCell>
-                      <TableCell className="max-w-64 whitespace-pre-wrap text-sm">{r.comment ?? '–'}</TableCell>
+                      <TableCell className="min-w-56 max-w-80 whitespace-normal text-sm">{r.comment ?? '–'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
