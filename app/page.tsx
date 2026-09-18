@@ -21,6 +21,11 @@ const WHATSAPP_NUMBER =
   process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, '') || '9647845663136';
 const CONTACT_HREF = `https://wa.me/${WHATSAPP_NUMBER}`;
 
+// Absolute on purpose: the landing also serves biziii.io / www, but the tenant
+// session cookie is host-only on menu.biziii.io (docs/COMPANY-CONTEXT.md §4),
+// so owners must sign in there and nowhere else.
+const ADMIN_LOGIN_HREF = 'https://menu.biziii.io/admin';
+
 const CTA_TRY = 'جرّب المنيو الخاص بك';
 const CTA_TRY_OURS = 'جرّب المنيو الخاص بك على نظامنا';
 const CTA_TRY_NOW = 'جرّب المنيو الخاص بك الآن';
@@ -142,9 +147,15 @@ export default function Home() {
           <a className="lp-brand" href="#top">
             BIZIII
           </a>
-          <a className="lp-btn" href={CONTACT_HREF}>
-            {CTA_TRY}
-          </a>
+          <div className="lp-nav__actions">
+            <a className="lp-nav__login" href={ADMIN_LOGIN_HREF}>
+              <span className="lp-only-sm">دخول</span>
+              <span className="lp-only-lg">دخول أصحاب المطاعم</span>
+            </a>
+            <a className="lp-btn" href={CONTACT_HREF}>
+              {CTA_TRY}
+            </a>
+          </div>
         </div>
       </header>
 
@@ -450,6 +461,7 @@ export default function Home() {
             <a href="#pricing">الأسعار</a>
             <a href="#faq">الأسئلة</a>
             <a href="#contact">تواصل</a>
+            <a href={ADMIN_LOGIN_HREF}>دخول أصحاب المطاعم</a>
           </div>
         </div>
       </footer>

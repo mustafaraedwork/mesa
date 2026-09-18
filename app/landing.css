@@ -55,7 +55,11 @@
 .lp-nav__in { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1.25rem; }
 .lp-brand { font-size: 1rem; font-weight: 700; letter-spacing: .08em; direction: ltr; color: inherit; }
 .lp a.lp-brand, .lp a.lp-brand:hover { color: inherit; }
-.lp-nav .lp-btn { padding: .5rem .875rem; font-size: .8125rem; }
+.lp-nav .lp-btn { padding: .5rem .875rem; font-size: .8125rem; white-space: nowrap; }
+.lp-only-lg { display: none; }
+.lp-nav__actions { display: flex; align-items: center; gap: .875rem; }
+.lp-nav__login { font-size: .8125rem; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.lp-nav__login:hover { color: var(--cta); }
 
 /* ── sections ────────────────────────────────────────────────────────── */
 .lp-sec { border-top: 1px solid var(--hair); }
@@ -234,6 +238,10 @@
   .lp-nav__in { max-width: 1120px; margin: 0 auto; padding: 1.125rem 2rem; }
   .lp-brand { font-size: 1.25rem; }
   .lp-nav .lp-btn { padding: .6875rem 1.25rem; font-size: .9375rem; }
+  .lp-nav__actions { gap: 1.5rem; }
+  .lp-only-sm { display: none; }
+  .lp-only-lg { display: inline; }
+  .lp-nav__login { font-size: .9375rem; }
 
   .lp-wrap { max-width: 1120px; margin: 0 auto; padding: 6rem 2rem; }
   .lp-sec--roomy .lp-wrap { padding: 8rem 2rem; }
