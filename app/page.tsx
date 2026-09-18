@@ -401,7 +401,6 @@ export default function Home() {
           <p className="lp-note lp-pricing__sub">لا تحتاج تبدأ من الصفر.</p>
           <div className="lp-pricing__box">
             <div className="lp-price">
-              <div className="lp-price__badge">أول 100 مطعم: 79,000 د.ع وثبات السعر عند التجديد</div>
               <div className="lp-price__num">
                 <span className="lp-price__hi" aria-hidden="true" />
                 <span className="lp-price__val lp-mono">99,000 د.ع</span>
