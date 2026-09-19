@@ -33,6 +33,9 @@ const ADMIN_LOGIN_HREF = 'https://menu.biziii.io/admin';
 // by <MetaPageView /> through lib/meta-track.ts so the browser event and the
 // Conversions API copy share one eventId and Meta deduplicates them. No
 // noscript image either: it would be a second, undeduplicated PageView.
+// The init also passes the first-party visitor id (biz_uid cookie, minted here
+// if missing — same cookie lib/meta-track.ts and /api/meta/events use) as
+// external_id, so the pixel and the Conversions API describe the same person.
 const META_PIXEL_ID = '3806419522830990';
 const META_PIXEL_INIT = `
 !function(f,b,e,v,n,t,s)
@@ -43,7 +46,16 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${META_PIXEL_ID}');
+(function(){
+  var m=document.cookie.match(/(?:^|; )biz_uid=([0-9a-f-]{36})/i);
+  var id=m?m[1]:null;
+  if(!id){
+    id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12));
+    var h=location.hostname, d=(h==='biziii.io'||/\\.biziii\\.io$/.test(h))?'; Domain=.biziii.io':'';
+    document.cookie='biz_uid='+id+'; Max-Age=31536000; Path=/; SameSite=Lax'+d+(location.protocol==='https:'?'; Secure':'');
+  }
+  fbq('init', '${META_PIXEL_ID}', { external_id: id });
+})();
 `;
 
 const CTA_TRY = 'جرّب المنيو الخاص بك';

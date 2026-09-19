@@ -69,7 +69,7 @@ Order of precedence for the 3–4 suggestions on `/r/:slug/cart`:
 
 ## Database (Supabase Postgres, Frankfurt)
 
-9 tables — the 5 in `prd.md` §4.3 (`restaurants`, `categories`, `products`, `complementary_categories`, `tenant_sessions`) plus `events` (`0003`, analytics), `payments` (`0011`, billing ledger), `login_attempts` (`0015`, the rate-limit window) and `ratings` (`0020`, diner ratings from the «تقييم» sheet; written by `/api/rate`, read by the tenant «التقييمات» tab). Key constraints:
+10 tables — the 5 in `prd.md` §4.3 (`restaurants`, `categories`, `products`, `complementary_categories`, `tenant_sessions`) plus `events` (`0003`, analytics), `payments` (`0011`, billing ledger), `login_attempts` (`0015`, the rate-limit window) `ratings` (`0020`, diner ratings from the «تقييم» sheet; written by `/api/rate`, read by the tenant «التقييمات» tab) and `landing_leads` (`0021`, name + phone captured by the pre-WhatsApp modal on the landing page via `/api/leads`). Key constraints:
 
 - `categories` is **2-level only** (`parent_id` self-FK, no grandchildren). Enforced in app code *and* by a DB trigger (`categories_enforce_two_levels`, migration `0009`).
 - `products.suggestions_type` is `'default' | 'custom'`; `custom_suggestion_ids UUID[]` is only meaningful when `'custom'`.

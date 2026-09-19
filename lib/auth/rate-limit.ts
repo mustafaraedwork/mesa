@@ -26,6 +26,8 @@ export const LIMIT_TRACK_PER_SLUG_IP = { max: 600, windowSeconds: 60 } as const;
 export const LIMIT_TRACK_PER_SLUG = { max: 3000, windowSeconds: 60 } as const;
 // /api/rate (0020): a whole table behind one router still fits; a script does not.
 export const LIMIT_RATE_PER_SLUG_IP = { max: 10, windowSeconds: 10 * 60 } as const;
+// /api/leads (0021): a person retries a typo or two; a script does not.
+export const LIMIT_LEAD_PER_IP = { max: 8, windowSeconds: 10 * 60 } as const;
 
 // Fails CLOSED. A rate limiter that opens up whenever the database hiccups is
 // not a rate limiter. Both call sites tolerate this well: login cannot proceed

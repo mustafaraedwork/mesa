@@ -15,6 +15,10 @@ export type MetaEventInput = {
   email?: string | null;
   phone?: string | null;
   externalId?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  city?: string | null;
+  country?: string | null;
   customData?: Record<string, unknown>;
   testEventCode?: string;
 };
@@ -25,10 +29,10 @@ function sha256(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
-function normalizeEmail(raw: string): string | null {
+const lower = (raw: string): string | null => {
   const v = raw.trim().toLowerCase();
   return v ? v : null;
-}
+};
 
 // Iraqi numbers: digits only; "00964…" → "964…"; a local "07…" → "9647…".
 export function normalizePhone(raw: string): string | null {
@@ -36,6 +40,18 @@ export function normalizePhone(raw: string): string | null {
   if (digits.startsWith('00')) digits = digits.slice(2);
   else if (digits.startsWith('0')) digits = '964' + digits.slice(1);
   return digits ? digits : null;
+}
+
+// Meta wants city as lowercase letters only (no spaces or punctuation).
+function normalizeCity(raw: string): string | null {
+  const v = raw.trim().toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  return v ? v : null;
+}
+
+// Two-letter ISO code, lowercase.
+function normalizeCountry(raw: string): string | null {
+  const v = raw.trim().toLowerCase();
+  return /^[a-z]{2}$/.test(v) ? v : null;
 }
 
 export async function sendMetaEvent(input: MetaEventInput): Promise<void> {
@@ -52,12 +68,25 @@ export async function sendMetaEvent(input: MetaEventInput): Promise<void> {
   if (input.clientIp) userData.client_ip_address = input.clientIp;
   if (input.fbp) userData.fbp = input.fbp;
   if (input.fbc) userData.fbc = input.fbc;
-  const email = input.email ? normalizeEmail(input.email) : null;
-  if (email) userData.em = [sha256(email)];
-  const phone = input.phone ? normalizePhone(input.phone) : null;
-  if (phone) userData.ph = [sha256(phone)];
-  const externalId = input.externalId?.trim().toLowerCase();
-  if (externalId) userData.external_id = [sha256(externalId)];
+
+  const hashed = (raw: string | null | undefined, normalize: (v: string) => string | null) => {
+    const v = raw ? normalize(raw) : null;
+    return v ? [sha256(v)] : null;
+  };
+  const em = hashed(input.email, lower);
+  const ph = hashed(input.phone, normalizePhone);
+  const externalId = hashed(input.externalId, lower);
+  const fn = hashed(input.firstName, lower);
+  const ln = hashed(input.lastName, lower);
+  const ct = hashed(input.city, normalizeCity);
+  const country = hashed(input.country, normalizeCountry);
+  if (em) userData.em = em;
+  if (ph) userData.ph = ph;
+  if (externalId) userData.external_id = externalId;
+  if (fn) userData.fn = fn;
+  if (ln) userData.ln = ln;
+  if (ct) userData.ct = ct;
+  if (country) userData.country = country;
 
   const body: Record<string, unknown> = {
     data: [
