@@ -43,6 +43,8 @@ const ibmPlexMono = localFont({
 export const metadata: Metadata = {
   title: 'BIZIII Menu',
   description: 'منيو رقمي للمطاعم — BIZIII Menu',
+  // Meta domain verification for biziii.io — must be server-rendered in <head>.
+  verification: { other: { 'facebook-domain-verification': 'qvmcimn8rw8uoyzzp3ae00wf7m4i98' } },
 };
 
 export default function RootLayout({
