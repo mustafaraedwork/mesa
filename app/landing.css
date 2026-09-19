@@ -3,7 +3,8 @@
    Mobile values first, desktop overrides at ≥1024px. Colors, type, spacing and
    motion follow the design's annotation layer (1c). */
 
-.lp {
+/* .lp-modal is portaled to <body>, outside .lp, so it needs the same tokens. */
+.lp, .lp-modal {
   --ink: #1f1410;
   --paper: #faf7f2;
   --cta: #992225;
@@ -352,7 +353,7 @@
 }
 
 /* ── lead modal (before WhatsApp) ────────────────────────────────────── */
-.lp-modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; padding: 1rem; background: rgba(31, 20, 16, 0.55); animation: lp-fade .2s var(--spring); }
+.lp-modal { overflow: visible; min-height: 0; position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; padding: 1rem; background: rgba(31, 20, 16, 0.55); animation: lp-fade .2s var(--spring); }
 .lp-modal__card { position: relative; width: 100%; max-width: 26rem; background: var(--paper); color: var(--ink); border: 1px solid var(--hair); border-radius: 20px; padding: 1.75rem 1.25rem 1.25rem; box-shadow: 0 30px 60px -20px rgba(31, 20, 16, 0.45); animation: lp-rise .35s var(--spring); }
 .lp-modal__close { position: absolute; top: .75rem; left: .75rem; width: 2.25rem; height: 2.25rem; border: 1px solid var(--hair); border-radius: 999px; background: #fff; color: rgba(31, 20, 16, 0.6); font: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer; }
 .lp-modal__title { margin: 0 0 .5rem; padding-left: 2.5rem; font-size: 1.375rem; line-height: 1.25; letter-spacing: -.01em; font-weight: 700; }
@@ -362,7 +363,7 @@
 .lp-modal__input:focus { outline: 2px solid var(--cta); outline-offset: 1px; border-color: var(--cta); }
 .lp-modal__input--ltr { direction: ltr; text-align: start; font-family: var(--mono); letter-spacing: .04em; }
 .lp-modal__error { margin: -.25rem 0 .75rem; font-size: .875rem; line-height: 1.5; color: var(--cta); }
-.lp-modal__submit { margin-top: .25rem; }
+.lp-modal .lp-modal__submit { width: 100%; margin-top: .25rem; }
 .lp-modal__skip { display: block; width: 100%; margin-top: .875rem; padding: .5rem; background: none; border: 0; font: inherit; font-size: .875rem; color: rgba(31, 20, 16, 0.55); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .lp-modal__skip:hover { color: var(--cta); }
 @keyframes lp-fade { from { opacity: 0; } }
